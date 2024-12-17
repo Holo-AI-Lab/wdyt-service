@@ -1,0 +1,35 @@
+server:
+  port: 3333
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+configuration:
+  topListCount: 3
+aws:
+  region: us-east-1
+  profile: wdyt-test
+  secret-name: wdyt-test-environment
+  s3:
+    bucket: wdyt-test-bucket
+    endpoint: https://duoymrhqgte1g.cloudfront.net
+integrations:
+  create-robot:
+    url: https://test.the2nd.ai/aiCompanion/api/wdyt/robot/createRobot
+  background-extraction:
+    url: http://ec2-54-83-243-217.compute-1.amazonaws.com:4321/bg/remove
+  image-classification:
+    url: http://ec2-54-83-243-217.compute-1.amazonaws.com:7654/upload
+spring:
+  application:
+    name: wdyt-service
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+  datasource:
+    class: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/wdyt
+  jpa:
+    show-sql: false      # Show SQL queries in the console

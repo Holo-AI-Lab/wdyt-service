@@ -1,0 +1,25 @@
+server:
+  port: 3333
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+aws:
+  region: ${AWS_REGION}
+  profile: ${AWS_PROFILE}
+  secret-name: ${AWS_SECRET_NAME}
+  s3:
+    bucket: ${S3_BUCKET_NAME}
+    endpoint: ${S3_ENDPOINT}
+integrations:
+  create-robot:
+    url: ${CREATE_ROBOT_URL}
+  background-extraction:
+    url: ${BACKGROUND_EXTRACTION_URL}
+spring:
+  datasource:
+    class: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL}
+  jpa:
+    show-sql: false      # Show SQL queries in the console
