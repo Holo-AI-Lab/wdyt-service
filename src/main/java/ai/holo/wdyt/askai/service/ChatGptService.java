@@ -47,7 +47,7 @@ public class ChatGptService {
                 })
                 .doOnNext(responseBody -> log.error("Response Body: {}", responseBody))
                 .then(Mono.error(new RuntimeException(
-                        String.format("%s: %s ", errorType, clientResponse.statusCode())
+                        String.format("Error on gpt service call - %s: %s ", errorType, clientResponse.statusCode())
                 )));
     }
 

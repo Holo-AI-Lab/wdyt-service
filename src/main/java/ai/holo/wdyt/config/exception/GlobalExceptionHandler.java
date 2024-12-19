@@ -46,6 +46,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(ex.getMessage()));
     }
 
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(value = Exception.class)
+    @ResponseBody
+    public ResponseEntity<ErrorResponse> handleBadRequestException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                new ErrorResponse(String.format("Unexpected error: %s", ex.getMessage())));
+    }
+
     public record ErrorResponse(String message) {
     }
 }
