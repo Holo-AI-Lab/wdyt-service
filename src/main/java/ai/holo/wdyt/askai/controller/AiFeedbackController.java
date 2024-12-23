@@ -1,8 +1,10 @@
 package ai.holo.wdyt.askai.controller;
 
 import ai.holo.wdyt.askai.model.dto.*;
+import ai.holo.wdyt.askai.model.entity.AiFeedback;
 import ai.holo.wdyt.askai.service.AiFeedbackService;
-import jakarta.websocket.server.PathParam;
+import ai.holo.wdyt.user.model.dto.UserDto;
+import ai.holo.wdyt.user.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
@@ -15,16 +17,21 @@ import java.time.ZonedDateTime;
 @RequestMapping("/api/v1/ai-feedbacks")
 public class AiFeedbackController {
     private final AiFeedbackService aiFeedbackService;
+    private final UserService userService;
 
-    public AiFeedbackController(AiFeedbackService aiFeedbackService) {
+    public AiFeedbackController(AiFeedbackService aiFeedbackService, UserService userService) {
         this.aiFeedbackService = aiFeedbackService;
+        this.userService = userService;
     }
 
     @PostMapping("/submit-image")
     public AiFeedbackDetailedDto submitImage(@RequestParam("image") MultipartFile image,
                                      @RequestParam("clientIpAddress") String clientIpAddress,
                                      @RequestParam("clientTime")ZonedDateTime clientTime) throws IOException {
-        return aiFeedbackService.askAi(image.getBytes(), clientIpAddress, clientTime);
+
+        UserDto userInfo = userService.getUserInfo();
+        AiFeedback aiFeedback = aiFeedbackService.executeGptCall(image.getBytes(), clientIpAddress, clientTime, userInfo);
+        return aiFeedbackService.saveAiResponse(aiFeedback, userInfo);
     }
 
     @GetMapping("/")

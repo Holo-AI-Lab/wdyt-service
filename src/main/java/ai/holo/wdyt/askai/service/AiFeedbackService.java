@@ -37,6 +37,7 @@ import java.util.List;
 public class AiFeedbackService {
     public static final String BODY_JSON_FORMATTING_PROMPT = " We would like the response in this format: {\"outfit_style\":\"string\",\"style_match\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"outfit_details\":[{\"item\":\"string\",\"color\":\"string\",\"description\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"outfit\":[{\"x\":int,\"y\":int}],\"enhancements\":[{\"x\":int,\"y\":int}]},\"summary\":\"string\",\"compliment\":\"string\"}";
     public static final String HEAD_JSON_FORMATTING_PROMPT = " We would like the response in this format: {\"head_style\":\"string\",\"style_face_fit\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"detailed_elements\":[{\"item\":\"string\",\"description\":\"string\",\"color\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"elements\":[{\"x\":int,\"y\":int}],\"enhancements\":[{\"x\":int,\"y\":int}]},\"summary\":\"string\",\"compliment\":\"string\"}";
+    public static final int MAX_RETRY_COUNT = 3;
     private final ChatGptService chatGptService;
     private final S3Service s3Service;
     private final BackgroundExtractionService backgroundExtractionService;
@@ -71,11 +72,10 @@ public class AiFeedbackService {
         this.aiFeedbackOrderRepository = aiFeedbackOrderRepository;
     }
 
-    public AiFeedbackDetailedDto askAi(byte[] image, String clientIpAddress, ZonedDateTime clientTime) {
-        UserDto userInfo = userService.getUserInfo();
+    public AiFeedback executeGptCall(byte[] image, String clientIpAddress, ZonedDateTime clientTime, UserDto userInfo) {
         long currentTimeMillis = System.currentTimeMillis();
         // Save Raw image
-        String rawImagePath = saveRawImage(new ByteArrayInputStream(image), userInfo, currentTimeMillis);
+        String rawImagePath = saveRawImageOnS3(new ByteArrayInputStream(image), userInfo, currentTimeMillis);
 
         // Classify image
         ImageType imageType = imageClassificationService.classifyImage(image);
@@ -85,7 +85,7 @@ public class AiFeedbackService {
 
         // Extract background and save extracted image
         InputStream extractedImage = backgroundExtractionService.extractBackground(image);
-        String extractedImagePath = saveExtractedImage(userInfo, currentTimeMillis, extractedImage);
+        String extractedImagePath = saveExtractedImageOnS3(userInfo, currentTimeMillis, extractedImage);
 
         // Get location by IP
         String locationByIp = ipGeoLocationService.getLocationByIp(clientIpAddress);
@@ -93,17 +93,56 @@ public class AiFeedbackService {
         // Send prompt with image to ChatGPT
         ChatGptPrompt prompt = promptService.getPrompt(imageType);
         String promptText = getPromptText(prompt, locationByIp, clientTime);
-        String gptResponse = chatGptService.sendPromptWithImage(getFileS3Url(extractedImagePath), promptText);
+
+        // Call ChatGPT with retries
+        String gptResponse = sendPromptWithRetries(getFileS3Url(extractedImagePath), promptText, imageType);
 
         AiSubmissionOrder orders = getOrder(userInfo);
         // Save AI response
-        AiFeedback savedAiFeedback = aiFeedbackRepository.save(new AiFeedback(userInfo.id(), prompt.getId(),
-                gptResponse, rawImagePath, imageType, extractedImagePath, orders.topListOrder(), orders.order(), locationByIp));
+        return new AiFeedback(userInfo.id(), prompt.getId(),
+                gptResponse, rawImagePath, imageType, extractedImagePath, orders.topListOrder(), orders.order(), locationByIp);
+    }
 
-        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(savedAiFeedback);
+    private String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
+        int retries = MAX_RETRY_COUNT;
+        for (int i = 0; i < retries; i++) {
+            try {
+                // Attempt to send the prompt and extract the response
+                String gptResponse = chatGptService.sendPromptWithImage(extractedImagePath, promptText);
+                extractResponse(gptResponse, imageType);
+                return gptResponse; // Return the response if successful
+            } catch (RuntimeException e) {
+                if (i == retries - 1) { // If it's the last attempt, rethrow the exception
+                    throw new BadRequestException("Failed to get response from AI service");
+                }
+                // Log the retry attempt
+                log.warn("Retrying sendPromptWithImage due to failure: " + e.getMessage());
+
+                // Sleep for 500ms before retrying
+                sleep500Millis();
+            }
+        }
+        throw new IllegalStateException("Unexpected error in retry logic"); // Should never reach here
+    }
+
+    private void sleep500Millis() {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt(); // Restore interrupted status
+            throw new RuntimeException("Retry was interrupted", interruptedException);
+        }
+    }
+
+    @Transactional
+    public AiFeedbackDetailedDto saveAiResponse(AiFeedback aiFeedback, UserDto userInfo) {
+        AiFeedback savedAiFeedback = aiFeedbackRepository.save(aiFeedback);
+
+        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(savedAiFeedback.getResponse(), savedAiFeedback.getImageType());
         return new AiFeedbackDetailedDto(savedAiFeedback, analysis.getLeft(), analysis.getRight(),
                 getFileS3Url(savedAiFeedback.getExtractedImagePath()), userInfo);
     }
+
 
     private AiSubmissionOrder getOrder(UserDto user) {
         Integer topListOrder = null;
@@ -136,15 +175,11 @@ public class AiFeedbackService {
 
     }
 
-    private Pair<OutfitAnalysis, HeadStyleAnalysis> extractResponse(AiFeedback aiFeedback) {
+    private Pair<OutfitAnalysis, HeadStyleAnalysis> extractResponse(String response, ImageType imageType) {
         try {
-            String response = aiFeedback.getResponse();
-            ImageType imageType = aiFeedback.getImageType();
-
             AIResponsePayload aiResponsePayload = new ObjectMapper().readValue(response, AIResponsePayload.class);
             String rawContent = aiResponsePayload.choices().get(0).message().content();
             String content = JsonUtils.preprocessGptJson(rawContent);
-            log.info("Extracted response for image type {}: {}", imageType.name(), content);
             OutfitAnalysis outfitAnalysis = null;
             HeadStyleAnalysis headStyleAnalysis = null;
             if (ImageType.BODY.equals(imageType)) {
@@ -163,13 +198,13 @@ public class AiFeedbackService {
         return String.format("%s/%s", s3Endpoint, path);
     }
 
-    private String saveExtractedImage(UserDto user, long currentTimeMillis, InputStream extractedImage) {
+    private String saveExtractedImageOnS3(UserDto user, long currentTimeMillis, InputStream extractedImage) {
         String path = String.format("%d/%d/extracted_%d.png", user.id(), currentTimeMillis, currentTimeMillis);
         s3Service.saveImage(extractedImage, path);
         return path;
     }
 
-    private String saveRawImage(InputStream image, UserDto user, long currentTimeMillis) {
+    private String saveRawImageOnS3(InputStream image, UserDto user, long currentTimeMillis) {
         String path = String.format("%d/%d/raw_%d.png", user.id(), currentTimeMillis, currentTimeMillis);
         s3Service.saveImage(image, path);
         return path;
@@ -239,7 +274,7 @@ public class AiFeedbackService {
         if (!aiFeedback.getUserId().equals(user.getId())) {
             throw new NotFoundException();
         }
-        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(aiFeedback);
+        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(aiFeedback.getResponse(), aiFeedback.getImageType());
         return new AiFeedbackDetailedDto(aiFeedback, analysis.getLeft(), analysis.getRight(),
                 getFileS3Url(aiFeedback.getExtractedImagePath()), userService.getUserInfo());
     }

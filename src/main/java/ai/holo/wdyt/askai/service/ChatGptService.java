@@ -26,7 +26,7 @@ public class ChatGptService {
         List<Message> messages = List.of(new Message("user", List.of(new MessageContent("text", promptText, null),
                 new MessageContent("image_url", null, new ImageAttachment(imageUrl)))));
 
-        ChatGPTRequest request = new ChatGPTRequest("gpt-4o-mini", messages);
+        ChatGPTRequest request = new ChatGPTRequest("gpt-4o", messages);
 
         return webClient.post()
                 .contentType(MediaType.APPLICATION_JSON)
