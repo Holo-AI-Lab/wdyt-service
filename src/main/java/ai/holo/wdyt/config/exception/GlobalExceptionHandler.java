@@ -2,6 +2,7 @@ package ai.holo.wdyt.config.exception;
 
 import ai.holo.wdyt.common.exception.AuthenticationException;
 import ai.holo.wdyt.common.exception.BadRequestException;
+import ai.holo.wdyt.common.exception.InvalidImageException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = BadRequestException.class)
     @ResponseBody
     public ResponseEntity<ErrorResponse> handleBadRequestException(BadRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(ex.getMessage()));
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(value = InvalidImageException.class)
+    @ResponseBody
+    public ResponseEntity<ErrorResponse> handleInvalidImageException(InvalidImageException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(ex.getMessage()));
     }
 

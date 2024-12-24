@@ -26,8 +26,8 @@ spring:
     name: wdyt-service
   servlet:
     multipart:
-      max-file-size: 5MB
-      max-request-size: 5MB
+      max-file-size: 10MB
+      max-request-size: 10MB
   datasource:
     class: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/wdyt

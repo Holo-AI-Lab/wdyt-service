@@ -1,6 +1,6 @@
 package ai.holo.wdyt.askai.service;
 
-import ai.holo.wdyt.common.exception.BadRequestException;
+import ai.holo.wdyt.common.exception.InvalidImageException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -24,7 +24,7 @@ public class BackgroundExtractionService {
         this.webClient = WebClient.builder().baseUrl(backgroundExtractionApiUrl).build();
     }
 
-    public InputStream extractBackground(byte[] image) {
+    public InputStream extractBackground(byte[] image, String rawImagePath) {
         ByteArrayResource byteArrayResource = new ByteArrayResource(image) {
             @Override
             public String getFilename() {
@@ -42,8 +42,8 @@ public class BackgroundExtractionService {
                 .retrieve()
                 .bodyToMono(byte[].class).block();
         if (response == null) {
-            log.error("Failed to extract background");
-            throw new BadRequestException("Provided image is not appropriate for AI processing.");
+            log.error("Failed to extract background for image: {}", rawImagePath);
+            throw new InvalidImageException();
         }
         return new ByteArrayInputStream(response);
     }

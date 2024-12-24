@@ -10,6 +10,7 @@ import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.common.JsonUtils;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.exception.BadRequestException;
+import ai.holo.wdyt.common.exception.InvalidImageException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.model.entity.User;
@@ -84,7 +85,7 @@ public class AiFeedbackService {
         }
 
         // Extract background and save extracted image
-        InputStream extractedImage = backgroundExtractionService.extractBackground(image);
+        InputStream extractedImage = backgroundExtractionService.extractBackground(image, rawImagePath);
         String extractedImagePath = saveExtractedImageOnS3(userInfo, currentTimeMillis, extractedImage);
 
         // Get location by IP
@@ -106,14 +107,16 @@ public class AiFeedbackService {
     private String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
         int retries = MAX_RETRY_COUNT;
         for (int i = 0; i < retries; i++) {
+            String gptResponse = null;
             try {
                 // Attempt to send the prompt and extract the response
-                String gptResponse = chatGptService.sendPromptWithImage(extractedImagePath, promptText);
+                gptResponse = chatGptService.sendPromptWithImage(extractedImagePath, promptText);
                 extractResponse(gptResponse, imageType);
                 return gptResponse; // Return the response if successful
             } catch (RuntimeException e) {
                 if (i == retries - 1) { // If it's the last attempt, rethrow the exception
-                    throw new BadRequestException("Failed to get response from AI service");
+                    log.error("Failed to get response from AI service. Response: {}", gptResponse);
+                    throw new InvalidImageException();
                 }
                 // Log the retry attempt
                 log.warn("Retrying sendPromptWithImage due to failure: " + e.getMessage());
