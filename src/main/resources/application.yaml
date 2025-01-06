@@ -21,6 +21,8 @@ integrations:
     url: http://ec2-54-83-243-217.compute-1.amazonaws.com:4321/bg/remove
   image-classification:
     url: http://ec2-54-83-243-217.compute-1.amazonaws.com:7654/upload
+  weather:
+    api-key: 43837f96e63b4f89a32151818250301
 spring:
   application:
     name: wdyt-service
@@ -33,3 +35,4 @@ spring:
     url: jdbc:mysql://localhost:3306/wdyt
   jpa:
     show-sql: false      # Show SQL queries in the console
+    database-platform: org.hibernate.dialect.MySQLDialect

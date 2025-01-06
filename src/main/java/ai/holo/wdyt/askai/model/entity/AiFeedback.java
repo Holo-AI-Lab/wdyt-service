@@ -1,5 +1,6 @@
 package ai.holo.wdyt.askai.model.entity;
 
+import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,12 +39,13 @@ public class AiFeedback {
     private Integer topListOrder;
     @Column(name = "standard_order")
     private Integer order;
-    @Column(name = "location")
-    private String location;
+    @Convert(converter = LocationAndWeatherConverter.class)
+    @Column(name = "location_and_weather")
+    private LocationAndWeatherDto locationAndWeather;
 
     public AiFeedback(Long userId, Long promptId, String response, String rawImagePath,
                       ImageType imageType, String extractedImagePath, Integer topListOrder,
-                      Integer order, String location) {
+                      Integer order, LocationAndWeatherDto locationAndWeather) {
         this.userId = userId;
         this.promptId = promptId;
         this.response = response;
@@ -53,6 +55,6 @@ public class AiFeedback {
         this.createdAt = LocalDateTime.now();
         this.topListOrder = topListOrder;
         this.order = order;
-        this.location = location;
+        this.locationAndWeather = locationAndWeather;
     }
 }

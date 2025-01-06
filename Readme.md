@@ -44,7 +44,7 @@ like_style BOOLEAN DEFAULT false,
 like_ai_response BOOLEAN NULL,
 top_list_order INT(11) NULL,
 standard_order INT(11) NULL,
-location VARCHAR(500) NULL,
+location_and_weather TEXT NULL,
 FOREIGN KEY (user_id) REFERENCES user(id),
 FOREIGN KEY (prompt_id) REFERENCES gpt_prompt(id)
 );

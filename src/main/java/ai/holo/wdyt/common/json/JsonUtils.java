@@ -1,4 +1,4 @@
-package ai.holo.wdyt.common;
+package ai.holo.wdyt.common.json;
 
 public class JsonUtils {
 

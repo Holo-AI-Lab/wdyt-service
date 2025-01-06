@@ -1,7 +1,7 @@
 package ai.holo.wdyt.askai.service;
 
 import ai.holo.wdyt.askai.model.dto.OutfitAnalysis;
-import ai.holo.wdyt.common.JsonUtils;
+import ai.holo.wdyt.common.json.JsonUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

@@ -51,6 +51,11 @@ public class AiFeedbackController {
         aiFeedbackService.swapFeedbackOrders(swapAiFeedbackDto);
     }
 
+    @PostMapping("/unpin")
+    public void unPinFromTopList(@RequestBody UnpinAiFeedbackDto unpinAiFeedbackDto) {
+        aiFeedbackService.unPinFromTopList(unpinAiFeedbackDto);
+    }
+
     @PostMapping("/like-style")
     public AiFeedbackDto likeStyle(@RequestBody LikeStyleDto likeStyleDto) {
         return aiFeedbackService.likeStyle(likeStyleDto);

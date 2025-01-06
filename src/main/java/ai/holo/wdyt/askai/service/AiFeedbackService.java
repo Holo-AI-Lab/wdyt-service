@@ -7,11 +7,13 @@ import ai.holo.wdyt.askai.model.entity.ChatGptPrompt;
 import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.askai.repository.AiFeedbackOrderRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
-import ai.holo.wdyt.common.JsonUtils;
+import ai.holo.wdyt.common.json.JsonUtils;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.exception.BadRequestException;
 import ai.holo.wdyt.common.exception.InvalidImageException;
 import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.location.model.LocationAndWeatherDto;
+import ai.holo.wdyt.location.service.IpGeoLocationService;
 import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
@@ -89,11 +91,12 @@ public class AiFeedbackService {
         String extractedImagePath = saveExtractedImageOnS3(userInfo, currentTimeMillis, extractedImage);
 
         // Get location by IP
-        String locationByIp = ipGeoLocationService.getLocationByIp(clientIpAddress);
+        LocationAndWeatherDto locationAndWeatherByIp = ipGeoLocationService.getLocationAndWeatherByIp(clientIpAddress);
+        String location = locationAndWeatherByIp.location().getLocation();
 
         // Send prompt with image to ChatGPT
         ChatGptPrompt prompt = promptService.getPrompt(imageType);
-        String promptText = getPromptText(prompt, locationByIp, clientTime);
+        String promptText = getPromptText(prompt, location, clientTime);
 
         // Call ChatGPT with retries
         String gptResponse = sendPromptWithRetries(getFileS3Url(extractedImagePath), promptText, imageType);
@@ -101,7 +104,7 @@ public class AiFeedbackService {
         AiSubmissionOrder orders = getOrder(userInfo);
         // Save AI response
         return new AiFeedback(userInfo.id(), prompt.getId(),
-                gptResponse, rawImagePath, imageType, extractedImagePath, orders.topListOrder(), orders.order(), locationByIp);
+                gptResponse, rawImagePath, imageType, extractedImagePath, orders.topListOrder(), orders.order(), locationAndWeatherByIp);
     }
 
     private String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
@@ -280,6 +283,19 @@ public class AiFeedbackService {
         Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(aiFeedback.getResponse(), aiFeedback.getImageType());
         return new AiFeedbackDetailedDto(aiFeedback, analysis.getLeft(), analysis.getRight(),
                 getFileS3Url(aiFeedback.getExtractedImagePath()), userService.getUserInfo());
+    }
+
+    public void unPinFromTopList(UnpinAiFeedbackDto unpinAiFeedbackDto) {
+        User user = userService.getUser();
+        AiFeedback aiFeedback = aiFeedbackRepository.findByIdAndUserId(unpinAiFeedbackDto.aiFeedbackId(), user.getId())
+                .orElseThrow(NotFoundException::new);
+        aiFeedback.setTopListOrder(null);
+
+        UserDto userInfo = userService.getUserInfo();
+        AiSubmissionOrder order = getOrder(userInfo);
+        aiFeedback.setOrder(order.order());
+
+        aiFeedbackRepository.save(aiFeedback);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
