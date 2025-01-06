@@ -29,6 +29,9 @@ public class AiFeedbackController {
                                      @RequestParam("clientIpAddress") String clientIpAddress,
                                      @RequestParam("clientTime")ZonedDateTime clientTime) throws IOException {
 
+        // TODO: weather and location can be received from the client
+        // In that case we'll not receive ip and don't need to resolve location and weather from the ip
+
         UserDto userInfo = userService.getUserInfo();
         AiFeedback aiFeedback = aiFeedbackService.executeGptCall(image.getBytes(), clientIpAddress, clientTime, userInfo);
         return aiFeedbackService.saveAiResponse(aiFeedback, userInfo);
@@ -46,14 +49,25 @@ public class AiFeedbackController {
         return aiFeedbackService.getAiFeedback(id);
     }
 
+    @DeleteMapping("/{id}")
+    public void deleteAiFeedback(@PathVariable("id") Long id) {
+        aiFeedbackService.deleteAiFeedback(id);
+    }
+
+    @PostMapping("/{id}/report")
+    public void reportAiFeedback(@PathVariable("id") Long id,
+                                 @RequestBody ReportAiFeedbackDto reportAiFeedbackDto) {
+        aiFeedbackService.reportAiFeedback(id, reportAiFeedbackDto);
+    }
+
     @PostMapping("/swap")
     public void swapAiFeedbacks(@RequestBody SwapAiFeedbackDto swapAiFeedbackDto) {
         aiFeedbackService.swapFeedbackOrders(swapAiFeedbackDto);
     }
 
-    @PostMapping("/unpin")
-    public void unPinFromTopList(@RequestBody UnpinAiFeedbackDto unpinAiFeedbackDto) {
-        aiFeedbackService.unPinFromTopList(unpinAiFeedbackDto);
+    @PostMapping("/pin")
+    public void pinFromTopList(@RequestBody PinAiFeedbackDto pinAiFeedbackDto) {
+        aiFeedbackService.pinOnTheTopList(pinAiFeedbackDto);
     }
 
     @PostMapping("/like-style")
@@ -62,7 +76,7 @@ public class AiFeedbackController {
     }
 
     @PostMapping("/like-ai-response")
-    public AiFeedbackDto likeStyle(@RequestBody LikeAiResponseDto likeAiResponseDto) {
+    public AiFeedbackDto likeAiResponse(@RequestBody LikeAiResponseDto likeAiResponseDto) {
         return aiFeedbackService.likeAiResponse(likeAiResponseDto);
     }
 }

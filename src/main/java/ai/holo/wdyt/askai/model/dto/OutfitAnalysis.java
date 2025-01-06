@@ -16,8 +16,8 @@ public record OutfitAnalysis(
         List<String> enhancementRecommendations,
         String hairAdvice,
         CoordinateRecommendations coordinateRecommendations,
-        String summary,
-        String compliment
+        Summary summary,
+        String upliftingCompliment
 ) {
 
     public record OutfitDetail(
@@ -37,5 +37,13 @@ public record OutfitAnalysis(
     ) {}
 
     public record Coordinate(int x, int y) {}
+
+    public record Summary(
+            String impression,
+            String suitability,
+            String personalReflection,
+            List<String> enhancements,
+            String compliment
+    ) {}
 
 }

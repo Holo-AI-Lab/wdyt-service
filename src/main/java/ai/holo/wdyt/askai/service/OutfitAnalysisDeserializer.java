@@ -27,14 +27,15 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
         String styleMatch = getText(rootNode, "style_match");
         String occasionFit = getText(rootNode, "occasion_fit");
         String trendAlert = getText(rootNode, "trend_alert");
-        String summary = getText(rootNode, "summary");
-        String compliment = getText(rootNode, "compliment");
         String hairAdvice = getText(rootNode, "hair_advice");
-
         List<OutfitAnalysis.OutfitDetail> outfitDetails = getOutfitDetails(rootNode);
         OutfitAnalysis.ColorPreference colorPreference = getColorPreference(rootNode);
         List<String> enhancementRecommendations = getEnhancementRecommendations(rootNode);
         OutfitAnalysis.CoordinateRecommendations coordinateRecommendations = getCoordinateRecommendations(rootNode);
+        String upliftingCompliment = getText(rootNode, "uplifting_compliment");
+
+        // Handle the summary field (nested object)
+        OutfitAnalysis.Summary summary = getSummary(rootNode);
 
         // Return final object
         return new OutfitAnalysis(
@@ -48,7 +49,7 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
                 hairAdvice,
                 coordinateRecommendations,
                 summary,
-                compliment
+                upliftingCompliment
         );
     }
 
@@ -140,6 +141,38 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
                     colorPreferenceNode.get("primary").asText(),
                     colorPreferenceNode.get("secondary").asText()
             );
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    // New method to handle the "summary" field (nested object)
+    private OutfitAnalysis.Summary getSummary(JsonNode rootNode) {
+        try {
+            JsonNode summaryNode = rootNode.get("summary");
+            return new OutfitAnalysis.Summary(
+                    summaryNode.get("impression").asText(),
+                    summaryNode.get("suitability").asText(),
+                    summaryNode.get("personal_reflection").asText(),
+                    getEnhancementsList(summaryNode),
+                    summaryNode.get("compliment").asText()
+            );
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    // Helper method to parse the enhancements array inside the summary object
+    private List<String> getEnhancementsList(JsonNode summaryNode) {
+        try {
+            List<String> enhancements = new ArrayList<>();
+            JsonNode enhancementsNode = summaryNode.get("enhancements");
+            if (enhancementsNode.isArray()) {
+                for (JsonNode enhancement : enhancementsNode) {
+                    enhancements.add(enhancement.asText());
+                }
+            }
+            return enhancements;
         } catch (Exception ignored) {
         }
         return null;

@@ -23,26 +23,26 @@ public class HeadStyleAnalysisDeserializer extends StdDeserializer<HeadStyleAnal
         JsonNode rootNode = parser.getCodec().readTree(parser);
 
         // Deserialize fields
-        String outfitStyle = getText(rootNode, "head_style");
-        String styleMatch = getText(rootNode, "style_face_fit");
+        String headStyle = getText(rootNode, "head_style");
+        String styleFaceFit = getText(rootNode, "style_face_fit");
         String occasionFit = getText(rootNode, "occasion_fit");
         String trendAlert = getText(rootNode, "trend_alert");
         String summary = getText(rootNode, "summary");
         String compliment = getText(rootNode, "compliment");
         String hairAdvice = getText(rootNode, "hair_advice");
 
-        List<HeadStyleAnalysis.OutfitDetail> outfitDetails = getOutfitDetails(rootNode);
+        List<HeadStyleAnalysis.OutfitDetail> detailedElements = getDetailedElements(rootNode);
         HeadStyleAnalysis.ColorPreference colorPreference = getColorPreference(rootNode);
         List<String> enhancementRecommendations = getEnhancementRecommendations(rootNode);
         HeadStyleAnalysis.CoordinateRecommendations coordinateRecommendations = getCoordinateRecommendations(rootNode);
 
         // Return final object
         return new HeadStyleAnalysis(
-                outfitStyle,
-                styleMatch,
+                headStyle,
+                styleFaceFit,
                 occasionFit,
                 trendAlert,
-                outfitDetails,
+                detailedElements,
                 colorPreference,
                 enhancementRecommendations,
                 hairAdvice,
@@ -60,22 +60,22 @@ public class HeadStyleAnalysisDeserializer extends StdDeserializer<HeadStyleAnal
         return null;
     }
 
-    private List<HeadStyleAnalysis.OutfitDetail> getOutfitDetails(JsonNode rootNode) {
+    private List<HeadStyleAnalysis.OutfitDetail> getDetailedElements(JsonNode rootNode) {
         try {
-            List<HeadStyleAnalysis.OutfitDetail> outfitDetails = new ArrayList<>();
-            JsonNode outfitDetailsNode = rootNode.get("detailed_elements");
+            List<HeadStyleAnalysis.OutfitDetail> detailedElements = new ArrayList<>();
+            JsonNode detailedElementsNode = rootNode.get("detailed_elements");
 
             // Check if detailed_elements is an array
-            if (outfitDetailsNode.isArray()) {
-                for (JsonNode detailNode : outfitDetailsNode) {
-                    outfitDetails.add(new HeadStyleAnalysis.OutfitDetail(
-                            detailNode.get("item").asText(),
-                            detailNode.get("color").asText(),
-                            detailNode.get("description").asText()
+            if (detailedElementsNode.isArray()) {
+                for (JsonNode elementNode : detailedElementsNode) {
+                    detailedElements.add(new HeadStyleAnalysis.OutfitDetail(
+                            elementNode.get("item").asText(),
+                            elementNode.get("description").asText(),
+                            elementNode.get("color").asText()
                     ));
                 }
             }
-            return outfitDetails;
+            return detailedElements;
         } catch (Exception ignored) {
         }
         return null;
@@ -85,12 +85,12 @@ public class HeadStyleAnalysisDeserializer extends StdDeserializer<HeadStyleAnal
         try {
             JsonNode recommendationsNode = rootNode.get("coordinate_recommendations");
 
-            // Parse outfit coordinates
-            List<HeadStyleAnalysis.Coordinate> outfitCoordinates = new ArrayList<>();
-            JsonNode outfitNode = recommendationsNode.get("elements");
-            if (outfitNode.isArray()) {
-                for (JsonNode coordinateNode : outfitNode) {
-                    outfitCoordinates.add(new HeadStyleAnalysis.Coordinate(
+            // Parse element coordinates
+            List<HeadStyleAnalysis.Coordinate> elementCoordinates = new ArrayList<>();
+            JsonNode elementNode = recommendationsNode.get("elements");
+            if (elementNode.isArray()) {
+                for (JsonNode coordinateNode : elementNode) {
+                    elementCoordinates.add(new HeadStyleAnalysis.Coordinate(
                             coordinateNode.get("x").asInt(),
                             coordinateNode.get("y").asInt()
                     ));
@@ -109,7 +109,7 @@ public class HeadStyleAnalysisDeserializer extends StdDeserializer<HeadStyleAnal
                 }
             }
 
-            return new HeadStyleAnalysis.CoordinateRecommendations(outfitCoordinates, enhancementsCoordinates);
+            return new HeadStyleAnalysis.CoordinateRecommendations(elementCoordinates, enhancementsCoordinates);
         } catch (Exception ignored) {
         }
         return null;
