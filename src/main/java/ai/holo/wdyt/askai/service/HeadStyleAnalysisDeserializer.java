@@ -1,6 +1,8 @@
 package ai.holo.wdyt.askai.service;
 
 import ai.holo.wdyt.askai.model.dto.HeadStyleAnalysis;
+import ai.holo.wdyt.askai.model.dto.OutfitAnalysis;
+import ai.holo.wdyt.askai.model.dto.Tag;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,6 +37,7 @@ public class HeadStyleAnalysisDeserializer extends StdDeserializer<HeadStyleAnal
         HeadStyleAnalysis.ColorPreference colorPreference = getColorPreference(rootNode);
         List<String> enhancementRecommendations = getEnhancementRecommendations(rootNode);
         HeadStyleAnalysis.CoordinateRecommendations coordinateRecommendations = getCoordinateRecommendations(rootNode);
+        Tag tag = getTag(rootNode);
 
         // Return final object
         return new HeadStyleAnalysis(
@@ -48,13 +51,29 @@ public class HeadStyleAnalysisDeserializer extends StdDeserializer<HeadStyleAnal
                 hairAdvice,
                 coordinateRecommendations,
                 summary,
-                compliment
+                compliment,
+                tag
         );
     }
 
     private String getText(JsonNode rootNode, String fieldName) {
         try {
             return rootNode.get(fieldName).asText();
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private List<String> getListText(JsonNode rootNode, String fieldName) {
+        try {
+            JsonNode listNode = rootNode.get(fieldName);
+            if (listNode.isArray()) {
+                List<String> list = new ArrayList<>();
+                for (JsonNode node : listNode) {
+                    list.add(node.asText());
+                }
+                return list;
+            }
         } catch (Exception ignored) {
         }
         return null;
@@ -144,5 +163,15 @@ public class HeadStyleAnalysisDeserializer extends StdDeserializer<HeadStyleAnal
         }
         return null;
     }
-
+    private Tag getTag(JsonNode rootNode) {
+        try {
+            JsonNode tagNode = rootNode.get("tags");
+            List<String> styles = getListText(tagNode, "style");
+            List<String> occasions = getListText(tagNode, "occasion");
+            List<String> color = getListText(tagNode, "color");
+            return new Tag(styles, occasions, color);
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
 }

@@ -17,8 +17,14 @@ public record HeadStyleAnalysis(
         String hairAdvice,
         CoordinateRecommendations coordinateRecommendations,
         String summary,
-        String compliment
-) {
+        String compliment,
+        Tag tag
+) implements Taggable {
+
+    @Override
+    public Tag getTag() {
+        return tag;
+    }
 
     public record OutfitDetail(
             String item,
@@ -37,5 +43,4 @@ public record HeadStyleAnalysis(
     ) {}
 
     public record Coordinate(int x, int y) {}
-
 }

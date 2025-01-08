@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface AiFeedbackRepository extends JpaRepository<AiFeedback, Long> {
-    Page<AiFeedback> findAllByUserId(Long userId, PageRequest pageRequestWithSort);
-
     Optional<AiFeedback> findByIdAndUserId(Long id, Long userId);
 
     int countByUserIdAndTopListOrderIsNotNull(Long userId);

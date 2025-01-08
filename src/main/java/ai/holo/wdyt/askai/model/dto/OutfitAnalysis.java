@@ -16,9 +16,15 @@ public record OutfitAnalysis(
         List<String> enhancementRecommendations,
         String hairAdvice,
         CoordinateRecommendations coordinateRecommendations,
-        Summary summary,
-        String upliftingCompliment
-) {
+        String summary,
+        String upliftingCompliment,
+        Tag tag
+) implements Taggable {
+
+    @Override
+    public Tag getTag() {
+        return tag;
+    }
 
     public record OutfitDetail(
             String item,
@@ -37,13 +43,4 @@ public record OutfitAnalysis(
     ) {}
 
     public record Coordinate(int x, int y) {}
-
-    public record Summary(
-            String impression,
-            String suitability,
-            String personalReflection,
-            List<String> enhancements,
-            String compliment
-    ) {}
-
 }

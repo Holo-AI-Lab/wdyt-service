@@ -12,6 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/ai-feedbacks")
@@ -38,10 +41,18 @@ public class AiFeedbackController {
     }
 
     @GetMapping("/")
-    public Page<AiFeedbackDto> listAiFeedbacks(@RequestParam(defaultValue = "100") Integer size,
+    public Page<AiFeedbackDto> listAiFeedbacks(@RequestParam(value = "color", required = false) String[] color,
+                                               @RequestParam(value = "style", required = false) String[] style,
+                                               @RequestParam(value = "occasion", required = false) String[] occasion,
+                                               @RequestParam(defaultValue = "100") Integer size,
                                                @RequestParam(defaultValue = "0") Integer page) {
 
-        return aiFeedbackService.listAiFeedbacks(PageRequest.of(page, size));
+        Map<String, List<String>> tagFilters = Map.of(
+                "color", color != null ? Arrays.asList(color) : List.of(),
+                "style", style != null ? Arrays.asList(style) : List.of(),
+                "occasion", occasion != null ? Arrays.asList(occasion) : List.of()
+        );
+        return aiFeedbackService.listAiFeedbacks(tagFilters, PageRequest.of(page, size));
     }
 
     @GetMapping("/{id}")
@@ -78,5 +89,10 @@ public class AiFeedbackController {
     @PostMapping("/like-ai-response")
     public AiFeedbackDto likeAiResponse(@RequestBody LikeAiResponseDto likeAiResponseDto) {
         return aiFeedbackService.likeAiResponse(likeAiResponseDto);
+    }
+
+    @GetMapping("/filters/{tag}")
+    public List<String> getFilters(@PathVariable String tag) {
+        return aiFeedbackService.getFilters(tag);
     }
 }

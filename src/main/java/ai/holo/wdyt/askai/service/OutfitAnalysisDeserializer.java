@@ -1,6 +1,7 @@
 package ai.holo.wdyt.askai.service;
 
 import ai.holo.wdyt.askai.model.dto.OutfitAnalysis;
+import ai.holo.wdyt.askai.model.dto.Tag;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,10 +33,9 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
         OutfitAnalysis.ColorPreference colorPreference = getColorPreference(rootNode);
         List<String> enhancementRecommendations = getEnhancementRecommendations(rootNode);
         OutfitAnalysis.CoordinateRecommendations coordinateRecommendations = getCoordinateRecommendations(rootNode);
+        String summary = getText(rootNode, "summary");
         String upliftingCompliment = getText(rootNode, "uplifting_compliment");
-
-        // Handle the summary field (nested object)
-        OutfitAnalysis.Summary summary = getSummary(rootNode);
+        Tag tag = getTag(rootNode);
 
         // Return final object
         return new OutfitAnalysis(
@@ -49,13 +49,29 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
                 hairAdvice,
                 coordinateRecommendations,
                 summary,
-                upliftingCompliment
+                upliftingCompliment,
+                tag
         );
     }
 
     private String getText(JsonNode rootNode, String fieldName) {
         try {
             return rootNode.get(fieldName).asText();
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private List<String> getListText(JsonNode rootNode, String fieldName) {
+        try {
+            JsonNode listNode = rootNode.get(fieldName);
+            if (listNode.isArray()) {
+                List<String> list = new ArrayList<>();
+                for (JsonNode node : listNode) {
+                    list.add(node.asText());
+                }
+                return list;
+            }
         } catch (Exception ignored) {
         }
         return null;
@@ -146,33 +162,13 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
         return null;
     }
 
-    // New method to handle the "summary" field (nested object)
-    private OutfitAnalysis.Summary getSummary(JsonNode rootNode) {
+    private Tag getTag(JsonNode rootNode) {
         try {
-            JsonNode summaryNode = rootNode.get("summary");
-            return new OutfitAnalysis.Summary(
-                    summaryNode.get("impression").asText(),
-                    summaryNode.get("suitability").asText(),
-                    summaryNode.get("personal_reflection").asText(),
-                    getEnhancementsList(summaryNode),
-                    summaryNode.get("compliment").asText()
-            );
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    // Helper method to parse the enhancements array inside the summary object
-    private List<String> getEnhancementsList(JsonNode summaryNode) {
-        try {
-            List<String> enhancements = new ArrayList<>();
-            JsonNode enhancementsNode = summaryNode.get("enhancements");
-            if (enhancementsNode.isArray()) {
-                for (JsonNode enhancement : enhancementsNode) {
-                    enhancements.add(enhancement.asText());
-                }
-            }
-            return enhancements;
+            JsonNode tagNode = rootNode.get("tags");
+            List<String> styles = getListText(tagNode, "style");
+            List<String> occasions = getListText(tagNode, "occasion");
+            List<String> color = getListText(tagNode, "color");
+            return new Tag(styles, occasions, color);
         } catch (Exception ignored) {
         }
         return null;

@@ -1,6 +1,7 @@
 package ai.holo.wdyt.askai.model.dto;
 
 import ai.holo.wdyt.askai.model.entity.AiFeedback;
+import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.user.model.dto.UserDto;
 
 public record AiFeedbackDto(Long id,
@@ -8,11 +9,12 @@ public record AiFeedbackDto(Long id,
                             UserDto userInfo,
                             boolean styleLiked,
                             Boolean aiResponseLiked,
+                            ImageType imageType,
                             Integer topListOrder,
                             Integer order) {
 
     public AiFeedbackDto(AiFeedback feedback, String extractedImagePath, UserDto userInfo) {
         this(feedback.getId(), extractedImagePath, userInfo, feedback.isLikeStyle(),
-                feedback.getLikeAiResponse(), feedback.getTopListOrder(), feedback.getOrder());
+                feedback.getLikeAiResponse(), feedback.getImageType(), feedback.getTopListOrder(), feedback.getOrder());
     }
 }

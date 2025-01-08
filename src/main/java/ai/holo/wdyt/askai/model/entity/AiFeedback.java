@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Entity(name = "ai_feedback")
 @Getter
@@ -42,6 +45,9 @@ public class AiFeedback {
     @Convert(converter = LocationAndWeatherConverter.class)
     @Column(name = "location_and_weather")
     private LocationAndWeatherDto locationAndWeather;
+    @Convert(converter = TagConverter.class)
+    @Column(columnDefinition = "JSON")
+    private Map<String, List<String>> tags = new HashMap<>();
 
     public AiFeedback(Long userId, Long promptId, String response, String rawImagePath,
                       ImageType imageType, String extractedImagePath, Integer topListOrder,

@@ -28,17 +28,20 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.ZonedDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
 public class AiFeedbackService {
-    public static final String BODY_JSON_FORMATTING_PROMPT = " We would like the response in this format: {\"outfit_style\":\"string\",\"style_match\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"outfit_details\":[{\"item\":\"string\",\"color\":\"string\",\"description\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"outfit\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":{\"impression\":\"string\",\"suitability\":\"string\",\"personal_reflection\":\"string\",\"enhancements\":[\"string\"],\"compliment\":\"string\"},\"uplifting_compliment\":\"string\"}";
-    public static final String HEAD_JSON_FORMATTING_PROMPT = " We would like the response in this format: {\"head_style\":\"string\",\"style_face_fit\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"detailed_elements\":[{\"item\":\"string\",\"description\":\"string\",\"color\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"elements\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":{\"impression\":\"string\",\"suitability\":\"string\",\"personal_reflection\":\"string\",\"enhancements\":[\"string\"],\"compliment\":\"string\"},\"uplifting_compliment\":\"string\"}";
+    public static final String BODY_JSON_FORMATTING_PROMPT = "Tag styles, occasions and colors from the output and map to the tags field in the following json structure. We would like the response in this format: {\"outfit_style\":\"string\",\"style_match\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"outfit_details\":[{\"item\":\"string\",\"color\":\"string\",\"description\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"outfit\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":\"string\",\"uplifting_compliment\":\"string\",\"tags\":[style:[\"string\"],occasion:[\"string\"],color:[\"string\"]]}";
+    public static final String HEAD_JSON_FORMATTING_PROMPT = "Tag head styles, occasion fits and colors of any wearings from the output and map to the tags field in the following json structure. We would like the response in this format: {\"head_style\":\"string\",\"style_face_fit\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"detailed_elements\":[{\"item\":\"string\",\"description\":\"string\",\"color\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"elements\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":\"string\",\"uplifting_compliment\":\"string\",\"tags\":[style:[\"string\"],occasion:[\"string\"],color:[\"string\"]]}";
     public static final int MAX_RETRY_COUNT = 3;
     private final ChatGptService chatGptService;
     private final S3Service s3Service;
@@ -52,6 +55,7 @@ public class AiFeedbackService {
     private final PromptService promptService;
     private final AiFeedbackOrderRepository aiFeedbackOrderRepository;
     private final ReportAiFeedbackRepository reportAiFeedbackRepository;
+    private final AiFeedbackSearchService aiFeedbackSearchService;
 
     public AiFeedbackService(ChatGptService chatGptService, S3Service s3Service,
                              BackgroundExtractionService backgroundExtractionService,
@@ -62,7 +66,7 @@ public class AiFeedbackService {
                              @Value("${configuration.topListCount}") int topListCount,
                              IpGeoLocationService ipGeoLocationService, PromptService promptService,
                              AiFeedbackOrderRepository aiFeedbackOrderRepository,
-                             ReportAiFeedbackRepository reportAiFeedbackRepository) {
+                             ReportAiFeedbackRepository reportAiFeedbackRepository, AiFeedbackSearchService aiFeedbackSearchService) {
         this.chatGptService = chatGptService;
         this.s3Service = s3Service;
         this.backgroundExtractionService = backgroundExtractionService;
@@ -75,6 +79,7 @@ public class AiFeedbackService {
         this.promptService = promptService;
         this.aiFeedbackOrderRepository = aiFeedbackOrderRepository;
         this.reportAiFeedbackRepository = reportAiFeedbackRepository;
+        this.aiFeedbackSearchService = aiFeedbackSearchService;
     }
 
     public AiFeedback executeGptCall(byte[] image, String clientIpAddress, ZonedDateTime clientTime, UserDto userInfo) {
@@ -147,11 +152,29 @@ public class AiFeedbackService {
 
     @Transactional
     public AiFeedbackDetailedDto saveAiResponse(AiFeedback aiFeedback, UserDto userInfo) {
+        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(aiFeedback.getResponse(), aiFeedback.getImageType());
+        Map<String, List<String>> tags = getTags(analysis);
+
+        aiFeedback.setTags(tags);
         AiFeedback savedAiFeedback = aiFeedbackRepository.save(aiFeedback);
 
-        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(savedAiFeedback.getResponse(), savedAiFeedback.getImageType());
         return new AiFeedbackDetailedDto(savedAiFeedback, analysis.getLeft(), analysis.getRight(),
                 getFileS3Url(savedAiFeedback.getExtractedImagePath()), userInfo);
+    }
+
+    private Map<String, List<String>> getTags(Pair<OutfitAnalysis, HeadStyleAnalysis> analysis) {
+        Taggable taggable = analysis.getLeft() != null ? analysis.getLeft() : analysis.getRight();
+        Map<String, List<String>> tags = new HashMap<>();
+        if (!CollectionUtils.isEmpty(taggable.getTag().style())) {
+            tags.put("style", taggable.getTag().style());
+        }
+        if (!CollectionUtils.isEmpty(taggable.getTag().occasion())) {
+            tags.put("occasion", taggable.getTag().occasion());
+        }
+        if (!CollectionUtils.isEmpty(taggable.getTag().color())) {
+            tags.put("color", taggable.getTag().color());
+        }
+        return tags;
     }
 
 
@@ -249,16 +272,15 @@ public class AiFeedbackService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AiFeedbackDto> listAiFeedbacks(PageRequest of) {
+    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, PageRequest pageRequest) {
         Sort sortBy = Sort.by(
-                Sort.Order.by("topListOrder").with(Sort.Direction.DESC), // `topListOrder` prioritized
-                Sort.Order.by("order").with(Sort.Direction.DESC)         // Then by `order`
+                Sort.Order.by("top_list_order").with(Sort.Direction.DESC), // `topListOrder` prioritized
+                Sort.Order.by("standard_order").with(Sort.Direction.DESC)         // Then by `order`
         );
 
-        PageRequest pageRequestWithSort = PageRequest.of(of.getPageNumber(), of.getPageSize(), sortBy);
-
+        PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
         UserDto userInfo = userService.getUserInfo();
-        return aiFeedbackRepository.findAllByUserId(userInfo.id(), pageRequestWithSort).map(aiFeedback ->
+        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, pageRequestWithSort).map(aiFeedback ->
                 new AiFeedbackDto(aiFeedback, getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
     }
 
@@ -365,6 +387,12 @@ public class AiFeedbackService {
         Long userId = userService.getUser().getId();
         ReportAiFeedback reportAiFeedback = new ReportAiFeedback(userId, aiFeedback.getId(), reportAiFeedbackDto.feedback());
         reportAiFeedbackRepository.save(reportAiFeedback);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getFilters(String tag) {
+        User user = userService.getUser();
+        return aiFeedbackSearchService.findDistinctTagsByUserIdAndTag(user.getId(), tag);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
