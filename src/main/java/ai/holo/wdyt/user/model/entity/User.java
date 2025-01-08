@@ -1,5 +1,7 @@
 package ai.holo.wdyt.user.model.entity;
 
+import ai.holo.wdyt.askai.model.entity.LocationAndWeatherConverter;
+import ai.holo.wdyt.user.model.dto.UserSelectedStyle;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,6 +30,11 @@ public class User {
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "robot_id", referencedColumnName = "id")
     private Robot robot;
+    @Column(name = "is_style_adapted")
+    private boolean isStyleAdapted;
+    @Convert(converter = UserSelectedStyleConverter.class)
+    @Column(name = "user_selected_style")
+    private UserSelectedStyle selectedStyle;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -35,6 +42,7 @@ public class User {
         this.email = email;
         this.name = name;
         this.appleId = appleId;
+        isStyleAdapted = true;
         createdAt = LocalDateTime.now();
     }
 }

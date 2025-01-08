@@ -11,11 +11,14 @@ public record UserDto(Long id,
                       Long robotId,
                       String robotName,
                       Gender robotGender,
-                      String robotAvatarUrl) {
+                      String robotAvatarUrl,
+                      boolean isStyleAdapted,
+                      UserSelectedStyle selectedStyle) {
 
     public UserDto(User user) {
         this(user.getId(), user.getEmail(), user.getName(), user.getUsername(),
                 user.getProfilePicture(), user.getRobot().getId(), user.getRobot().getName(),
-                user.getRobot().getGender(), user.getRobot().getAvatarUrl());
+                user.getRobot().getGender(), user.getRobot().getAvatarUrl(), user.isStyleAdapted(),
+                user.getSelectedStyle());
     }
 }

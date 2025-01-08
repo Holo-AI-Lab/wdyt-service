@@ -25,19 +25,24 @@ public class AiFeedbackSearchService {
     }
 
     public List<String> findDistinctTagsByUserIdAndTag(Long userId, String tag) {
-        // Build the dynamic query based on the tag parameter
         String queryString = String.format(
-                "SELECT DISTINCT tag FROM ai_feedback, JSON_TABLE(tags->'$.%s', '$[*]' COLUMNS(tag TEXT PATH '$')) AS distinct_tags WHERE user_id = :userId",
+                "SELECT tag " +
+                        "FROM ai_feedback, " +
+                        "JSON_TABLE(tags->'$.%s', '$[*]' COLUMNS(tag TEXT PATH '$')) AS distinct_tags " +
+                        "WHERE user_id = :userId " +
+                        "GROUP BY tag " +
+                        "ORDER BY COUNT(tag) DESC",
                 tag
         );
 
-        // Create the query and set the userId parameter
         Query query = entityManager.createNativeQuery(queryString);
         query.setParameter("userId", userId);
 
-        // Execute the query and return the result
-        return query.getResultList();
+        @SuppressWarnings("unchecked")
+        List<String> result = query.getResultList();
+        return result;
     }
+
 
     public Page<AiFeedback> findAiFeedbacksByTags(Long userId, Map<String, List<String>> tagFilters, Pageable pageable) {
         // Build the base query string

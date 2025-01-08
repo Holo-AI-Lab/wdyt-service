@@ -5,14 +5,9 @@ import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.exception.UsernameAlreadyExistingException;
-import ai.holo.wdyt.user.model.dto.AddUserFeedbackDto;
-import ai.holo.wdyt.user.model.dto.ChangeUsernameDto;
-import ai.holo.wdyt.user.model.dto.UserDto;
-import ai.holo.wdyt.user.model.dto.UserFeedbackDto;
-import ai.holo.wdyt.user.model.entity.Gender;
-import ai.holo.wdyt.user.model.entity.Robot;
-import ai.holo.wdyt.user.model.entity.User;
-import ai.holo.wdyt.user.model.entity.UserFeedback;
+import ai.holo.wdyt.user.model.dto.*;
+import ai.holo.wdyt.user.model.entity.*;
+import ai.holo.wdyt.user.repository.StyleRepository;
 import ai.holo.wdyt.user.repository.UserFeedbackRepository;
 import ai.holo.wdyt.user.repository.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
@@ -33,16 +29,18 @@ public class UserService {
     private final UserFeedbackRepository userFeedbackRepository;
     private final AiFeedbackDeleteService aiFeedbackDeleteService;
     private final S3Service s3Service;
+    private final StyleRepository styleRepository;
 
     public UserService(UserRepository userRepository,
                        RobotService robotService,
                        UserFeedbackRepository userFeedbackRepository,
-                       AiFeedbackDeleteService aiFeedbackDeleteService, S3Service s3Service) {
+                       AiFeedbackDeleteService aiFeedbackDeleteService, S3Service s3Service, StyleRepository styleRepository) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
         this.aiFeedbackDeleteService = aiFeedbackDeleteService;
         this.s3Service = s3Service;
+        this.styleRepository = styleRepository;
     }
 
     public User createOrRetrieveUser(String email, String name, String appleId) {
@@ -157,5 +155,25 @@ public class UserService {
         user.setUsername(changeUsernameDto.username());
         User savedUser = userRepository.save(user);
         return new UserDto(savedUser);
+    }
+
+    @Transactional
+    public UserDto updateUserSelectedStyles(UpdateUserSelectedStyle updateUserSelectedStyle) {
+        User user = getUser();
+        user.setSelectedStyle(new UserSelectedStyle(updateUserSelectedStyle.styles()));
+        User savedUser = userRepository.save(user);
+        return new UserDto(savedUser);
+    }
+
+    @Transactional
+    public UserDto updateAdaptedStyleMode(UpdateAdaptedStyleModeDto updateAdaptedStyleModeDto) {
+        User user = getUser();
+        user.setStyleAdapted(updateAdaptedStyleModeDto.isStyleAdapted());
+        User savedUser = userRepository.save(user);
+        return new UserDto(savedUser);
+    }
+
+    public List<String> getStyles() {
+        return styleRepository.findAll().stream().map(Style::getName).toList();
     }
 }

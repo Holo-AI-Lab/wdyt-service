@@ -4,6 +4,7 @@ import ai.holo.wdyt.askai.model.dto.*;
 import ai.holo.wdyt.askai.model.entity.*;
 import ai.holo.wdyt.askai.repository.AiFeedbackOrderRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
+import ai.holo.wdyt.askai.repository.OccasionRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
 import ai.holo.wdyt.common.json.JsonUtils;
 import ai.holo.wdyt.common.S3Service;
@@ -19,6 +20,7 @@ import ai.holo.wdyt.user.service.UserService;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -40,8 +42,8 @@ import java.util.Map;
 @Service
 @Slf4j
 public class AiFeedbackService {
-    public static final String BODY_JSON_FORMATTING_PROMPT = "Tag styles, occasions and colors from the output and map to the tags field in the following json structure. We would like the response in this format: {\"outfit_style\":\"string\",\"style_match\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"outfit_details\":[{\"item\":\"string\",\"color\":\"string\",\"description\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"outfit\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":\"string\",\"uplifting_compliment\":\"string\",\"tags\":[style:[\"string\"],occasion:[\"string\"],color:[\"string\"]]}";
-    public static final String HEAD_JSON_FORMATTING_PROMPT = "Tag head styles, occasion fits and colors of any wearings from the output and map to the tags field in the following json structure. We would like the response in this format: {\"head_style\":\"string\",\"style_face_fit\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"detailed_elements\":[{\"item\":\"string\",\"description\":\"string\",\"color\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"elements\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":\"string\",\"uplifting_compliment\":\"string\",\"tags\":[style:[\"string\"],occasion:[\"string\"],color:[\"string\"]]}";
+    public static final String BODY_JSON_FORMATTING_PROMPT = "Tag styles, occasions and colors from the output and map to the tags field in the following json structure. We would like the response in this format: {\"outfit_style\":\"string\",\"style_match\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"outfit_details\":[{\"item\":\"string\",\"color\":\"string\",\"description\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"outfit\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":\"string\",\"compliment\":\"string\",\"tags\":[style:[\"string\"],occasion:[\"string\"],color:[\"string\"]]}";
+    public static final String HEAD_JSON_FORMATTING_PROMPT = "Tag head styles, occasion fits and colors of any wearings from the output and map to the tags field in the following json structure. We would like the response in this format: {\"head_style\":\"string\",\"style_face_fit\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"detailed_elements\":[{\"item\":\"string\",\"description\":\"string\",\"color\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"elements\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":\"string\",\"compliment\":\"string\",\"tags\":[style:[\"string\"],occasion:[\"string\"],color:[\"string\"]]}";
     public static final int MAX_RETRY_COUNT = 3;
     private final ChatGptService chatGptService;
     private final S3Service s3Service;
@@ -56,6 +58,7 @@ public class AiFeedbackService {
     private final AiFeedbackOrderRepository aiFeedbackOrderRepository;
     private final ReportAiFeedbackRepository reportAiFeedbackRepository;
     private final AiFeedbackSearchService aiFeedbackSearchService;
+    private final OccasionRepository occasionRepository;
 
     public AiFeedbackService(ChatGptService chatGptService, S3Service s3Service,
                              BackgroundExtractionService backgroundExtractionService,
@@ -66,7 +69,7 @@ public class AiFeedbackService {
                              @Value("${configuration.topListCount}") int topListCount,
                              IpGeoLocationService ipGeoLocationService, PromptService promptService,
                              AiFeedbackOrderRepository aiFeedbackOrderRepository,
-                             ReportAiFeedbackRepository reportAiFeedbackRepository, AiFeedbackSearchService aiFeedbackSearchService) {
+                             ReportAiFeedbackRepository reportAiFeedbackRepository, AiFeedbackSearchService aiFeedbackSearchService, OccasionRepository occasionRepository) {
         this.chatGptService = chatGptService;
         this.s3Service = s3Service;
         this.backgroundExtractionService = backgroundExtractionService;
@@ -80,9 +83,14 @@ public class AiFeedbackService {
         this.aiFeedbackOrderRepository = aiFeedbackOrderRepository;
         this.reportAiFeedbackRepository = reportAiFeedbackRepository;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
+        this.occasionRepository = occasionRepository;
     }
 
-    public AiFeedback executeGptCall(byte[] image, String clientIpAddress, ZonedDateTime clientTime, UserDto userInfo) {
+    public AiFeedback executeGptCall(byte[] image, UserDto userInfo, String data) throws JsonProcessingException {
+        AiFeedbackSubmissionDto aiFeedbackSubmissionDto = parseJson(data);
+        if (aiFeedbackSubmissionDto.clientTime() == null) {
+            throw new BadRequestException("clientTime is required");
+        }
         long currentTimeMillis = System.currentTimeMillis();
         // Save Raw image
         String rawImagePath = saveRawImageOnS3(new ByteArrayInputStream(image), userInfo, currentTimeMillis);
@@ -97,16 +105,18 @@ public class AiFeedbackService {
         InputStream extractedImage = backgroundExtractionService.extractBackground(image, rawImagePath);
         String extractedImagePath = saveExtractedImageOnS3(userInfo, currentTimeMillis, extractedImage);
 
-        // Get location by IP
-        LocationAndWeatherDto locationAndWeatherByIp = ipGeoLocationService.getLocationAndWeatherByIp(clientIpAddress);
-        String location = locationAndWeatherByIp.location().getLocation();
-        WeatherDto weather = locationAndWeatherByIp.weather();
-        String weatherCondition = weather != null ? String.format("Temperature Celsius: %f, condition: %s", weather.tempC(),
-                weather.condition()) : "Weather data not available";
+        LocationAndWeatherDto locationAndWeather = aiFeedbackSubmissionDto.locationAndWeather();
+        if(locationAndWeather == null) {
+            if (aiFeedbackSubmissionDto.clientIpAddress() == null) {
+                throw new BadRequestException("clientIpAddress is required when locationAndWeather is not provided");
+            }
+            // Get location and weather by IP
+            locationAndWeather = ipGeoLocationService.getLocationAndWeatherByIp(aiFeedbackSubmissionDto.clientIpAddress());
+        }
 
         // Send prompt with image to ChatGPT
         ChatGptPrompt prompt = promptService.getPrompt(imageType);
-        String promptText = getPromptText(prompt, location, clientTime, weatherCondition);
+        String promptText = getPromptText(prompt, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions());
 
         // Call ChatGPT with retries
         String gptResponse = sendPromptWithRetries(getFileS3Url(extractedImagePath), promptText, imageType);
@@ -114,7 +124,14 @@ public class AiFeedbackService {
         AiSubmissionOrder orders = getOrder(userInfo);
         // Save AI response
         return new AiFeedback(userInfo.id(), prompt.getId(),
-                gptResponse, rawImagePath, imageType, extractedImagePath, orders.topListOrder(), orders.order(), locationAndWeatherByIp);
+                gptResponse, rawImagePath, imageType, extractedImagePath, orders.topListOrder(), orders.order(), locationAndWeather);
+    }
+
+    private AiFeedbackSubmissionDto parseJson(String data) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule());
+        AiFeedbackSubmissionDto aiFeedbackSubmissionDto = mapper.readValue(data, AiFeedbackSubmissionDto.class);
+        return aiFeedbackSubmissionDto;
     }
 
     private String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
@@ -194,46 +211,55 @@ public class AiFeedbackService {
         return new AiSubmissionOrder(topListOrder, order);
     }
 
-    private String getPromptText(ChatGptPrompt prompt, String location, ZonedDateTime date, String weather) {
+    private String getPromptText(ChatGptPrompt prompt, ZonedDateTime date, LocationAndWeatherDto locationAndWeather,
+                                 List<String> occasions) {
         String formattedDate = date.toString();
         String promptText = prompt.getPrompt();
         String jsonFormattingSuffix = ImageType.BODY.equals(prompt.getImageType()) ? BODY_JSON_FORMATTING_PROMPT : HEAD_JSON_FORMATTING_PROMPT;
         promptText = promptText + jsonFormattingSuffix;
 
-        // TODO params: We should receive those params from user settings
-        // Default ones??
-        String occasion = "Wedding";
-        String style1 = "Casual";
-        String style2 = "Formal";
-        String style3 = "Business";
-        String color1 = "Red";
-        String color2 = "Blue";
-        String color3 = "Green";
+        List<String> parameterOccasions = occasions != null ? occasions : List.of();
+        String occasion = String.join(",", parameterOccasions);
+        List<String> styles = getStyles();
 
         String locationRegex = "\\$\\{local}";
         String dateRegex = "\\$\\{date}";
         String weatherRegex = "\\$\\{weather}";
         String occasionRegex = "\\$\\{occasion}";
-        String style1Regex = "\\$\\{style 1}";
-        String style2Regex = "\\$\\{style 2}";
-        String style3Regex = "\\$\\{style 3}";
-        String color1Regex = "\\$\\{color 1}";
-        String color2Regex = "\\$\\{color 2}";
-        String color3Regex = "\\$\\{color 3}";
+        String style1Regex = !styles.isEmpty() ? "\\$\\{style 1}" : null;
+        String style2Regex = styles.size() >= 2 ? "\\$\\{style 2}" : null;
+        String style3Regex = styles.size() >=3 ? "\\$\\{style 3}" : null;
+
+        String location = locationAndWeather.location().getLocation();
+        WeatherDto weather = locationAndWeather.weather();
+        String weatherCondition = weather != null ? String.format("Temperature Celsius: %f, condition: %s", weather.tempC(),
+                weather.condition()) : "Weather data not available";
 
         // Replace all occurrences of ${location} and ${date}
         promptText = promptText.replaceAll(locationRegex, location);
         promptText = promptText.replaceAll(dateRegex, formattedDate);
-        promptText = promptText.replaceAll(weatherRegex, weather);
+        promptText = promptText.replaceAll(weatherRegex, weatherCondition);
         promptText = promptText.replaceAll(occasionRegex, occasion);
-        promptText = promptText.replaceAll(style1Regex, style1);
-        promptText = promptText.replaceAll(style2Regex, style2);
-        promptText = promptText.replaceAll(style3Regex, style3);
-        promptText = promptText.replaceAll(color1Regex, color1);
-        promptText = promptText.replaceAll(color2Regex, color2);
-        promptText = promptText.replaceAll(color3Regex, color3);
+        if (style1Regex != null) {
+            promptText = promptText.replaceAll(style1Regex, styles.get(0));
+        }
+        if (style2Regex != null) {
+            promptText = promptText.replaceAll(style2Regex, styles.get(1));
+        }
+        if (style3Regex != null) {
+            promptText = promptText.replaceAll(style3Regex, styles.get(2));
+        }
         return promptText.replaceAll(dateRegex, formattedDate);
 
+    }
+
+    private List<String> getStyles() {
+        User user = userService.getUser();
+        if (user.isStyleAdapted()) {
+            List<String> userMostUsedStyles = getFilters("style");
+            return userMostUsedStyles.subList(0, Math.max(3, userMostUsedStyles.size()));
+        }
+        return user.getSelectedStyle() != null ? user.getSelectedStyle().styles() : List.of();
     }
 
     private Pair<OutfitAnalysis, HeadStyleAnalysis> extractResponse(String response, ImageType imageType) {
@@ -393,6 +419,10 @@ public class AiFeedbackService {
     public List<String> getFilters(String tag) {
         User user = userService.getUser();
         return aiFeedbackSearchService.findDistinctTagsByUserIdAndTag(user.getId(), tag);
+    }
+
+    public List<String> getOccasions(String filter) {
+        return occasionRepository.searchByFreeText(filter).stream().map(Occasion::getName).toList();
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

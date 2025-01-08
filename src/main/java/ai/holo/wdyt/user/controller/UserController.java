@@ -1,14 +1,12 @@
 package ai.holo.wdyt.user.controller;
 
-import ai.holo.wdyt.user.model.dto.AddUserFeedbackDto;
-import ai.holo.wdyt.user.model.dto.ChangeUsernameDto;
-import ai.holo.wdyt.user.model.dto.UserDto;
-import ai.holo.wdyt.user.model.dto.UserFeedbackDto;
+import ai.holo.wdyt.user.model.dto.*;
 import ai.holo.wdyt.user.service.UserService;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/user")
@@ -41,7 +39,22 @@ public class UserController {
     }
 
     @PostMapping("/change-username")
-    public UserDto uploadProfilePicture(@RequestBody ChangeUsernameDto changeUsernameDto) {
+    public UserDto changeUsername(@RequestBody ChangeUsernameDto changeUsernameDto) {
         return userService.changeUsername(changeUsernameDto);
+    }
+
+    @PostMapping("/update-adapted-style-mode")
+    public UserDto updateAdaptedStyleMode(@RequestBody UpdateAdaptedStyleModeDto updateAdaptedStyleModeDto) {
+        return userService.updateAdaptedStyleMode(updateAdaptedStyleModeDto);
+    }
+
+    @PostMapping("/update-selected-styles")
+    public UserDto updateSelectedStyles(@RequestBody UpdateUserSelectedStyle updateUserSelectedStyle) {
+        return userService.updateUserSelectedStyles(updateUserSelectedStyle);
+    }
+
+    @GetMapping("/get-styles")
+    public List<String> getStyles() {
+        return userService.getStyles();
     }
 }

@@ -7,6 +7,7 @@ import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,16 +28,12 @@ public class AiFeedbackController {
         this.userService = userService;
     }
 
-    @PostMapping("/submit-image")
-    public AiFeedbackDetailedDto submitImage(@RequestParam("image") MultipartFile image,
-                                     @RequestParam("clientIpAddress") String clientIpAddress,
-                                     @RequestParam("clientTime")ZonedDateTime clientTime) throws IOException {
-
-        // TODO: weather and location can be received from the client
-        // In that case we'll not receive ip and don't need to resolve location and weather from the ip
+    @PostMapping(value = "/submit-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public AiFeedbackDetailedDto submitImage(@RequestPart("image") MultipartFile image,
+                                             @RequestPart("data") String data) throws IOException {
 
         UserDto userInfo = userService.getUserInfo();
-        AiFeedback aiFeedback = aiFeedbackService.executeGptCall(image.getBytes(), clientIpAddress, clientTime, userInfo);
+        AiFeedback aiFeedback = aiFeedbackService.executeGptCall(image.getBytes(), userInfo, data);
         return aiFeedbackService.saveAiResponse(aiFeedback, userInfo);
     }
 
@@ -94,5 +91,10 @@ public class AiFeedbackController {
     @GetMapping("/filters/{tag}")
     public List<String> getFilters(@PathVariable String tag) {
         return aiFeedbackService.getFilters(tag);
+    }
+
+    @GetMapping("/get-occasions")
+    public List<String> getOccasions(@RequestParam(value = "filter", required = false) String filter) {
+        return aiFeedbackService.getOccasions(filter);
     }
 }
