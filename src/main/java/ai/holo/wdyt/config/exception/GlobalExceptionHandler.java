@@ -1,9 +1,6 @@
 package ai.holo.wdyt.config.exception;
 
-import ai.holo.wdyt.common.exception.AuthenticationException;
-import ai.holo.wdyt.common.exception.BadRequestException;
-import ai.holo.wdyt.common.exception.InvalidImageException;
-import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.common.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -60,6 +57,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleBadRequestException(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
                 new ErrorResponse(String.format("Unexpected error: %s", ex.getMessage())));
+    }
+
+    @ResponseStatus(HttpStatus.CONFLICT)
+    @ExceptionHandler(value = UsernameAlreadyExistingException.class)
+    @ResponseBody
+    public ResponseEntity<ErrorResponse> handleUsernameAlreadyExistingException(UsernameAlreadyExistingException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                new ErrorResponse(ex.getMessage()));
     }
 
     public record ErrorResponse(String message) {

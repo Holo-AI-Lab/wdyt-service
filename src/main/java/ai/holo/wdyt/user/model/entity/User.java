@@ -19,6 +19,10 @@ public class User {
     private String email;
     @Column(name = "name")
     private String name;
+    @Column(name = "username")
+    private String username;
+    @Column(name = "profile_picture")
+    private String profilePicture;
     @Column(name = "apple_id")
     private String appleId;
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
