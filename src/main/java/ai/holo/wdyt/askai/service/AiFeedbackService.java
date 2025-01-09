@@ -298,7 +298,7 @@ public class AiFeedbackService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, PageRequest pageRequest) {
+    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, Boolean liked, PageRequest pageRequest) {
         Sort sortBy = Sort.by(
                 Sort.Order.by("top_list_order").with(Sort.Direction.DESC), // `topListOrder` prioritized
                 Sort.Order.by("standard_order").with(Sort.Direction.DESC)         // Then by `order`
@@ -306,7 +306,7 @@ public class AiFeedbackService {
 
         PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
         UserDto userInfo = userService.getUserInfo();
-        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, pageRequestWithSort).map(aiFeedback ->
+        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked, pageRequestWithSort).map(aiFeedback ->
                 new AiFeedbackDto(aiFeedback, getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
     }
 

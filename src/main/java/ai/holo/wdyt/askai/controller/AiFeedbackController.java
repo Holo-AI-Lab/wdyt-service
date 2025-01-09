@@ -38,7 +38,8 @@ public class AiFeedbackController {
     }
 
     @GetMapping("/")
-    public Page<AiFeedbackDto> listAiFeedbacks(@RequestParam(value = "color", required = false) String[] color,
+    public Page<AiFeedbackDto> listAiFeedbacks(@RequestParam(value = "liked", required = false) Boolean liked,
+                                               @RequestParam(value = "color", required = false) String[] color,
                                                @RequestParam(value = "style", required = false) String[] style,
                                                @RequestParam(value = "occasion", required = false) String[] occasion,
                                                @RequestParam(defaultValue = "100") Integer size,
@@ -49,7 +50,7 @@ public class AiFeedbackController {
                 "style", style != null ? Arrays.asList(style) : List.of(),
                 "occasion", occasion != null ? Arrays.asList(occasion) : List.of()
         );
-        return aiFeedbackService.listAiFeedbacks(tagFilters, PageRequest.of(page, size));
+        return aiFeedbackService.listAiFeedbacks(tagFilters, liked, PageRequest.of(page, size));
     }
 
     @GetMapping("/{id}")

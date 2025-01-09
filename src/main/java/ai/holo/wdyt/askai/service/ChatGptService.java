@@ -2,6 +2,7 @@ package ai.holo.wdyt.askai.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -16,17 +17,20 @@ import java.util.Map;
 @Slf4j
 public class ChatGptService {
     private final WebClient webClient;
+    private final String gptVersion;
 
-    public ChatGptService(Map<String, String> secretProperties) {
+    public ChatGptService(Map<String, String> secretProperties,
+                          @Value("${chatgpt.version}") String gptVersion) {
         this.webClient = WebClient.builder().baseUrl("https://api.openai.com/v1/chat/completions")
                 .defaultHeader("Authorization", String.format("Bearer %s", secretProperties.get("chatGptApiKey"))).build();
+        this.gptVersion = gptVersion;
     }
 
     public String sendPromptWithImage(String imageUrl, String promptText) {
         List<Message> messages = List.of(new Message("user", List.of(new MessageContent("text", promptText, null),
                 new MessageContent("image_url", null, new ImageAttachment(imageUrl)))));
 
-        ChatGPTRequest request = new ChatGPTRequest("gpt-4o-mini", messages);
+        ChatGPTRequest request = new ChatGPTRequest(gptVersion, messages);
 
         return webClient.post()
                 .contentType(MediaType.APPLICATION_JSON)
