@@ -54,7 +54,7 @@ public class UserController {
     }
 
     @GetMapping("/get-styles")
-    public List<String> getStyles() {
-        return userService.getStyles();
+    public List<String> getStyles(@RequestParam(value = "filter", required = false) String filter) {
+        return userService.getStyles(filter);
     }
 }

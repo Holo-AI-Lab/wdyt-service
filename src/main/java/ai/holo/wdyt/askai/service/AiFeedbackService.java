@@ -130,8 +130,7 @@ public class AiFeedbackService {
     private AiFeedbackSubmissionDto parseJson(String data) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
-        AiFeedbackSubmissionDto aiFeedbackSubmissionDto = mapper.readValue(data, AiFeedbackSubmissionDto.class);
-        return aiFeedbackSubmissionDto;
+        return mapper.readValue(data, AiFeedbackSubmissionDto.class);
     }
 
     private String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
@@ -257,7 +256,7 @@ public class AiFeedbackService {
         User user = userService.getUser();
         if (user.isStyleAdapted()) {
             List<String> userMostUsedStyles = getFilters("style");
-            return userMostUsedStyles.subList(0, Math.max(3, userMostUsedStyles.size()));
+            return userMostUsedStyles.subList(0, Math.min(3, userMostUsedStyles.size()));
         }
         return user.getSelectedStyle() != null ? user.getSelectedStyle().styles() : List.of();
     }

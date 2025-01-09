@@ -1,7 +1,6 @@
 package ai.holo.wdyt.user.service;
 
 import ai.holo.wdyt.askai.service.AiFeedbackDeleteService;
-import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.exception.UsernameAlreadyExistingException;
@@ -173,7 +172,7 @@ public class UserService {
         return new UserDto(savedUser);
     }
 
-    public List<String> getStyles() {
-        return styleRepository.findAll().stream().map(Style::getName).toList();
+    public List<String> getStyles(String filter) {
+        return styleRepository.searchByFreeText(filter).stream().map(Style::getName).toList();
     }
 }
