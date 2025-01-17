@@ -130,8 +130,7 @@ public class AiFeedbackService {
     private AiFeedbackSubmissionDto parseJson(String data) throws JsonProcessingException {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
-        AiFeedbackSubmissionDto aiFeedbackSubmissionDto = mapper.readValue(data, AiFeedbackSubmissionDto.class);
-        return aiFeedbackSubmissionDto;
+        return mapper.readValue(data, AiFeedbackSubmissionDto.class);
     }
 
     private String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
@@ -257,7 +256,7 @@ public class AiFeedbackService {
         User user = userService.getUser();
         if (user.isStyleAdapted()) {
             List<String> userMostUsedStyles = getFilters("style");
-            return userMostUsedStyles.subList(0, Math.max(3, userMostUsedStyles.size()));
+            return userMostUsedStyles.subList(0, Math.min(3, userMostUsedStyles.size()));
         }
         return user.getSelectedStyle() != null ? user.getSelectedStyle().styles() : List.of();
     }
@@ -298,7 +297,7 @@ public class AiFeedbackService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, PageRequest pageRequest) {
+    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, Boolean liked, PageRequest pageRequest) {
         Sort sortBy = Sort.by(
                 Sort.Order.by("top_list_order").with(Sort.Direction.DESC), // `topListOrder` prioritized
                 Sort.Order.by("standard_order").with(Sort.Direction.DESC)         // Then by `order`
@@ -306,7 +305,7 @@ public class AiFeedbackService {
 
         PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
         UserDto userInfo = userService.getUserInfo();
-        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, pageRequestWithSort).map(aiFeedback ->
+        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked, pageRequestWithSort).map(aiFeedback ->
                 new AiFeedbackDto(aiFeedback, getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
     }
 

@@ -44,18 +44,49 @@ public class AiFeedbackSearchService {
     }
 
 
-    public Page<AiFeedback> findAiFeedbacksByTags(Long userId, Map<String, List<String>> tagFilters, Pageable pageable) {
-        // Build the base query string
-        StringBuilder queryString = new StringBuilder("SELECT af.* FROM ai_feedback af WHERE af.user_id = :userId");
+    public Page<AiFeedback> findAiFeedbacksByTags(Long userId, Map<String, List<String>> tagFilters, Boolean liked, Pageable pageable) {
+        // Build the base query strings
+        String baseQuery = "SELECT af.* FROM ai_feedback af";
+        String whereClause = buildWhereClause(userId, tagFilters, liked);
 
-        // Loop through the tag filters (e.g., color, style, occasion)
+        // Add sorting from the Pageable object
+        StringBuilder queryString = new StringBuilder(baseQuery).append(whereClause);
+        addSorting(pageable, queryString);
+
+        // Create the main query
+        Query query = entityManager.createNativeQuery(queryString.toString(), AiFeedback.class);
+        setQueryParameters(query, userId, tagFilters, liked);
+
+        // Set pagination parameters
+        int firstResult = pageable.getPageNumber() * pageable.getPageSize();
+        query.setFirstResult(firstResult);
+        query.setMaxResults(pageable.getPageSize());
+
+        // Execute the query and return the result
+        List<AiFeedback> results = query.getResultList();
+
+        // Get total count for pagination
+        String countQueryString = "SELECT COUNT(*) FROM ai_feedback af" + whereClause;
+        Query countQuery = entityManager.createNativeQuery(countQueryString);
+        setQueryParameters(countQuery, userId, tagFilters, liked);
+
+        long totalCount = ((Number) countQuery.getSingleResult()).longValue();
+        return new PageImpl<>(results, pageable, totalCount);
+    }
+
+    private String buildWhereClause(Long userId, Map<String, List<String>> tagFilters, Boolean liked) {
+        StringBuilder whereClause = new StringBuilder(" WHERE af.user_id = :userId");
+
+        if (liked != null) {
+            whereClause.append(" AND af.like_style = :liked");
+        }
+
         for (Map.Entry<String, List<String>> entry : tagFilters.entrySet()) {
-            String tagCategory = entry.getKey();  // e.g., "color", "style", "occasion"
-            List<String> tags = entry.getValue(); // e.g., ["red", "blue"]
+            String tagCategory = entry.getKey();
+            List<String> tags = entry.getValue();
 
             if (!tags.isEmpty()) {
-                // Add AND condition for each tag category
-                queryString.append(" AND JSON_CONTAINS(af.tags, :")
+                whereClause.append(" AND JSON_CONTAINS(af.tags, :")
                         .append(tagCategory)
                         .append(", '$.")
                         .append(tagCategory)
@@ -63,43 +94,25 @@ public class AiFeedbackSearchService {
             }
         }
 
-        // Add sorting from the Pageable object
-        addSorting(pageable, queryString);
+        return whereClause.toString();
+    }
 
-        // Create the query
-        Query query = entityManager.createNativeQuery(queryString.toString(), AiFeedback.class);
-
-        // Set the userId parameter
+    private void setQueryParameters(Query query, Long userId, Map<String, List<String>> tagFilters, Boolean liked) {
         query.setParameter("userId", userId);
 
-        // Bind each tag list as a JSON string dynamically
+        if (liked != null) {
+            query.setParameter("liked", liked);
+        }
+
         for (Map.Entry<String, List<String>> entry : tagFilters.entrySet()) {
             String tagCategory = entry.getKey();
             List<String> tags = entry.getValue();
 
-            if (CollectionUtils.isEmpty(tags)) {
-                continue;
+            if (!CollectionUtils.isEmpty(tags)) {
+                String jsonArray = convertListToJsonArray(tags);
+                query.setParameter(tagCategory, jsonArray);
             }
-            // Convert the list of tags to a JSON array string
-            String jsonArray = convertListToJsonArray(tags);
-            query.setParameter(tagCategory, jsonArray);
         }
-
-        // Set pagination parameters
-        int pageNumber = pageable.getPageNumber();
-        int pageSize = pageable.getPageSize();
-        int firstResult = pageNumber * pageSize;
-        query.setFirstResult(firstResult);
-        query.setMaxResults(pageSize);
-
-        // Execute the query and return the result
-        List<AiFeedback> results = query.getResultList();
-
-        // Get total count for pagination
-        long totalCount = getTotalCount(userId, tagFilters);
-
-        // Return a Page object with results and total count
-        return new PageImpl<>(results, pageable, totalCount);
     }
 
     private String convertListToJsonArray(List<String> list) {
@@ -108,43 +121,7 @@ public class AiFeedbackSearchService {
                 .collect(Collectors.joining(",", "[", "]"));
     }
 
-    private long getTotalCount(Long userId, Map<String, List<String>> tagFilters) {
-        StringBuilder countQueryString = new StringBuilder("SELECT COUNT(*) FROM ai_feedback af WHERE af.user_id = :userId");
-
-        for (Map.Entry<String, List<String>> entry : tagFilters.entrySet()) {
-            String tagCategory = entry.getKey();
-            List<String> tags = entry.getValue();
-
-            if (!tags.isEmpty()) {
-                countQueryString.append(" AND JSON_CONTAINS(af.tags, :")
-                        .append(tagCategory)
-                        .append(", '$.")
-                        .append(tagCategory)
-                        .append("') = 1");
-            }
-        }
-
-        Query countQuery = entityManager.createNativeQuery(countQueryString.toString());
-        countQuery.setParameter("userId", userId);
-
-        // Bind each tag list as a JSON string dynamically
-        for (Map.Entry<String, List<String>> entry : tagFilters.entrySet()) {
-            String tagCategory = entry.getKey();
-            List<String> tags = entry.getValue();
-
-            if (CollectionUtils.isEmpty(tags)) {
-                continue;
-            }
-            // Convert the list of tags to a JSON array string
-            String jsonArray = convertListToJsonArray(tags);
-            countQuery.setParameter(tagCategory, jsonArray);
-        }
-
-        return ((Number) countQuery.getSingleResult()).longValue();
-    }
-
     private void addSorting(Pageable pageable, StringBuilder queryString) {
-        // Add sorting from the Pageable object
         if (pageable.getSort().isSorted()) {
             queryString.append(" ORDER BY ");
             pageable.getSort().forEach(order -> {
@@ -155,9 +132,7 @@ public class AiFeedbackSearchService {
                         .append(", ");
             });
 
-            // Remove the last comma
-            queryString.setLength(queryString.length() - 2);
+            queryString.setLength(queryString.length() - 2); // Remove the last comma
         }
     }
-
 }
