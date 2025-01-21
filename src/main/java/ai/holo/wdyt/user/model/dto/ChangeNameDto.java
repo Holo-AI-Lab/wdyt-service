@@ -2,5 +2,5 @@ package ai.holo.wdyt.user.model.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 
-public record ChangeUsernameDto(@NotEmpty String username) {
+public record ChangeNameDto(@NotEmpty String name) {
 }

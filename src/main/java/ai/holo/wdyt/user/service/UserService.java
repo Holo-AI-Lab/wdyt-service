@@ -9,6 +9,7 @@ import ai.holo.wdyt.user.model.entity.*;
 import ai.holo.wdyt.user.repository.StyleRepository;
 import ai.holo.wdyt.user.repository.UserFeedbackRepository;
 import ai.holo.wdyt.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,17 +30,22 @@ public class UserService {
     private final AiFeedbackDeleteService aiFeedbackDeleteService;
     private final S3Service s3Service;
     private final StyleRepository styleRepository;
+    private final String s3Endpoint;
 
     public UserService(UserRepository userRepository,
                        RobotService robotService,
+                       @Value("${aws.s3.endpoint}") String s3Endpoint,
                        UserFeedbackRepository userFeedbackRepository,
-                       AiFeedbackDeleteService aiFeedbackDeleteService, S3Service s3Service, StyleRepository styleRepository) {
+                       AiFeedbackDeleteService aiFeedbackDeleteService,
+                       S3Service s3Service,
+                       StyleRepository styleRepository) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
         this.aiFeedbackDeleteService = aiFeedbackDeleteService;
         this.s3Service = s3Service;
         this.styleRepository = styleRepository;
+        this.s3Endpoint = s3Endpoint;
     }
 
     public User createOrRetrieveUser(String email, String name, String appleId) {
@@ -133,7 +139,8 @@ public class UserService {
         User user = getUser();
         String path = saveProfileImageOnS3(new ByteArrayInputStream(image), user, currentTimeMillis);
 
-        user.setProfilePicture(path);
+        String profilePictureUrl = String.format("%s/%s", s3Endpoint, path);
+        user.setProfilePicture(profilePictureUrl);
         User savedUser = userRepository.save(user);
         return new UserDto(savedUser);
     }
@@ -174,5 +181,13 @@ public class UserService {
 
     public List<String> getStyles(String filter) {
         return styleRepository.searchByFreeText(filter).stream().map(Style::getName).toList();
+    }
+
+    @Transactional
+    public UserDto changeName(ChangeNameDto changeNameDto) {
+        User user = getUser();
+        user.setName(changeNameDto.name());
+        User savedUser = userRepository.save(user);
+        return new UserDto(savedUser);
     }
 }

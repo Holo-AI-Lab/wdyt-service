@@ -9,6 +9,7 @@ import java.util.List;
 public record AiFeedbackSubmissionDto(String clientIpAddress,
                                       @NotNull ZonedDateTime clientTime,
                                       List<String> occasions,
+                                      boolean bgExtracted,
                                       LocationAndWeatherDto locationAndWeather) {
 
 }

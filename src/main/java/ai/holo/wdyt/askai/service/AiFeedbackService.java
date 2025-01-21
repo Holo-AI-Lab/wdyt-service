@@ -101,9 +101,12 @@ public class AiFeedbackService {
             throw new BadRequestException("Provided image is not appropriate for AI processing.");
         }
 
-        // Extract background and save extracted image
-        InputStream extractedImage = backgroundExtractionService.extractBackground(image, rawImagePath);
-        String extractedImagePath = saveExtractedImageOnS3(userInfo, currentTimeMillis, extractedImage);
+        String extractedImagePath = rawImagePath;
+        if (!aiFeedbackSubmissionDto.bgExtracted()) {
+            // Extract background and save extracted image
+            InputStream extractedImage = backgroundExtractionService.extractBackground(image, rawImagePath);
+            extractedImagePath = saveExtractedImageOnS3(userInfo, currentTimeMillis, extractedImage);
+        }
 
         LocationAndWeatherDto locationAndWeather = aiFeedbackSubmissionDto.locationAndWeather();
         if(locationAndWeather == null) {

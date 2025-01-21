@@ -23,7 +23,7 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/health", "/swagger-ui/**", "/v3/api-docs/**", "/api/v1/auth/apple/login").permitAll()
+                .requestMatchers("/health", "/api/v1/contact-us/post", "/swagger-ui/**", "/v3/api-docs/**", "/api/v1/auth/apple/login").permitAll()
                 .anyRequest().authenticated()
         );
         return http.build();

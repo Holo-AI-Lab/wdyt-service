@@ -2,6 +2,7 @@ package ai.holo.wdyt.user.controller;
 
 import ai.holo.wdyt.user.model.dto.*;
 import ai.holo.wdyt.user.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -39,8 +40,13 @@ public class UserController {
     }
 
     @PostMapping("/change-username")
-    public UserDto changeUsername(@RequestBody ChangeUsernameDto changeUsernameDto) {
+    public UserDto changeUsername(@RequestBody @Valid ChangeUsernameDto changeUsernameDto) {
         return userService.changeUsername(changeUsernameDto);
+    }
+
+    @PostMapping("/change-name")
+    public UserDto changeName(@RequestBody @Valid ChangeNameDto changeNameDto) {
+        return userService.changeName(changeNameDto);
     }
 
     @PostMapping("/update-adapted-style-mode")
