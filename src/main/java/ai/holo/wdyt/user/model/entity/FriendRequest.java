@@ -5,13 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
-@Entity(name = "user_friend_record")
+@Entity(name = "user_friend_request")
 @Getter
 @Setter
 @NoArgsConstructor
-public class UserFriendRecord {
+public class FriendRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -19,8 +19,12 @@ public class UserFriendRecord {
     private Long userId;
     @Column(name = "friend_id")
     private Long friendId;
-    @Column(name = "status")
-    private String status;
-    @Column(name = "create_date")
-    private Date createDate;
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    public FriendRequest(Long userId, Long friendId) {
+        this.userId = userId;
+        this.friendId = friendId;
+        createdAt = LocalDateTime.now();
+    }
 }

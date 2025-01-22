@@ -1,15 +1,15 @@
 package ai.holo.wdyt.user.service;
 
-import ai.holo.wdyt.askai.service.AiFeedbackDeleteService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.common.exception.ParameterValidationException;
 import ai.holo.wdyt.common.exception.UsernameAlreadyExistingException;
 import ai.holo.wdyt.user.model.dto.*;
 import ai.holo.wdyt.user.model.entity.*;
-import ai.holo.wdyt.user.repository.StyleRepository;
-import ai.holo.wdyt.user.repository.UserFeedbackRepository;
-import ai.holo.wdyt.user.repository.UserRepository;
+import ai.holo.wdyt.user.repository.*;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,25 +27,26 @@ public class UserService {
     private final UserRepository userRepository;
     private final RobotService robotService;
     private final UserFeedbackRepository userFeedbackRepository;
-    private final AiFeedbackDeleteService aiFeedbackDeleteService;
     private final S3Service s3Service;
     private final StyleRepository styleRepository;
     private final String s3Endpoint;
+    private final FriendRequestRepository friendRequestRepository;
+    private final FriendRepository friendRepository;
 
     public UserService(UserRepository userRepository,
                        RobotService robotService,
                        @Value("${aws.s3.endpoint}") String s3Endpoint,
                        UserFeedbackRepository userFeedbackRepository,
-                       AiFeedbackDeleteService aiFeedbackDeleteService,
                        S3Service s3Service,
-                       StyleRepository styleRepository) {
+                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
-        this.aiFeedbackDeleteService = aiFeedbackDeleteService;
         this.s3Service = s3Service;
         this.styleRepository = styleRepository;
         this.s3Endpoint = s3Endpoint;
+        this.friendRequestRepository = friendRequestRepository;
+        this.friendRepository = friendRepository;
     }
 
     public User createOrRetrieveUser(String email, String name, String appleId) {
@@ -70,6 +71,12 @@ public class UserService {
     public String generateUniqueUsername(String email) {
         // Extract a base username
         String baseUsername = extractBaseUsername(email);
+
+        // Ensure the base username meets the minimum length requirement
+        if (baseUsername.length() < 6) {
+            baseUsername = padToMinLength(baseUsername, 6);
+        }
+
         String uniqueUsername = baseUsername;
 
         // Check for uniqueness and append suffix if needed
@@ -93,8 +100,19 @@ public class UserService {
         }
 
         // Limit the username length to 15 characters for readability
-        return sanitized.length() > 15 ? sanitized.substring(0, 15) : sanitized;
+        sanitized = sanitized.length() > 15 ? sanitized.substring(0, 15) : sanitized;
+
+        return sanitized;
     }
+
+    private String padToMinLength(String username, int minLength) {
+        StringBuilder padded = new StringBuilder(username);
+        while (padded.length() < minLength) {
+            padded.append("0"); // Pad with zeros to reach the minimum length
+        }
+        return padded.toString();
+    }
+
 
     private boolean isUsernameTaken(String username) {
         // Query the repository to check if the username exists
@@ -122,15 +140,6 @@ public class UserService {
         UserFeedback userFeedback = new UserFeedback(getUser().getId(), addUserFeedbackDto.feedback());
         userFeedbackRepository.save(userFeedback);
         return new UserFeedbackDto(userFeedback.getUserId(), userFeedback.getFeedback());
-    }
-
-    @Transactional
-    public void deleteAccount() {
-        User user = getUser();
-        robotService.deleteRobot(user.getRobot().getId());
-        userFeedbackRepository.deleteAllByUserId(user.getId());
-        aiFeedbackDeleteService.deleteAllByUserId(user.getId());
-        userRepository.delete(user);
     }
 
     @Transactional
@@ -189,5 +198,18 @@ public class UserService {
         user.setName(changeNameDto.name());
         User savedUser = userRepository.save(user);
         return new UserDto(savedUser);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UserSearchDto> searchUsers(String userName, PageRequest page) {
+        if (userName.length() < 3) {
+            throw new ParameterValidationException("userName search parameter must be at least 3 characters long!");
+        }
+        Long userId = getUser().getId();
+        List<Long> requestedIds = friendRequestRepository.findAllByUserId(userId).stream().map(FriendRequest::getFriendId).toList();
+        List<Long> friendIds = friendRepository.findAllByUserId(userId).stream().map(it -> it.getFriend().getId()).toList();
+
+        return userRepository.findByUsernameContainingIgnoreCaseAndIdNot(userName, userId, page).map(user -> new UserSearchDto(user,
+                friendIds.contains(user.getId()), requestedIds.contains(user.getId())));
     }
 }

@@ -1,8 +1,11 @@
 package ai.holo.wdyt.user.controller;
 
 import ai.holo.wdyt.user.model.dto.*;
+import ai.holo.wdyt.user.service.UserDeleteAccountService;
 import ai.holo.wdyt.user.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,14 +17,23 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final UserDeleteAccountService userDeleteAccountService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, UserDeleteAccountService userDeleteAccountService) {
         this.userService = userService;
+        this.userDeleteAccountService = userDeleteAccountService;
     }
 
     @GetMapping("/get-info")
     public UserDto getUserInfo() {
         return userService.getUserInfo();
+    }
+
+    @GetMapping("/search-users")
+    public Page<UserSearchDto> searchUsers(@RequestParam(value = "userName") String userName,
+                                     @RequestParam(defaultValue = "100") Integer size,
+                                     @RequestParam(defaultValue = "0") Integer page) {
+        return userService.searchUsers(userName, PageRequest.of(page, size));
     }
 
     @PostMapping("/add-feedback")
@@ -30,8 +42,8 @@ public class UserController {
     }
 
     @PostMapping("/delete-account")
-    public void updateUserInfo() {
-        userService.deleteAccount();
+    public void deleteAccount() {
+        userDeleteAccountService.deleteAccount();
     }
 
     @PostMapping("/upload-profile-picture")
