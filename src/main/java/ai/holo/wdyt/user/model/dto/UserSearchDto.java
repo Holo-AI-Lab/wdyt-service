@@ -15,12 +15,12 @@ public record UserSearchDto(Long id,
                             boolean isStyleAdapted,
                             UserSelectedStyle selectedStyle,
                             boolean isFriend,
-                            boolean hasPendingRequest) {
+                            Long pendingRequestId) {
 
-    public UserSearchDto(User user, boolean isFriend, boolean hasPendingRequest) {
+    public UserSearchDto(User user, boolean isFriend, Long pendingRequestId) {
         this(user.getId(), user.getEmail(), user.getName(), user.getUsername(),
                 user.getProfilePicture(), user.getRobot().getId(), user.getRobot().getName(),
                 user.getRobot().getGender(), user.getRobot().getAvatarUrl(), user.isStyleAdapted(),
-                user.getSelectedStyle(), isFriend, hasPendingRequest);
+                user.getSelectedStyle(), isFriend, pendingRequestId);
     }
 }

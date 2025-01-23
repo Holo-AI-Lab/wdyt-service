@@ -16,9 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.List;
-import java.util.Optional;
-import java.util.Random;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -206,10 +205,22 @@ public class UserService {
             throw new ParameterValidationException("userName search parameter must be at least 3 characters long!");
         }
         Long userId = getUser().getId();
-        List<Long> requestedIds = friendRequestRepository.findAllByUserId(userId).stream().map(FriendRequest::getFriendId).toList();
-        List<Long> friendIds = friendRepository.findAllByUserId(userId).stream().map(it -> it.getFriend().getId()).toList();
+        Map<Long, Long> requestedIdMap = friendRequestRepository
+                .findAllByUserId(userId)
+                .stream()
+                .collect(Collectors.toMap(FriendRequest::getFriendId, FriendRequest::getId));
 
-        return userRepository.findByUsernameContainingIgnoreCaseAndIdNot(userName, userId, page).map(user -> new UserSearchDto(user,
-                friendIds.contains(user.getId()), requestedIds.contains(user.getId())));
+        Set<Long> friendIdSet = friendRepository
+                .findAllByUserId(userId)
+                .stream()
+                .map(it -> it.getFriend().getId())
+                .collect(Collectors.toSet());
+
+        return userRepository.findByUsernameContainingIgnoreCaseAndIdNot(userName, userId, page)
+                .map(user -> new UserSearchDto(
+                        user,
+                        friendIdSet.contains(user.getId()),
+                        requestedIdMap.get(user.getId())
+                ));
     }
 }
