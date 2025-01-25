@@ -6,7 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import java.time.ZonedDateTime;
 import java.util.List;
 
-public record AiFeedbackSubmissionDto(String clientIpAddress,
+public record AiFeedbackSubmissionDto(Long aiFeedbackId,
+                                      Long userId,
+                                      String clientIpAddress,
                                       @NotNull ZonedDateTime clientTime,
                                       List<String> occasions,
                                       boolean bgExtracted,

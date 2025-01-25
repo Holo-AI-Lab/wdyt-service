@@ -223,4 +223,15 @@ public class UserService {
                         requestedIdMap.get(user.getId())
                 ));
     }
+
+    @Transactional
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId).orElseThrow(NotFoundException::new);
+    }
+
+    @Transactional
+    public boolean isCurrentUserFriendWith(Long userId) {
+        Long currentUserId = getUser().getId();
+        return friendRepository.existsByUserIdAndFriendId(currentUserId, userId);
+    }
 }

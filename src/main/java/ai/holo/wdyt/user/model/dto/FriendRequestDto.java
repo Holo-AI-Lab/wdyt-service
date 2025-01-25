@@ -7,7 +7,7 @@ public record FriendRequestDto(Long id,
                                String friendUsername,
                                String friendProfilePictureUrl) {
 
-    public FriendRequestDto(User user) {
-        this(user.getId(), user.getName(), user.getUsername(), user.getProfilePicture());
+    public FriendRequestDto(Long friendRequestId, User user) {
+        this(friendRequestId, user.getName(), user.getUsername(), user.getProfilePicture());
     }
 }

@@ -5,21 +5,19 @@ import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import ai.holo.wdyt.user.model.dto.UserDto;
 
+import java.util.List;
+
 public record AiFeedbackDetailedDto(Long id,
-                                    OutfitAnalysis outfitAnalysis,
-                                    HeadStyleAnalysis headStyleAnalysis,
                                     ImageType imageType,
                                     String extractedImagePath,
                                     UserDto userInfo,
                                     boolean styleLiked,
-                                    Boolean aiResponseLiked,
                                     Integer topListOrder,
                                     Integer order,
-                                    LocationAndWeatherDto locationAndWeather) {
+                                    List<FeedbackEntryDto> feedbackEntries) {
 
-    public AiFeedbackDetailedDto(AiFeedback feedback, OutfitAnalysis outfitAnalysis, HeadStyleAnalysis headStyleAnalysis,
-                                 String extractedImagePath, UserDto userInfo) {
-        this(feedback.getId(), outfitAnalysis, headStyleAnalysis, feedback.getImageType(), extractedImagePath, userInfo, feedback.isLikeStyle(),
-                feedback.getLikeAiResponse(), feedback.getTopListOrder(), feedback.getOrder(), feedback.getLocationAndWeather());
+    public AiFeedbackDetailedDto(AiFeedback feedback, String extractedImagePath, UserDto userInfo, List<FeedbackEntryDto> feedbackEntries) {
+        this(feedback.getId(), feedback.getImageType(), extractedImagePath, userInfo, feedback.isLikeStyle(),
+                feedback.getTopListOrder(), feedback.getOrder(), feedbackEntries);
     }
 }

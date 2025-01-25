@@ -106,7 +106,7 @@ public class FriendService {
         Map<Long, User> userMap = users.stream()
                 .collect(Collectors.toMap(User::getId, self -> self));
         List<FriendRequestDto> friendRequestDtos = friendRequests.getContent().stream()
-                .map(friendRequest -> new FriendRequestDto(userMap.get(friendRequest.getUserId())))
+                .map(friendRequest -> new FriendRequestDto(friendRequest.getId(), userMap.get(friendRequest.getUserId())))
                 .toList();
 
         return new PageImpl<>(friendRequestDtos, pageRequest, friendRequests.getTotalElements());

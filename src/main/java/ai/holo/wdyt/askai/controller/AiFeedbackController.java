@@ -3,7 +3,9 @@ package ai.holo.wdyt.askai.controller;
 import ai.holo.wdyt.askai.model.dto.*;
 import ai.holo.wdyt.askai.model.entity.AiFeedback;
 import ai.holo.wdyt.askai.service.AiFeedbackService;
+import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import ai.holo.wdyt.user.model.dto.UserDto;
+import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,12 +30,23 @@ public class AiFeedbackController {
     }
 
     @PostMapping(value = "/submit-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public AiFeedbackDetailedDto submitImage(@RequestPart("image") MultipartFile image,
+    public AiFeedbackDetailedDto submitImage(@RequestPart(value = "image", required = false) MultipartFile image,
                                              @RequestPart("data") String data) throws IOException {
 
-        UserDto userInfo = userService.getUserInfo();
-        AiFeedback aiFeedback = aiFeedbackService.executeGptCall(image.getBytes(), userInfo, data);
-        return aiFeedbackService.saveAiResponse(aiFeedback, userInfo);
+        byte[] imageBytes = image != null ? image.getBytes() : null;
+        AiFeedbackSubmissionDto aiFeedbackSubmissionDto = aiFeedbackService.validateAndParseSubmissionDto(imageBytes, data);
+        User currentUser = userService.getUser();
+
+        AiFeedbackService.AISubmissionImage aiSubmissionImage = aiFeedbackService.checkImagesAndMakeNecessaryPreprocessing(imageBytes, currentUser, aiFeedbackSubmissionDto);
+        LocationAndWeatherDto locationAndWeather = aiFeedbackService.getLocationAndWeather(aiFeedbackSubmissionDto);
+
+        AiFeedbackService.AiSubmissionPrompt prompt = aiFeedbackService.preparePrompt(aiFeedbackSubmissionDto, currentUser, aiSubmissionImage, locationAndWeather);
+
+        // Call ChatGPT with retries
+        String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage.extractedImagePath(), prompt.promptText(), aiSubmissionImage.imageType());
+
+        // Save AI response
+        return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto, prompt.prompt().getId(), gptResponse, aiSubmissionImage, locationAndWeather);
     }
 
     @GetMapping("/")

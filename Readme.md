@@ -37,20 +37,16 @@ active boolean DEFAULT true
 CREATE TABLE ai_feedback (
 id INT(11) AUTO_INCREMENT PRIMARY KEY,
 user_id INT(11) NOT NULL,
-prompt_id INT(11) NOT NULL,
-response TEXT NOT NULL,
 raw_image_path VARCHAR(500) NOT NULL,
 image_type VARCHAR(255) NOT NULL DEFAULT 'OTHER',
 extracted_image_path VARCHAR(500) NOT NULL,
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
 like_style BOOLEAN DEFAULT false,
-like_ai_response BOOLEAN NULL,
 top_list_order INT(11) NULL,
 standard_order INT(11) NULL,
-location_and_weather TEXT NULL,
 tags JSON NULL,
-FOREIGN KEY (user_id) REFERENCES user(id),
-FOREIGN KEY (prompt_id) REFERENCES gpt_prompt(id)
+feedback_entries TEXT NULL,
+FOREIGN KEY (user_id) REFERENCES user(id)
 );
 
 CREATE TABLE ai_feedback_order (

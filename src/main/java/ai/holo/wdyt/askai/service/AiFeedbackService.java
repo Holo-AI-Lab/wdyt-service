@@ -34,10 +34,12 @@ import org.springframework.util.CollectionUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -86,14 +88,42 @@ public class AiFeedbackService {
         this.occasionRepository = occasionRepository;
     }
 
-    public AiFeedback executeGptCall(byte[] image, UserDto userInfo, String data) throws JsonProcessingException {
+    public AiSubmissionPrompt preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather) {
+        // Send prompt with image to ChatGPT
+        User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.aiFeedbackId()) : currentUser;
+        ChatGptPrompt prompt = promptService.getPrompt(aiSubmissionImage.imageType());
+        String promptText = getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions());
+        return new AiSubmissionPrompt(prompt, promptText);
+    }
+
+    public AiFeedbackSubmissionDto validateAndParseSubmissionDto(byte[] image, String data) throws JsonProcessingException {
         AiFeedbackSubmissionDto aiFeedbackSubmissionDto = parseJson(data);
         if (aiFeedbackSubmissionDto.clientTime() == null) {
             throw new BadRequestException("clientTime is required");
         }
+        checkImageOrPreviousSubmissionIdIsProvided(image, aiFeedbackSubmissionDto);
+        checkTheProvidedUserIsFriendWithTheCurrentUser(aiFeedbackSubmissionDto);
+        return aiFeedbackSubmissionDto;
+    }
+
+    private void checkTheProvidedUserIsFriendWithTheCurrentUser(AiFeedbackSubmissionDto aiFeedbackSubmissionDto) {
+        if (aiFeedbackSubmissionDto.userId() != null) {
+            boolean isFriend = userService.isCurrentUserFriendWith(aiFeedbackSubmissionDto.userId());
+            if (!isFriend) {
+                throw new BadRequestException("User is not a friend");
+            }
+        }
+    }
+
+    public AISubmissionImage checkImagesAndMakeNecessaryPreprocessing(byte[] image, User currentUser, AiFeedbackSubmissionDto aiFeedbackSubmissionDto) {
+        if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
+            AiFeedback aiFeedback = aiFeedbackRepository.findById(aiFeedbackSubmissionDto.aiFeedbackId()).orElseThrow(NotFoundException::new);
+            return new AISubmissionImage(aiFeedback.getImageType(), aiFeedback.getRawImagePath(), aiFeedback.getExtractedImagePath());
+        }
+
         long currentTimeMillis = System.currentTimeMillis();
         // Save Raw image
-        String rawImagePath = saveRawImageOnS3(new ByteArrayInputStream(image), userInfo, currentTimeMillis);
+        String rawImagePath = saveRawImageOnS3(new ByteArrayInputStream(image), currentUser, currentTimeMillis);
 
         // Classify image
         ImageType imageType = imageClassificationService.classifyImage(image);
@@ -105,9 +135,12 @@ public class AiFeedbackService {
         if (!aiFeedbackSubmissionDto.bgExtracted()) {
             // Extract background and save extracted image
             InputStream extractedImage = backgroundExtractionService.extractBackground(image, rawImagePath);
-            extractedImagePath = saveExtractedImageOnS3(userInfo, currentTimeMillis, extractedImage);
+            extractedImagePath = saveExtractedImageOnS3(currentUser, currentTimeMillis, extractedImage);
         }
+        return new AISubmissionImage(imageType, rawImagePath, extractedImagePath);
+    }
 
+    public LocationAndWeatherDto getLocationAndWeather(AiFeedbackSubmissionDto aiFeedbackSubmissionDto) {
         LocationAndWeatherDto locationAndWeather = aiFeedbackSubmissionDto.locationAndWeather();
         if(locationAndWeather == null) {
             if (aiFeedbackSubmissionDto.clientIpAddress() == null) {
@@ -116,18 +149,13 @@ public class AiFeedbackService {
             // Get location and weather by IP
             locationAndWeather = ipGeoLocationService.getLocationAndWeatherByIp(aiFeedbackSubmissionDto.clientIpAddress());
         }
+        return locationAndWeather;
+    }
 
-        // Send prompt with image to ChatGPT
-        ChatGptPrompt prompt = promptService.getPrompt(imageType);
-        String promptText = getPromptText(prompt, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions());
-
-        // Call ChatGPT with retries
-        String gptResponse = sendPromptWithRetries(getFileS3Url(extractedImagePath), promptText, imageType);
-
-        AiSubmissionOrder orders = getOrder(userInfo);
-        // Save AI response
-        return new AiFeedback(userInfo.id(), prompt.getId(),
-                gptResponse, rawImagePath, imageType, extractedImagePath, orders.topListOrder(), orders.order(), locationAndWeather);
+    private void checkImageOrPreviousSubmissionIdIsProvided(byte[] image, AiFeedbackSubmissionDto aiFeedbackSubmissionDto) {
+        if (image == null && aiFeedbackSubmissionDto.aiFeedbackId() == null) {
+            throw new BadRequestException("Either image or previous submission id is required");
+        }
     }
 
     private AiFeedbackSubmissionDto parseJson(String data) throws JsonProcessingException {
@@ -136,13 +164,14 @@ public class AiFeedbackService {
         return mapper.readValue(data, AiFeedbackSubmissionDto.class);
     }
 
-    private String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
+    public String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
+        String extractedImageS3Url = getFileS3Url(extractedImagePath);
         int retries = MAX_RETRY_COUNT;
         for (int i = 0; i < retries; i++) {
             String gptResponse = null;
             try {
                 // Attempt to send the prompt and extract the response
-                gptResponse = chatGptService.sendPromptWithImage(extractedImagePath, promptText);
+                gptResponse = chatGptService.sendPromptWithImage(extractedImageS3Url, promptText);
                 extractResponse(gptResponse, imageType);
                 return gptResponse; // Return the response if successful
             } catch (RuntimeException e) {
@@ -170,15 +199,28 @@ public class AiFeedbackService {
     }
 
     @Transactional
-    public AiFeedbackDetailedDto saveAiResponse(AiFeedback aiFeedback, UserDto userInfo) {
-        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(aiFeedback.getResponse(), aiFeedback.getImageType());
+    public AiFeedbackDetailedDto saveAiResponse(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, Long promptId,
+                                                String gptResponse, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather) {
+        User currentUser = userService.getUser();
+        AiFeedback feedback;
+        if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
+            feedback = aiFeedbackRepository.findById(aiFeedbackSubmissionDto.aiFeedbackId()).orElseThrow(NotFoundException::new);
+        } else {
+            AiSubmissionOrder order = getOrder(currentUser);
+            feedback = new AiFeedback(currentUser.getId(), aiSubmissionImage.rawImagePath(), aiSubmissionImage.imageType(),
+                    aiSubmissionImage.extractedImagePath(), order.topListOrder, order.order);
+
+        }
+        User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
+        feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), promptId, gptResponse, false, locationAndWeather, LocalDateTime.now()));
+
+        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(gptResponse, aiSubmissionImage.imageType());
         Map<String, List<String>> tags = getTags(analysis);
 
-        aiFeedback.setTags(tags);
-        AiFeedback savedAiFeedback = aiFeedbackRepository.save(aiFeedback);
+        feedback.updateTags(tags);
+        AiFeedback savedAiFeedback = aiFeedbackRepository.save(feedback);
 
-        return new AiFeedbackDetailedDto(savedAiFeedback, analysis.getLeft(), analysis.getRight(),
-                getFileS3Url(savedAiFeedback.getExtractedImagePath()), userInfo);
+        return generateAiFeedbackDto(savedAiFeedback);
     }
 
     private Map<String, List<String>> getTags(Pair<OutfitAnalysis, HeadStyleAnalysis> analysis) {
@@ -197,23 +239,23 @@ public class AiFeedbackService {
     }
 
 
-    private AiSubmissionOrder getOrder(UserDto user) {
+    private AiSubmissionOrder getOrder(User user) {
         Integer topListOrder = null;
         Integer order = null;
-        int itemsInTopList = aiFeedbackRepository.countByUserIdAndTopListOrderIsNotNull(user.id());
+        int itemsInTopList = aiFeedbackRepository.countByUserIdAndTopListOrderIsNotNull(user.getId());
         if (itemsInTopList < topListCount) {
             topListOrder = itemsInTopList + 1;
         }
         // if item is not in top list, increment order
         if (topListOrder == null) {
-            AiFeedbackOrder aiFeedbackOrder = aiFeedbackOrderRepository.findByUserId(user.id()).orElse(new AiFeedbackOrder(user.id()));
+            AiFeedbackOrder aiFeedbackOrder = aiFeedbackOrderRepository.findByUserId(user.getId()).orElse(new AiFeedbackOrder(user.getId()));
             order = aiFeedbackOrder.incrementOrder();
             aiFeedbackOrderRepository.save(aiFeedbackOrder);
         }
         return new AiSubmissionOrder(topListOrder, order);
     }
 
-    private String getPromptText(ChatGptPrompt prompt, ZonedDateTime date, LocationAndWeatherDto locationAndWeather,
+    private String getPromptText(ChatGptPrompt prompt, User aiUser, ZonedDateTime date, LocationAndWeatherDto locationAndWeather,
                                  List<String> occasions) {
         String formattedDate = date.toString();
         String promptText = prompt.getPrompt();
@@ -222,7 +264,7 @@ public class AiFeedbackService {
 
         List<String> parameterOccasions = occasions != null ? occasions : List.of();
         String occasion = String.join(",", parameterOccasions);
-        List<String> styles = getStyles();
+        List<String> styles = getStyles(aiUser);
 
         String locationRegex = "\\$\\{local}";
         String dateRegex = "\\$\\{date}";
@@ -255,13 +297,12 @@ public class AiFeedbackService {
 
     }
 
-    private List<String> getStyles() {
-        User user = userService.getUser();
-        if (user.isStyleAdapted()) {
+    private List<String> getStyles(User aiUser) {
+        if (aiUser.isStyleAdapted()) {
             List<String> userMostUsedStyles = getFilters("style");
             return userMostUsedStyles.subList(0, Math.min(3, userMostUsedStyles.size()));
         }
-        return user.getSelectedStyle() != null ? user.getSelectedStyle().styles() : List.of();
+        return aiUser.getSelectedStyle() != null ? aiUser.getSelectedStyle().styles() : List.of();
     }
 
     private Pair<OutfitAnalysis, HeadStyleAnalysis> extractResponse(String response, ImageType imageType) {
@@ -287,14 +328,14 @@ public class AiFeedbackService {
         return String.format("%s/%s", s3Endpoint, path);
     }
 
-    private String saveExtractedImageOnS3(UserDto user, long currentTimeMillis, InputStream extractedImage) {
-        String path = String.format("%d/%d/extracted_%d.png", user.id(), currentTimeMillis, currentTimeMillis);
+    private String saveExtractedImageOnS3(User user, long currentTimeMillis, InputStream extractedImage) {
+        String path = String.format("%d/%d/extracted_%d.png", user.getId(), currentTimeMillis, currentTimeMillis);
         s3Service.saveImage(extractedImage, path);
         return path;
     }
 
-    private String saveRawImageOnS3(InputStream image, UserDto user, long currentTimeMillis) {
-        String path = String.format("%d/%d/raw_%d.png", user.id(), currentTimeMillis, currentTimeMillis);
+    private String saveRawImageOnS3(InputStream image, User user, long currentTimeMillis) {
+        String path = String.format("%d/%d/raw_%d.png", user.getId(), currentTimeMillis, currentTimeMillis);
         s3Service.saveImage(image, path);
         return path;
     }
@@ -347,12 +388,27 @@ public class AiFeedbackService {
     @Transactional
     public AiFeedbackDto likeAiResponse(LikeAiResponseDto likeAiResponseDto) {
         AiFeedback aiFeedback = aiFeedbackRepository.findById(likeAiResponseDto.id()).orElseThrow(NotFoundException::new);
-        if (aiFeedback.getLikeAiResponse() != null) {
-            throw new BadRequestException("Feedback already liked");
-        }
-        aiFeedback.setLikeAiResponse(likeAiResponseDto.like());
+        checkFeedbackIsExistingAndNotLikedAlready(likeAiResponseDto, aiFeedback);
+        // Update feedback entry
+        List<FeedbackEntry> updatedFeedbackEntries = aiFeedback.getFeedbackEntries().stream().map(feedback -> {
+            if (feedback.id().equals(likeAiResponseDto.feedbackId())) {
+                return new FeedbackEntry(feedback.id(), feedback.userId(), feedback.promptId(), feedback.response(), true, feedback.locationAndWeather(), feedback.createdAt());
+            }
+            return feedback;
+        }).toList();
+        aiFeedback.setFeedbackEntries(updatedFeedbackEntries);
         AiFeedback savedFeedback = aiFeedbackRepository.save(aiFeedback);
         return new AiFeedbackDto(savedFeedback, getFileS3Url(savedFeedback.getExtractedImagePath()), userService.getUserInfo());
+    }
+
+    private void checkFeedbackIsExistingAndNotLikedAlready(LikeAiResponseDto likeAiResponseDto, AiFeedback aiFeedback) {
+        FeedbackEntry feedbackEntry = aiFeedback.getFeedbackEntries().stream()
+                .filter(feedback -> feedback.id().equals(likeAiResponseDto.feedbackId()))
+                .findFirst()
+                .orElseThrow(NotFoundException::new);
+        if (feedbackEntry.likeAiResponse() != null) {
+            throw new BadRequestException("Feedback already liked");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -362,9 +418,17 @@ public class AiFeedbackService {
         if (!aiFeedback.getUserId().equals(user.getId())) {
             throw new NotFoundException();
         }
-        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(aiFeedback.getResponse(), aiFeedback.getImageType());
-        return new AiFeedbackDetailedDto(aiFeedback, analysis.getLeft(), analysis.getRight(),
-                getFileS3Url(aiFeedback.getExtractedImagePath()), userService.getUserInfo());
+        return generateAiFeedbackDto(aiFeedback);
+    }
+
+    private AiFeedbackDetailedDto generateAiFeedbackDto(AiFeedback aiFeedback) {
+        List<FeedbackEntryDto> feedbackEntryDtos = aiFeedback.getFeedbackEntries().stream().map(feedback -> {
+            Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(feedback.response(), aiFeedback.getImageType());
+            User aiUser = userService.getUserById(feedback.userId());
+            return new FeedbackEntryDto(feedback, analysis.getLeft(), analysis.getRight(), new UserDto(aiUser));
+        }).toList();
+        return new AiFeedbackDetailedDto(aiFeedback, getFileS3Url(aiFeedback.getExtractedImagePath()),
+                userService.getUserInfo(), feedbackEntryDtos);
     }
 
     @Transactional
@@ -372,17 +436,16 @@ public class AiFeedbackService {
         User user = userService.getUser();
         AiFeedback aiFeedback = aiFeedbackRepository.findByIdAndUserId(pinAiFeedbackDto.aiFeedbackId(), user.getId())
                 .orElseThrow(NotFoundException::new);
-        UserDto userInfo = userService.getUserInfo();
 
         if (pinAiFeedbackDto.pin()) {
-            pin(aiFeedback, userInfo);
+            pin(aiFeedback, user);
         } else {
-            unpin(aiFeedback, userInfo);
+            unpin(aiFeedback, user);
         }
     }
 
-    private void pin(AiFeedback aiFeedback, UserDto user) {
-        List<AiFeedback> itemsInTopList = aiFeedbackRepository.findByUserIdAndTopListOrderIsNotNullOrderByTopListOrderAsc(user.id());
+    private void pin(AiFeedback aiFeedback, User user) {
+        List<AiFeedback> itemsInTopList = aiFeedbackRepository.findByUserIdAndTopListOrderIsNotNullOrderByTopListOrderAsc(user.getId());
         itemsInTopList.forEach(item -> {
             if (item.getTopListOrder() >= topListCount) {
                 unpin(item, user);
@@ -396,7 +459,7 @@ public class AiFeedbackService {
         aiFeedbackRepository.saveAll(itemsInTopList);
     }
 
-    private void unpin(AiFeedback aiFeedback, UserDto user) {
+    private void unpin(AiFeedback aiFeedback, User user) {
         AiSubmissionOrder order = getOrder(user);
 
         aiFeedback.setTopListOrder(null);
@@ -436,7 +499,10 @@ public class AiFeedbackService {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AIMessage (String content) {
     }
-
+    public record AiSubmissionPrompt(ChatGptPrompt prompt, String promptText) {
+    }
     private record AiSubmissionOrder(Integer topListOrder, Integer order) {
     }
+    public record AISubmissionImage(ImageType imageType, String rawImagePath, String extractedImagePath) {}
+
 }

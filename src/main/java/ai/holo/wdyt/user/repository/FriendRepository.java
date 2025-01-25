@@ -19,4 +19,6 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
     Page<Friend> findAllByUserId(Long id, PageRequest pageRequest);
     @EntityGraph(attributePaths = {"friend"})
     List<Friend> findAllByUserId(Long id);
+
+    boolean existsByUserIdAndFriendId(Long currentUserId, Long userId);
 }

@@ -1,12 +1,12 @@
 package ai.holo.wdyt.askai.model.entity;
 
-import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,10 +21,6 @@ public class AiFeedback {
     private Long id;
     @Column(name = "user_id")
     private Long userId;
-    @Column(name = "prompt_id")
-    private Long promptId;
-    @Column(name = "response")
-    private String response;
     @Column(name = "raw_image_path")
     private String rawImagePath;
     @Column(name = "extracted_image_path")
@@ -36,31 +32,44 @@ public class AiFeedback {
     private LocalDateTime createdAt;
     @Column(name = "like_style")
     private boolean likeStyle;
-    @Column(name = "like_ai_response")
-    private Boolean likeAiResponse;
     @Column(name = "top_list_order")
     private Integer topListOrder;
     @Column(name = "standard_order")
     private Integer order;
-    @Convert(converter = LocationAndWeatherConverter.class)
-    @Column(name = "location_and_weather")
-    private LocationAndWeatherDto locationAndWeather;
     @Convert(converter = TagConverter.class)
     @Column(columnDefinition = "JSON")
     private Map<String, List<String>> tags = new HashMap<>();
+    @Convert(converter = FeedbackEntryConverter.class)
+    @Column(name = "feedback_entries")
+    private List<FeedbackEntry> feedbackEntries = new ArrayList<>();
 
-    public AiFeedback(Long userId, Long promptId, String response, String rawImagePath,
+    public AiFeedback(Long userId, String rawImagePath,
                       ImageType imageType, String extractedImagePath, Integer topListOrder,
-                      Integer order, LocationAndWeatherDto locationAndWeather) {
+                      Integer order) {
         this.userId = userId;
-        this.promptId = promptId;
-        this.response = response;
         this.rawImagePath = rawImagePath;
         this.extractedImagePath = extractedImagePath;
         this.imageType = imageType;
         this.createdAt = LocalDateTime.now();
         this.topListOrder = topListOrder;
         this.order = order;
-        this.locationAndWeather = locationAndWeather;
+    }
+
+    public void addFeedbackEntry(FeedbackEntry feedbackEntry) {
+        feedbackEntries.add(feedbackEntry);
+    }
+
+    public void updateTags(Map<String, List<String>> newTags) {
+        newTags.keySet().forEach(key -> {
+            if (tags.containsKey(key)) {
+                newTags.get(key).forEach(value -> {
+                    if (!tags.get(key).contains(value)) {
+                        tags.get(key).add(value);
+                    }
+                });
+            } else {
+                tags.put(key, newTags.get(key));
+            }
+        });
     }
 }
