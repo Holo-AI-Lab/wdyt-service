@@ -18,9 +18,9 @@ integrations:
   create-robot:
     url: https://test.the2nd.ai/aiCompanion/api/wdyt/robot/createRobot
   background-extraction:
-    url: http://ec2-54-83-243-217.compute-1.amazonaws.com:4321/bg/remove
+    url: http://3.229.32.99:4321/bg/remove
   image-classification:
-    url: http://ec2-54-83-243-217.compute-1.amazonaws.com:7654/upload
+    url: http://3.229.32.99:7654/upload
   weather:
     api-key: 43837f96e63b4f89a32151818250301
 chatgpt:

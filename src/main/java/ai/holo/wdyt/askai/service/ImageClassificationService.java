@@ -1,7 +1,6 @@
 package ai.holo.wdyt.askai.service;
 
 import ai.holo.wdyt.askai.model.entity.ImageType;
-import com.nimbusds.jose.shaded.gson.JsonObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
@@ -10,8 +9,6 @@ import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
-
-import java.util.Map;
 
 @Service
 @Slf4j

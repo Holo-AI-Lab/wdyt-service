@@ -49,7 +49,7 @@ public class AiFeedbackService {
     public static final int MAX_RETRY_COUNT = 3;
     private final ChatGptService chatGptService;
     private final S3Service s3Service;
-    private final BackgroundExtractionService backgroundExtractionService;
+    private final PhotoroomBgExtractionService photoroomBgExtractionService;
     private final ImageClassificationService imageClassificationService;
     private final UserService userService;
     private final AiFeedbackRepository aiFeedbackRepository;
@@ -63,7 +63,7 @@ public class AiFeedbackService {
     private final OccasionRepository occasionRepository;
 
     public AiFeedbackService(ChatGptService chatGptService, S3Service s3Service,
-                             BackgroundExtractionService backgroundExtractionService,
+                             PhotoroomBgExtractionService photoroomBgExtractionService,
                              ImageClassificationService imageClassificationService,
                              UserService userService,
                              AiFeedbackRepository aiFeedbackRepository,
@@ -74,7 +74,7 @@ public class AiFeedbackService {
                              ReportAiFeedbackRepository reportAiFeedbackRepository, AiFeedbackSearchService aiFeedbackSearchService, OccasionRepository occasionRepository) {
         this.chatGptService = chatGptService;
         this.s3Service = s3Service;
-        this.backgroundExtractionService = backgroundExtractionService;
+        this.photoroomBgExtractionService = photoroomBgExtractionService;
         this.imageClassificationService = imageClassificationService;
         this.userService = userService;
         this.aiFeedbackRepository = aiFeedbackRepository;
@@ -134,7 +134,7 @@ public class AiFeedbackService {
         String extractedImagePath = rawImagePath;
         if (!aiFeedbackSubmissionDto.bgExtracted()) {
             // Extract background and save extracted image
-            InputStream extractedImage = backgroundExtractionService.extractBackground(image, rawImagePath);
+            InputStream extractedImage = photoroomBgExtractionService.extractBackground(image, rawImagePath);
             extractedImagePath = saveExtractedImageOnS3(currentUser, currentTimeMillis, extractedImage);
         }
         return new AISubmissionImage(imageType, rawImagePath, extractedImagePath);
