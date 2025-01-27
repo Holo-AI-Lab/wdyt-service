@@ -29,6 +29,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = NotFoundException.class)
     @ResponseBody
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(NotFoundException ex) {
+        log.error("Resource not found", ex);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("Resource not found"));
     }
 

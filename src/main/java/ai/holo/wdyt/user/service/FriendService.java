@@ -80,6 +80,8 @@ public class FriendService {
             acceptFriendRequest(friendRequest);
         }
         friendRequestRepository.delete(friendRequest);
+        // Delete the reverse request if it exists
+        friendRequestRepository.deleteByUserIdAndFriendId(friendRequest.getFriendId(), friendRequest.getUserId());
     }
 
     private void acceptFriendRequest(FriendRequest friendRequest) {

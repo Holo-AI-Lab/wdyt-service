@@ -13,6 +13,6 @@ public interface FriendRequestRepository extends JpaRepository<FriendRequest, Lo
     void deleteAllByFriendId(Long id);
     Page<FriendRequest> findAllByFriendId(Long id, PageRequest pageRequest);
     List<FriendRequest> findAllByUserId(Long id);
-
     Optional<Object> findByUserIdAndFriendId(Long id, Long friendId);
+    void deleteByUserIdAndFriendId(Long id, Long friendId);
 }

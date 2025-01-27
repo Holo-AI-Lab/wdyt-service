@@ -90,7 +90,7 @@ public class AiFeedbackService {
 
     public AiSubmissionPrompt preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather) {
         // Send prompt with image to ChatGPT
-        User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.aiFeedbackId()) : currentUser;
+        User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
         ChatGptPrompt prompt = promptService.getPrompt(aiSubmissionImage.imageType());
         String promptText = getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions());
         return new AiSubmissionPrompt(prompt, promptText);
