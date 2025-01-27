@@ -17,6 +17,8 @@ integrations:
     url: ${CREATE_ROBOT_URL}
   background-extraction:
     url: ${BACKGROUND_EXTRACTION_URL}
+  image-classification:
+    url: ${IMAGE_CLASSIFICATION_URL}
 spring:
   datasource:
     class: com.mysql.cj.jdbc.Driver
