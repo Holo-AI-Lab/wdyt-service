@@ -39,7 +39,8 @@ public class PhotoroomBgExtractionService {
 
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
         builder.part("image_file", byteArrayResource)
-                .contentType(MediaType.IMAGE_PNG); // Adjust content type based on your image type
+                .contentType(MediaType.IMAGE_PNG);
+        builder.part("crop", true);
 
         byte[] response = webClient.post()
                 .uri("https://sdk.photoroom.com/v1/segment") // Adjust the URI if necessary
