@@ -17,7 +17,7 @@ public record OutfitAnalysis(
         String hairAdvice,
         CoordinateRecommendations coordinateRecommendations,
         String summary,
-        String upliftingCompliment,
+        String compliment,
         Tag tag
 ) implements Taggable {
 

@@ -34,7 +34,7 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
         List<String> enhancementRecommendations = getEnhancementRecommendations(rootNode);
         OutfitAnalysis.CoordinateRecommendations coordinateRecommendations = getCoordinateRecommendations(rootNode);
         String summary = getText(rootNode, "summary");
-        String upliftingCompliment = getText(rootNode, "uplifting_compliment");
+        String upliftingCompliment = getText(rootNode, "compliment");
         Tag tag = getTag(rootNode);
 
         // Return final object
