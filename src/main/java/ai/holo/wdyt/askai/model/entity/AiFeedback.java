@@ -40,7 +40,7 @@ public class AiFeedback {
     @Column(columnDefinition = "JSON")
     private Map<String, List<String>> tags = new HashMap<>();
     @Convert(converter = FeedbackEntryConverter.class)
-    @Column(name = "feedback_entries")
+    @Column(name = "feedback_entries", columnDefinition = "JSON")
     private List<FeedbackEntry> feedbackEntries = new ArrayList<>();
 
     public AiFeedback(Long userId, String rawImagePath,

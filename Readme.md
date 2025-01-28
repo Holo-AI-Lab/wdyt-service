@@ -45,7 +45,7 @@ like_style BOOLEAN DEFAULT false,
 top_list_order INT(11) NULL,
 standard_order INT(11) NULL,
 tags JSON NULL,
-feedback_entries TEXT NULL,
+feedback_entries JSON NULL,
 FOREIGN KEY (user_id) REFERENCES user(id)
 );
 

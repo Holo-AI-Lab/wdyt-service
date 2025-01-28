@@ -104,7 +104,19 @@ public class AiFeedbackService {
         }
         checkImageOrPreviousSubmissionIdIsProvided(image, aiFeedbackSubmissionDto);
         checkTheProvidedUserIsFriendWithTheCurrentUser(aiFeedbackSubmissionDto);
+        checkFeedbackNotExistingForTheUser(aiFeedbackSubmissionDto);
         return aiFeedbackSubmissionDto;
+    }
+
+    private void checkFeedbackNotExistingForTheUser(AiFeedbackSubmissionDto aiFeedbackSubmissionDto) {
+        if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
+            Long aiUserId = aiFeedbackSubmissionDto.userId() != null ? aiFeedbackSubmissionDto.userId() : userService.getUser().getId();
+            AiFeedback aiFeedback = aiFeedbackRepository.findById(aiFeedbackSubmissionDto.aiFeedbackId()).orElseThrow(NotFoundException::new);
+            boolean userFeedbackExists = aiFeedback.getFeedbackEntries().stream().anyMatch(feedback -> feedback.userId().equals(aiUserId));
+            if (userFeedbackExists) {
+                throw new BadRequestException("Feedback already exists for the user");
+            }
+        }
     }
 
     private void checkTheProvidedUserIsFriendWithTheCurrentUser(AiFeedbackSubmissionDto aiFeedbackSubmissionDto) {
@@ -342,7 +354,7 @@ public class AiFeedbackService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, Boolean liked, PageRequest pageRequest) {
+    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId, PageRequest pageRequest) {
         Sort sortBy = Sort.by(
                 Sort.Order.by("top_list_order").with(Sort.Direction.DESC), // `topListOrder` prioritized
                 Sort.Order.by("standard_order").with(Sort.Direction.DESC)         // Then by `order`
@@ -350,7 +362,7 @@ public class AiFeedbackService {
 
         PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
         UserDto userInfo = userService.getUserInfo();
-        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked, pageRequestWithSort).map(aiFeedback ->
+        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked, excludeUserId, pageRequestWithSort).map(aiFeedback ->
                 new AiFeedbackDto(aiFeedback, getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
     }
 
