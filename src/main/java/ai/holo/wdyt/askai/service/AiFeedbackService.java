@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Slf4j
@@ -446,13 +447,14 @@ public class AiFeedbackService {
 
     private void pin(AiFeedback aiFeedback, User user) {
         List<AiFeedback> itemsInTopList = aiFeedbackRepository.findByUserIdAndTopListOrderIsNotNullOrderByTopListOrderAsc(user.getId());
-        itemsInTopList.forEach(item -> {
-            if (item.getTopListOrder() >= topListCount) {
-                unpin(item, user);
-            } else {
-                item.setTopListOrder(item.getTopListOrder() + 1);
-            }
-        });
+        // Remove items from top list if it exceeds the limit
+        while (itemsInTopList.size() > topListCount - 1) {
+            AiFeedback lastItem = itemsInTopList.get(itemsInTopList.size() - 1);
+            unpin(lastItem, user);
+            itemsInTopList.remove(lastItem);
+        }
+        AtomicInteger topListIndex = new AtomicInteger(2);
+        itemsInTopList.forEach(item -> item.setTopListOrder(topListIndex.getAndIncrement()));
         aiFeedback.setTopListOrder(1);
         aiFeedback.setOrder(null);
         itemsInTopList.add(aiFeedback);
