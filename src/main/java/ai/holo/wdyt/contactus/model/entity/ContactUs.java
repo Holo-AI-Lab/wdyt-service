@@ -16,7 +16,7 @@ public class ContactUs {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(name = "email", unique = true)
+    @Column(name = "email")
     private String email;
     @Column(name = "name")
     private String name;
@@ -32,6 +32,6 @@ public class ContactUs {
         this.name = name;
         this.subject = subject;
         this.message = message;
-        createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
     }
 }
