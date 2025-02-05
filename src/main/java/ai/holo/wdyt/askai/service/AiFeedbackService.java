@@ -2,10 +2,12 @@ package ai.holo.wdyt.askai.service;
 
 import ai.holo.wdyt.askai.model.dto.*;
 import ai.holo.wdyt.askai.model.entity.*;
+import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
 import ai.holo.wdyt.askai.repository.AiFeedbackOrderRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.OccasionRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
+import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.json.JsonUtils;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.exception.BadRequestException;
@@ -62,6 +64,7 @@ public class AiFeedbackService {
     private final ReportAiFeedbackRepository reportAiFeedbackRepository;
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final OccasionRepository occasionRepository;
+    private final EventPublisher eventPublisher;
 
     public AiFeedbackService(ChatGptService chatGptService, S3Service s3Service,
                              PhotoroomBgExtractionService photoroomBgExtractionService,
@@ -72,7 +75,7 @@ public class AiFeedbackService {
                              @Value("${configuration.topListCount}") int topListCount,
                              IpGeoLocationService ipGeoLocationService, PromptService promptService,
                              AiFeedbackOrderRepository aiFeedbackOrderRepository,
-                             ReportAiFeedbackRepository reportAiFeedbackRepository, AiFeedbackSearchService aiFeedbackSearchService, OccasionRepository occasionRepository) {
+                             ReportAiFeedbackRepository reportAiFeedbackRepository, AiFeedbackSearchService aiFeedbackSearchService, OccasionRepository occasionRepository, EventPublisher eventPublisher) {
         this.chatGptService = chatGptService;
         this.s3Service = s3Service;
         this.photoroomBgExtractionService = photoroomBgExtractionService;
@@ -87,6 +90,7 @@ public class AiFeedbackService {
         this.reportAiFeedbackRepository = reportAiFeedbackRepository;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.occasionRepository = occasionRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public AiSubmissionPrompt preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather) {
@@ -232,6 +236,8 @@ public class AiFeedbackService {
 
         feedback.updateTags(tags);
         AiFeedback savedAiFeedback = aiFeedbackRepository.save(feedback);
+
+        eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId()));
 
         return generateAiFeedbackDto(savedAiFeedback);
     }

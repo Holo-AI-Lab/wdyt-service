@@ -127,6 +127,30 @@ INSERT INTO style (name) VALUES ('Outfit Styles'), ('Casual'), ('Trendy'), ('Pre
 
 CREATE INDEX idx_user_username ON user (username);
 
+----- V2 -----
+
+CREATE TABLE `event_log` (
+  `id` varchar(36) NOT NULL,
+  `event` varchar(256) NOT NULL,
+  `payload` varchar(4096) DEFAULT NULL,
+  `created_date` datetime NOT NULL,
+  `produced_by` int DEFAULT NULL,
+  `retry_count` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `event_retry_count_idx` (`retry_count`),
+  KEY `event_created_date_idx` (`created_date`),
+  KEY `idx_event_log_event_class` (`event`)
+);
+
+CREATE TABLE `shedlock` (
+  `name` varchar(64) NOT NULL,
+  `lock_until` timestamp(3) NULL DEFAULT NULL,
+  `locked_at` timestamp(3) NULL DEFAULT NULL,
+  `locked_by` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`name`)
+);
+
+
 ```
 
 # Create Docker image and push to ECR
