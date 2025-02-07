@@ -1,15 +1,15 @@
 package ai.holo.wdyt.subscription.controller;
 
+import ai.holo.wdyt.subscription.model.dto.UserSubscriptionDto;
+import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
 import ai.holo.wdyt.subscription.service.AppleSubscriptionService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/notification")
+@RequestMapping("/api/v1")
 public class AppleSubscriptionController {
 
     private final AppleSubscriptionService appleSubscriptionService;
@@ -18,14 +18,18 @@ public class AppleSubscriptionController {
         this.appleSubscriptionService = appleSubscriptionService;
     }
 
-    @PostMapping
-    public ResponseEntity<?> handleAppleNotification(@RequestBody String jwsToken) {
-        try {
-            appleSubscriptionService.processNotification(jwsToken);
-            return ResponseEntity.ok("Notification received");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error");
-        }
+    @PostMapping("/initiate-subscription")
+    public UserSubscriptionDto initiateSubscription() {
+        return appleSubscriptionService.initiateSubscription();
+    }
+
+    @PostMapping("/notify-transaction")
+    public void notifyTransaction(@RequestBody UserTransactionDto userSubscriptionDto) {
+        appleSubscriptionService.createTransaction(userSubscriptionDto);
+    }
+
+    @PostMapping("/notification")
+    public void handleAppleNotification(@RequestBody String jwsToken) {
+        appleSubscriptionService.processNotification(jwsToken);
     }
 }
