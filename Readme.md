@@ -150,6 +150,40 @@ CREATE TABLE `shedlock` (
   PRIMARY KEY (`name`)
 );
 
+CREATE TABLE `user_subscription` (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    subscription_plan VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT FALSE,
+    app_account_token VARCHAR(255),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated_at DATETIME,
+    INDEX idx_subscription_user_id (user_id),
+    INDEX idx_subscription_app_account_token (app_account_token)
+);
+
+CREATE TABLE `apple_notification` (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    notification_id VARCHAR(255) NOT NULL,
+    notification_type VARCHAR(255),
+    subtype VARCHAR(255),
+    notification_version VARCHAR(255),
+    signed_transaction_info TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    INDEX idx_apple_notification_id (notification_id)
+);
+
+CREATE TABLE `apple_transaction` (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    subscription_plan VARCHAR(255),
+    original_transaction_id VARCHAR(255) NOT NULL,
+    transaction_id VARCHAR(255) NOT NULL,
+    purchase_date DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_updated_at DATETIME,
+    INDEX idx_apple_transaction_id (transaction_id)
+);
 
 ```
 

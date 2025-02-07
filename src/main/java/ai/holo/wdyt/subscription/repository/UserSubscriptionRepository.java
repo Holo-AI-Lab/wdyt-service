@@ -1,6 +1,5 @@
 package ai.holo.wdyt.subscription.repository;
 
-import ai.holo.wdyt.subscription.model.entity.Subscription;
 import ai.holo.wdyt.subscription.model.entity.UserSubscription;
 import org.springframework.data.jpa.repository.JpaRepository;
 

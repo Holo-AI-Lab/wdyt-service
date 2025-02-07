@@ -77,7 +77,7 @@ public class AppleSubscriptionService {
                 .atZone(ZoneId.systemDefault()) // Use system default time zone
                 .toLocalDateTime();
 
-        if (appleTransactionRepository.existByTransactionId(userTransactionDto.transactionId())) {
+        if (appleTransactionRepository.existsByTransactionId(userTransactionDto.transactionId())) {
             log.warn("Transaction already exists for transaction Id: {}", userTransactionDto.transactionId());
             return;
         }
@@ -103,7 +103,7 @@ public class AppleSubscriptionService {
         }
 
         String notificationUUID = notification.notificationUUID();
-        if(appleNotificationRepository.existByNotificationId(notificationUUID)) {
+        if(appleNotificationRepository.existsByNotificationId(notificationUUID)) {
             log.warn("Notification already exists for notificationUUID: {}", notificationUUID);
             return;
         }

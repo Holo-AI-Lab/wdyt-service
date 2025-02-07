@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AppleTransactionRepository extends JpaRepository<AppleTransaction, Long> {
 
-    boolean existByTransactionId(String transactionId);
+    boolean existsByTransactionId(String transactionId);
 }

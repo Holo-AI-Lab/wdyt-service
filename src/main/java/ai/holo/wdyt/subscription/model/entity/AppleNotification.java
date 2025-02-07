@@ -7,7 +7,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "apple_subscription_notification")
+@Entity(name = "apple_notification")
 @Getter
 @Setter
 @NoArgsConstructor
