@@ -22,6 +22,7 @@ dependencies {
 	compileOnly("org.projectlombok:lombok:1.18.30")
 	annotationProcessor("org.projectlombok:lombok:1.18.30")
 	runtimeOnly ("com.mysql:mysql-connector-j")
+	implementation("com.apple.itunes.storekit:app-store-server-library:3.3.0")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 	implementation("software.amazon.awssdk:secretsmanager:2.29.29")
 	implementation("software.amazon.awssdk:auth:2.29.29")
