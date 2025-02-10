@@ -1,6 +1,7 @@
 package ai.holo.wdyt.user.service;
 
 import ai.holo.wdyt.common.S3Service;
+import ai.holo.wdyt.common.exception.AuthenticationException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.exception.ParameterValidationException;
 import ai.holo.wdyt.common.exception.UsernameAlreadyExistingException;
@@ -131,7 +132,8 @@ public class UserService {
 
     public User getUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return userRepository.findByEmail(email).orElseThrow(NotFoundException::new);
+        return userRepository.findByEmail(email).orElseThrow(() ->
+                new AuthenticationException(String.format("User with %s email is not found", email)));
     }
 
     @Transactional

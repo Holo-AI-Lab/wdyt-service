@@ -1,6 +1,5 @@
 package ai.holo.wdyt.user.model.entity;
 
-import ai.holo.wdyt.askai.model.entity.LocationAndWeatherConverter;
 import ai.holo.wdyt.user.model.dto.UserSelectedStyle;
 import jakarta.persistence.*;
 import lombok.Getter;
