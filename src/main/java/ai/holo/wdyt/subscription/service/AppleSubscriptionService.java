@@ -91,7 +91,7 @@ public class AppleSubscriptionService {
     }
 
     public void processNotification(String jwsToken) {
-        AppleNotificationPayload notification = appleJwsVerificationService.verifyAndDecode(jwsToken);
+        AppleNotificationPayload notification = appleJwsVerificationService.verifyAndDecodeNotification(jwsToken);
         if (notification == null) {
             log.error("Invalid JWS or parse error");
             throw new RuntimeException("Invalid JWS or parse error");

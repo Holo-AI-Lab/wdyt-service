@@ -185,6 +185,15 @@ CREATE TABLE `apple_transaction` (
     INDEX idx_apple_transaction_id (transaction_id)
 );
 
+CREATE TABLE `user_credit` (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    credit INT,
+    expires_at DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    valid BOOLEAN DEFAULT TRUE,
+    transaction_id VARCHAR(255)
+); 
 ```
 
 # Create Docker image and push to ECR
