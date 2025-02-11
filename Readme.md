@@ -204,6 +204,30 @@ CREATE INDEX idx_user_credit_expires_at ON user_credit(expires_at);
 ALTER TABLE `user_credit` ADD COLUMN `credit_type` VARCHAR(255) NOT NULL;
 
 ALTER TABLE `user_subscription` ADD COLUMN `transaction_pending` BOOLEAN DEFAULT FALSE;
+
+CREATE TABLE `client_fingerprint` (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    nonce VARCHAR(255) NOT NULL UNIQUE,
+    user_fingerprint VARCHAR(512) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expiration_date TIMESTAMP NOT NULL,
+    INDEX idx_client_fing_nonce (nonce),
+    INDEX idx_client_fing_user_fingerprint (user_fingerprint)
+);
+
+CREATE TABLE `referral_link` (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    nonce VARCHAR(25) NOT NULL UNIQUE,
+    user_id INT(11) NOT NULL,
+    is_used BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    redeemed_at TIMESTAMP NULL,
+    expiration_date TIMESTAMP NOT NULL,
+    INDEX idx_referral_link_user_id (user_id),
+    INDEX idx_referral_link_nonce (nonce)
+);
+
+
 ```
 
 # Create Docker image and push to ECR

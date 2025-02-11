@@ -23,7 +23,9 @@ public class SecurityConfig {
         http.csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/health", "/api/v1/contact-us/post", "/swagger-ui/**", "/v3/api-docs/**", "/api/v1/auth/apple/login", "/api/v1/subscription/notification").permitAll()
+                .requestMatchers("/health", "/api/v1/contact-us/post", "/swagger-ui/**",
+                        "/v3/api-docs/**", "/api/v1/auth/apple/login", "/api/v1/subscription/notification",
+                        "/api/v1/referral/record/**").permitAll()
                 .anyRequest().authenticated()
         );
         return http.build();

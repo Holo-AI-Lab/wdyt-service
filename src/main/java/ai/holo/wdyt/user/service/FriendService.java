@@ -85,10 +85,23 @@ public class FriendService {
     }
 
     private void acceptFriendRequest(FriendRequest friendRequest) {
-        User user = userRepository.findById(friendRequest.getUserId()).orElseThrow(NotFoundException::new);
-        User friend = userRepository.findById(friendRequest.getFriendId()).orElseThrow(NotFoundException::new);
-        friendRepository.save(new Friend(friendRequest.getUserId(), friend));
-        friendRepository.save(new Friend(friendRequest.getFriendId(), user));
+        createFriends(friendRequest.getUserId(), friendRequest.getFriendId());
+    }
+
+    @Transactional
+    public boolean createFriends(Long userId, Long friendId) {
+        User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
+        User friend = userRepository.findById(friendId).orElseThrow(NotFoundException::new);
+        boolean alreadyFriends = true;
+        if (friendRepository.findByUserIdAndFriendId(user.getId(), friend.getId()).isEmpty()) {
+            friendRepository.save(new Friend(user.getId(), friend));
+            alreadyFriends = false;
+        }
+        if (friendRepository.findByUserIdAndFriendId(friend.getId(), user.getId()).isEmpty()) {
+            friendRepository.save(new Friend(friend.getId(), user));
+            alreadyFriends = false;
+        }
+        return alreadyFriends;
     }
 
     public void deleteFriendRequest(Long id) {
