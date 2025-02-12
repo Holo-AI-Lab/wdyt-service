@@ -2,6 +2,8 @@ package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.subscription.model.entity.UserCredit;
 import ai.holo.wdyt.subscription.repository.UserCreditRepository;
+import jakarta.transaction.Transactional;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -30,5 +32,15 @@ public class UserCreditService {
     public int getTotalCredits(Long userId) {
         List<UserCredit> validCredits = creditRepository.findValidCreditsByUserId(userId);
         return validCredits.stream().mapToInt(UserCredit::getCredit).sum();
+    }
+
+    public void consumeNearestExpiringCredit(Long userId) {
+         creditRepository.consumeNearestExpiringCredit(userId);
+    }
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    @Transactional
+    private void cleanExpiredCredits() {
+        creditRepository.setInvalidExpiredOrUsedCredits();
     }
 }

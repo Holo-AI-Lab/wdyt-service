@@ -9,7 +9,7 @@ public enum SubscriptionPlan {
     WEEKLY("1001", 25, 7),
     MONTHLY("1002", 100, 30),
     YEARLY("1003", 1200 , 365),
-    ONE_TIME_PURCHASE("1004", 10 , 30);
+    ONE_TIME_PURCHASE("1004", 10 , 7);
 
     private final String planId;
     private final int credit;
