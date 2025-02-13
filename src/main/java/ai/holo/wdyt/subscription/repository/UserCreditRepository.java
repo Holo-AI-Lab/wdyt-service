@@ -31,7 +31,7 @@ public interface UserCreditRepository extends JpaRepository<UserCredit, Long> {
 
     @Modifying
     @Transactional
-    @Query("UPDATE UserCredit c SET c.valid = false WHERE c.expires_at < CURRENT_TIMESTAMP OR c.credit <= 0")
+    @Query("UPDATE user_credit c SET c.valid = false WHERE c.expiresAt < CURRENT_TIMESTAMP OR c.credit <= 0")
     void setInvalidExpiredOrUsedCredits();
 
 }

@@ -40,7 +40,7 @@ public class UserCreditService {
 
     @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
-    private void cleanExpiredCredits() {
+    public void cleanExpiredCredits() {
         creditRepository.setInvalidExpiredOrUsedCredits();
     }
 }

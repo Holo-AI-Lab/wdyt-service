@@ -3,6 +3,7 @@ package ai.holo.wdyt.subscription.service;
 import ai.holo.wdyt.subscription.model.dto.AppleNotificationPayload;
 import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.crypto.ECDSAVerifier;
 import com.nimbusds.jose.jwk.Curve;
@@ -20,6 +21,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import java.text.ParseException;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +31,6 @@ import java.util.Map;
 public class AppleJwsVerificationService {
     private final ObjectMapper objectMapper;
     private final Map<String, String> secretProperties;
-
     private static final String DEFAULT_TEST_KID = "Apple_Xcode_Key";
     private static final String APPLE_JWKS_URL = "https://appleid.apple.com/auth/keys";
     private volatile JWKSet appleJwkSetCache = null;
@@ -44,91 +45,56 @@ public class AppleJwsVerificationService {
     // Verifies and decodes an Apple notification token.
     public AppleNotificationPayload verifyAndDecodeNotification(String jwsToken) {
         try {
-            SignedJWT signedJWT = SignedJWT.parse(jwsToken);
-            JWSHeader header = signedJWT.getHeader();
-            String kid = header.getKeyID();
-            log.debug("Token kid: {}", kid);
-
-            String env = secretProperties.get("env");
-            if ("production".equalsIgnoreCase(env) && DEFAULT_TEST_KID.equals(kid)) {
-                throw new RuntimeException("Test key is not allowed in production.");
-            }
-
-            PublicKey publicKey = getPublicKeyFromX5c(header);
-            JWK publicKeyJwk;
-            if (publicKey != null) {
-                publicKeyJwk = new ECKey.Builder(Curve.P_256, (ECPublicKey) publicKey)
-                        .keyID(kid)
-                        .build();
-            } else {
-                if (DEFAULT_TEST_KID.equals(kid)) {
-                    publicKeyJwk = getLocalJWK();
-                } else {
-                    publicKeyJwk = getApplePublicKey(kid);
-                }
-            }
-
-            if (publicKeyJwk == null) {
-                throw new RuntimeException("No matching public key found for kid: " + kid);
-            }
-
-            ECDSAVerifier verifier = new ECDSAVerifier(publicKeyJwk.toECKey());
-            if (!signedJWT.verify(verifier)) {
-                throw new RuntimeException("Invalid JWS signature.");
-            }
-
-            String payloadJson = signedJWT.getPayload().toString();
+            String payloadJson = parseJws(jwsToken);
             return objectMapper.readValue(payloadJson, AppleNotificationPayload.class);
         } catch (Exception e) {
             log.error("Error verifying Apple JWS: {}", e.getMessage());
-            return null;
+            throw new RuntimeException("Error verifying Apple JWS: " + e.getMessage());
         }
     }
 
     // Verifies and decodes a user transaction token.
     public UserTransactionDto verifyAndDecodeSignedTransaction(String jwsToken) {
         try {
-            SignedJWT signedJWT = SignedJWT.parse(jwsToken);
-            JWSHeader header = signedJWT.getHeader();
-            String kid = header.getKeyID();
-            log.debug("User Transaction Token kid: {}", kid);
-
-            String env = secretProperties.get("env");
-            if ("production".equalsIgnoreCase(env) && DEFAULT_TEST_KID.equals(kid)) {
-                throw new RuntimeException("Test key is not allowed in production.");
-            }
-
-            PublicKey publicKey = getPublicKeyFromX5c(header);
-            JWK publicKeyJwk;
-            if (publicKey != null) {
-                publicKeyJwk = new ECKey.Builder(Curve.P_256, (ECPublicKey) publicKey)
-                        .keyID(kid)
-                        .build();
-            } else {
-                if (DEFAULT_TEST_KID.equals(kid)) {
-                    publicKeyJwk = getLocalJWK();
-                } else {
-                    publicKeyJwk = getApplePublicKey(kid);
-                }
-            }
-
-            if (publicKeyJwk == null) {
-                throw new RuntimeException("No matching public key found for kid: " + kid);
-            }
-
-            ECDSAVerifier verifier = new ECDSAVerifier(publicKeyJwk.toECKey());
-            if (!signedJWT.verify(verifier)) {
-                throw new RuntimeException("Invalid JWS signature.");
-            }
-
-            String payloadJson = signedJWT.getPayload().toString();
-            log.debug("Payload json: {}", payloadJson);
+            String payloadJson = parseJws(jwsToken);
             return objectMapper.readValue(payloadJson, UserTransactionDto.class);
         } catch (Exception e) {
             log.error("Error verifying User Transaction JWS: {}", e.getMessage());
-            return null;
+            throw new RuntimeException("Error verifying User Transaction JWS: " + e.getMessage());
         }
     }
+
+    private String parseJws(String jwsToken) throws ParseException, JOSEException {
+        SignedJWT signedJWT = SignedJWT.parse(jwsToken);
+        JWSHeader header = signedJWT.getHeader();
+        String kid = header.getKeyID();
+
+        PublicKey publicKey = getPublicKeyFromX5c(header);
+        JWK publicKeyJwk;
+        if (publicKey != null) {
+            publicKeyJwk = new ECKey.Builder(Curve.P_256, (ECPublicKey) publicKey)
+                    .keyID(kid)
+                    .build();
+        } else {
+            if (DEFAULT_TEST_KID.equals(kid)) {
+                publicKeyJwk = getLocalJWK();
+            } else {
+                publicKeyJwk = getApplePublicKey(kid);
+            }
+        }
+
+        if (publicKeyJwk == null) {
+            throw new RuntimeException("No matching public key found for kid: " + kid);
+        }
+
+        ECDSAVerifier verifier = new ECDSAVerifier(publicKeyJwk.toECKey());
+        if (!signedJWT.verify(verifier)) {
+            throw new RuntimeException("Invalid JWS signature.");
+        }
+
+        return signedJWT.getPayload().toString();
+    }
+
 
     // Retrieves and caches the Apple JWKS set.
     private JWKSet getAppleJWKSet() {
@@ -166,7 +132,7 @@ public class AppleJwsVerificationService {
     // Builds a local JWK using the embedded public key from secretProperties.
     private JWK getLocalJWK() {
         try {
-            String extractedPublicKeyBase64 = secretProperties.get("extractedPublicKey");
+            String extractedPublicKeyBase64 = secretProperties.get("appleSubscriptionKey");
             if (extractedPublicKeyBase64 == null) {
                 throw new RuntimeException("'extractedPublicKey' not found in secret properties.");
             }
@@ -174,7 +140,7 @@ public class AppleJwsVerificationService {
             KeyFactory keyFactory = KeyFactory.getInstance("EC");
             X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(pubKeyBytes);
             PublicKey publicKey = keyFactory.generatePublic(pubKeySpec);
-            String testKid = secretProperties.getOrDefault("testKid", DEFAULT_TEST_KID);
+            String testKid = secretProperties.get("appleSubscriptionKidId");
             return new ECKey.Builder(Curve.P_256, (ECPublicKey) publicKey)
                     .keyID(testKid)
                     .build();

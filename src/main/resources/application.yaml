@@ -1,5 +1,6 @@
 server:
   port: 3333
+  forward-headers-strategy: framework
 springdoc:
   api-docs:
     enabled: true

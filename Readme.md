@@ -187,12 +187,14 @@ CREATE TABLE `apple_transaction` (
 
 CREATE TABLE `user_credit` (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    credit INT,
-    expires_at DATETIME,
+    user_id INT(11) NOT NULL,
+    credit INT(5) NOT NULL DEFAULT 0,
+    expires_at DATETIME NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     valid BOOLEAN DEFAULT TRUE,
-    transaction_id VARCHAR(255)
+    transaction_id INT(11),
+    FOREIGN KEY (user_id) REFERENCES user(id),
+    FOREIGN KEY (transaction_id) REFERENCES apple_transaction(id)
 ); 
 ```
 
