@@ -2,7 +2,6 @@ package ai.holo.wdyt.user.service;
 
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.EventPublisher;
-import ai.holo.wdyt.common.event.service.SecurityContextAware;
 import ai.holo.wdyt.common.exception.AuthenticationException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.exception.ParameterValidationException;
@@ -25,7 +24,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
-public class UserService implements SecurityContextAware {
+public class UserService {
 
     private final UserRepository userRepository;
     private final RobotService robotService;
@@ -241,10 +240,5 @@ public class UserService implements SecurityContextAware {
     public boolean isCurrentUserFriendWith(Long userId) {
         Long currentUserId = getUser().getId();
         return friendRepository.existsByUserIdAndFriendId(currentUserId, userId);
-    }
-
-    @Override
-    public Long getLoggedInUserId() {
-        return getUser().getId();
     }
 }
