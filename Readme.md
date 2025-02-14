@@ -196,6 +196,9 @@ CREATE TABLE `user_credit` (
     FOREIGN KEY (user_id) REFERENCES user(id),
     FOREIGN KEY (transaction_id) REFERENCES apple_transaction(id)
 ); 
+
+CREATE INDEX idx_user_credit_expires_at ON user_credit(expires_at);
+
 ```
 
 # Create Docker image and push to ECR
