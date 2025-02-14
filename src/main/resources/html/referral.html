@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wdyt Referral Page</title>
+</head>
+<body>
+<h1>Welcome! Redirecting you...</h1>
+<script>
+    function getOrCreateDeviceId() {
+        let deviceId = localStorage.getItem("wdytDeviceId");
+        if (!deviceId) {
+            console.log("Device ID not found, generating a new one...")
+            deviceId = crypto.randomUUID();  // Generate a new one if not found
+            localStorage.setItem("wdytDeviceId", deviceId);
+        } else {
+            console.log("Device ID found:", deviceId);
+        }
+
+        return deviceId;
+    }
+
+    // Extract nonce from the URL path
+    const nonce = "{{NONCE}}";
+    const deviceId = getOrCreateDeviceId();
+
+    // Send data to backend
+    fetch(`{{BASE_URL}}/api/v1/referral/record/${nonce}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ deviceId }),
+    })
+        .then(response => {
+            // Redirect to App Store
+            window.location.href = "https://apps.apple.com/app/6738694684"; // Replace with real app store URL
+        })
+        .catch(error => console.error("Error sending fingerprint:", error));
+</script>
+</body>
+</html>

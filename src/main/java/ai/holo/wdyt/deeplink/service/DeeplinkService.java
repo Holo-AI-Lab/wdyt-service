@@ -11,13 +11,17 @@ import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,12 +32,16 @@ public class DeeplinkService {
     private final ReferralLinkRepository referralLinkRepository;
     private final ClientFingerprintRepository clientFingerprintRepository;
     private final EventPublisher eventPublisher;
+    private final String baseUrl;
 
-    public DeeplinkService(UserService userService, ReferralLinkRepository referralLinkRepository, ClientFingerprintRepository clientFingerprintRepository, EventPublisher eventPublisher) {
+    public DeeplinkService(UserService userService, ReferralLinkRepository referralLinkRepository,
+                           ClientFingerprintRepository clientFingerprintRepository, EventPublisher eventPublisher,
+                           @Value("${application.base.url}") String baseUrl) {
         this.userService = userService;
         this.referralLinkRepository = referralLinkRepository;
         this.clientFingerprintRepository = clientFingerprintRepository;
         this.eventPublisher = eventPublisher;
+        this.baseUrl = baseUrl;
     }
 
     @Transactional
@@ -47,10 +55,8 @@ public class DeeplinkService {
     }
 
     @Transactional
-    public void saveUserFingerprint(String nonce, HttpServletRequest request) {
-        String userFingerprint = generateUserFingerprint(request);
-        // Save user fingerprint
-        ClientFingerprint clientFingerprint = new ClientFingerprint(nonce, userFingerprint);
+    public void saveUserFingerprint(String nonce, String fingerprint) {
+        ClientFingerprint clientFingerprint = new ClientFingerprint(nonce, fingerprint);
         clientFingerprintRepository.save(clientFingerprint);
     }
 
@@ -88,13 +94,25 @@ public class DeeplinkService {
         }
     }
 
+    public String getDeeplinkReferralRedirectHtml(String nonce) throws IOException {
+        Path path = Paths.get("src/main/resources/html/referral.html");
+        String content;
+        content = Files.readString(path);
+        content = content.replace("{{NONCE}}", nonce);
+        return content.replace("{{BASE_URL}}", baseUrl);
+    }
+
     @Transactional
-    public void searchForReferral(HttpServletRequest request) {
-        String userFingerprint = generateUserFingerprint(request);
-        List<ClientFingerprint> savedFingerprints = clientFingerprintRepository.findByUserFingerprint(userFingerprint);
-        // Search for matching referral links based on the fingerprints
-        Optional<ClientFingerprint> matchedFingerprint = savedFingerprints.stream().filter(it -> !it.isExpired()).findFirst();
-        // Use the referral link
-        matchedFingerprint.ifPresent(clientFingerprint -> useReferral(clientFingerprint.getNonce()));
+    public void useReferralWithFingerprint(String fingerprint) {
+        Optional<ClientFingerprint> clientFingerprint = clientFingerprintRepository.findByUserFingerprint(fingerprint);
+        if (clientFingerprint.isPresent()) {
+            ClientFingerprint fingerprintEntity = clientFingerprint.get();
+            if (fingerprintEntity.isExpired()) {
+                // Fingerprint has expired
+                log.warn("Client fingerprint with nonce {} has expired", fingerprintEntity.getNonce());
+                return;
+            }
+            useReferral(fingerprintEntity.getNonce());
+        }
     }
 }

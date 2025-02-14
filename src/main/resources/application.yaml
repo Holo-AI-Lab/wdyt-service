@@ -40,6 +40,8 @@ spring:
     show-sql: false      # Show SQL queries in the console
     database-platform: org.hibernate.dialect.MySQLDialect
 application:
+  base:
+    url: https://test-api.thewdyt.com
   event:
     max:
       retry:

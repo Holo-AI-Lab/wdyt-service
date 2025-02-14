@@ -1,10 +1,23 @@
 package ai.holo.wdyt.deeplink.controller;
 
 import ai.holo.wdyt.deeplink.model.dto.ReferralLinkDto;
+import ai.holo.wdyt.deeplink.model.dto.SaveUserFingerprintDto;
 import ai.holo.wdyt.deeplink.service.DeeplinkService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.Blob;
 
 @RestController
 @RequestMapping("/api/v1/referral")
@@ -25,18 +38,21 @@ public class DeeplinkController {
         deeplinkService.useReferral(nonce);
     }
 
-    // This endpoint will be called by the browser when the client device doesn't have the app installed
-    // We'll save client's fingerprint and redirect them to the app store
-    @GetMapping("/record/{nonce}")
-    public RedirectView saveUserFingerprint(@PathVariable String nonce, HttpServletRequest request) {
-        deeplinkService.saveUserFingerprint(nonce, request);
-        // Redirect user to the App Store (iOS or Play Store)
-        String appStoreUrl = "https://apps.apple.com/app/6738694684"; // Replace with your actual app store URL
-        return new RedirectView(appStoreUrl);
+    @PostMapping("/use/fingerprint/{fingerprint}")
+    public void useReferralWithFingerprint(@PathVariable String fingerprint) {
+        deeplinkService.useReferralWithFingerprint(fingerprint);
     }
 
-    @PostMapping("/search/referral")
-    public void searchForReferral(HttpServletRequest request) {
-        deeplinkService.searchForReferral(request);
+    @GetMapping("/redirect/referral/{nonce}")
+    public ResponseEntity<Resource> getDeepLinkForReferral(@PathVariable String nonce) throws IOException {
+        String content = deeplinkService.getDeeplinkReferralRedirectHtml(nonce);
+        return ResponseEntity.ok()
+                .contentType(MediaType.TEXT_HTML)
+                .body(new ByteArrayResource(content.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @PostMapping("/record/{nonce}")
+    public void recordReferralWithFingerprint(@PathVariable String nonce, @RequestBody SaveUserFingerprintDto dto) {
+        deeplinkService.saveUserFingerprint(nonce, dto.fingerprint());
     }
 }
