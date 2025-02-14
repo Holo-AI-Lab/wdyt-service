@@ -35,7 +35,7 @@ public class UserCreditService {
 
     @Scheduled(cron = CRON_EXPRESSION)
     @Transactional
-    private void renewFreemiumCredits() {
+    public void renewFreemiumCredits() {
         // This method is called every day at midnight to renew freemium credits.
         // TODO Implement this method
     }

@@ -15,9 +15,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Async
 @Slf4j
 public class AiFeedbackReceivedEventListener {
-UserCreditService userCreditService;
-AiFeedbackService aiFeedbackService;
-private final int AI_FEEDBACK_COST = 1;
+    UserCreditService userCreditService;
+    AiFeedbackService aiFeedbackService;
+    private final int AI_FEEDBACK_COST = 1;
 
     public AiFeedbackReceivedEventListener(UserCreditService userCreditService, AiFeedbackService aiFeedbackService) {
         this.userCreditService = userCreditService;
