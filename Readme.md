@@ -189,6 +189,7 @@ CREATE TABLE `user_credit` (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
     user_id INT(11) NOT NULL,
     credit INT(5) NOT NULL DEFAULT 0,
+    credit_type VARCHAR(255) NOT NULL,
     expires_at DATETIME NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     valid BOOLEAN DEFAULT TRUE,

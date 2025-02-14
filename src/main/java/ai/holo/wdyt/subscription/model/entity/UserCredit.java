@@ -33,18 +33,24 @@ public class UserCredit {
     @Column(name = "transaction_id")
     private Long transactionId;
 
-    public UserCredit(Long userId, int credit, LocalDateTime expiresAt) {
+    @Enumerated(EnumType.STRING)
+    @Column(name = "credit_type", nullable = false)
+    private CreditType creditType;
+
+    public UserCredit(Long userId, int credit, LocalDateTime expiresAt, CreditType creditType) {
         this.userId = userId;
         this.credit = credit;
         this.expiresAt = expiresAt;
+        this.creditType = creditType;
         this.valid = true;
     }
 
-    public UserCredit(Long userId, int credit, LocalDateTime expiresAt, Long transactionId) {
+    public UserCredit(Long userId, int credit, LocalDateTime expiresAt, Long transactionId, CreditType creditType) {
         this.userId = userId;
         this.credit = credit;
         this.expiresAt = expiresAt;
         this.valid = true;
+        this.creditType = creditType;
         this.transactionId = transactionId;
     }
 }

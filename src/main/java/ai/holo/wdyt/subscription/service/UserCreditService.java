@@ -1,10 +1,10 @@
 package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.subscription.model.dto.UserValidCreditsDTO;
+import ai.holo.wdyt.subscription.model.entity.CreditType;
 import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
 import ai.holo.wdyt.subscription.model.entity.UserCredit;
 import ai.holo.wdyt.subscription.repository.UserCreditRepository;
-import ai.holo.wdyt.user.service.UserService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -20,28 +20,45 @@ public class UserCreditService {
     private final int FREEMIUM_DURATION_DAYS = 30;
     private static final String CRON_EXPRESSION = "0 0 0 * * ?";
 
-
     private final UserCreditRepository creditRepository;
 
     public UserCreditService(UserCreditRepository creditRepository) {
         this.creditRepository = creditRepository;
     }
 
-    public void addFreemiumCredits(Long userId) {
-        LocalDateTime expirationDate = LocalDateTime.now().plusDays(FREEMIUM_DURATION_DAYS);
-        UserCredit newCredit = new UserCredit(userId, FREEMIUM_CREDITS, expirationDate);
-        creditRepository.save(newCredit);
-    }
-
     @Scheduled(cron = CRON_EXPRESSION)
     @Transactional
-    public void renewFreemiumCredits() {
-        // This method is called every day at midnight to renew freemium credits.
-        // TODO Implement this method
+    public void DailyJobs() {
+        creditRepository.setInvalidExpiredOrUsedCredits();
+        renewFreemiumCredits();
     }
-    public void addCredits(Long userId, Long transactionId, SubscriptionPlan subscriptionPlan) {
+
+    public void addFreemiumCredits(Long userId) {
+        LocalDateTime expirationDate = LocalDateTime.now().plusDays(FREEMIUM_DURATION_DAYS);
+        UserCredit newCredit = new UserCredit(userId, FREEMIUM_CREDITS, expirationDate, CreditType.FREEMIUM);
+        creditRepository.save(newCredit);
+        log.info("Added freemium credits for user {} with expiration {}", userId, expirationDate);
+    }
+
+    public void renewFreemiumCredits() {
+        List<UserCredit> expiredFreemiumCredits = creditRepository.findExpiredFreemiumCredits(CreditType.FREEMIUM);
+        LocalDateTime now = LocalDateTime.now();
+        log.info("Processing {} expired freemium credit records at {}", expiredFreemiumCredits.size(), now);
+        for (UserCredit expiredCredit : expiredFreemiumCredits) {
+            Long userId = expiredCredit.getUserId();
+            boolean hasActiveSubscription = creditRepository.existsByUserIdAndCreditTypeAndExpiresAtGreaterThan(userId, CreditType.SUBSCRIPTION, now);
+            if (!hasActiveSubscription) {
+                addFreemiumCredits(userId);
+                log.info("User {} does not have an active subscription. Freemium credits renewed.", userId);
+            } else {
+                log.info("User {} has an active subscription. No freemium renewal performed.", userId);
+            }
+        }
+    }
+
+    public void addCredits(Long userId, Long transactionId, SubscriptionPlan subscriptionPlan, CreditType creditType) {
         LocalDateTime expirationDate = LocalDateTime.now().plusDays(subscriptionPlan.getDurationDays());
-        UserCredit newCredit = new UserCredit(userId, subscriptionPlan.getCredit(), expirationDate, transactionId);
+        UserCredit newCredit = new UserCredit(userId, subscriptionPlan.getCredit(), expirationDate, transactionId, creditType);
         creditRepository.save(newCredit);
     }
 
@@ -66,18 +83,7 @@ public class UserCreditService {
                 c.setCredit(0);
                 remainingToConsume -= available;
             }
-            if (c.getCredit() == 0) {
-                c.setValid(false);
-            }
             creditRepository.save(c);
         }
-    }
-
-
-
-    @Scheduled(cron = "0 0 0 * * ?")
-    @Transactional
-    public void cleanExpiredCredits() {
-        creditRepository.setInvalidExpiredOrUsedCredits();
     }
 }
