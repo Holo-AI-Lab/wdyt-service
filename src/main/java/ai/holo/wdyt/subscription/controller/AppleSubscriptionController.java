@@ -5,6 +5,7 @@ import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
 import ai.holo.wdyt.subscription.service.AppleJwsVerificationService;
 import ai.holo.wdyt.subscription.service.AppleSubscriptionService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,23 +39,10 @@ public class AppleSubscriptionController {
     @PostMapping("/notification")
     public void handleAppleNotification(@RequestBody Map<String, String> jwsToken){
         String token = jwsToken.get("signedPayload");
-        if (token == null || token.isEmpty()) {
+        if (StringUtils.isEmpty(token)) {
             log.error("signedPayload is missing");
             throw new IllegalArgumentException("signedPayload is missing");
         }
         appleSubscriptionService.processNotification(token);
     }
-
-    // Only for testing SignedTransactionInfo.
-    @PostMapping("/notificationTest")
-    public void signedtransactionInfoTest(@RequestBody Map<String, String> jwsToken){
-        String token = jwsToken.get("signedPayload");
-        if (token == null || token.isEmpty()) {
-            log.error("signedPayload is missing");
-            throw new IllegalArgumentException("signedPayload is missing");
-        }
-        UserTransactionDto userTransactionDto = appleJwsVerificationService.verifyAndDecodeSignedTransaction(token);
-        log.info("UserTransactionDto: {}", userTransactionDto);
-    }
-
 }

@@ -11,23 +11,8 @@ import java.util.List;
 
 public interface UserCreditRepository extends JpaRepository<UserCredit, Long> {
 
-    @Query("SELECT c FROM user_credit c WHERE c.userId = :userId AND c.valid= true AND c.expiresAt > CURRENT_TIMESTAMP AND c.credit > 0")
+    @Query("SELECT c FROM user_credit c WHERE c.userId = :userId AND c.valid= true AND c.expiresAt > CURRENT_TIMESTAMP AND c.credit > 0 ORDER BY c.expiresAt ASC")
     List<UserCredit> findValidCreditsByUserId(@Param("userId") Long userId);
-
-    @Modifying
-    @Transactional
-    @Query(value = """
-       UPDATE user_credit
-       SET credit = credit - 1
-       WHERE id = (
-           SELECT id FROM user_credit
-           WHERE user_id = :userId
-           AND expires_at > CURRENT_TIMESTAMP
-           AND credit > 0
-           ORDER BY expires_at ASC
-           LIMIT 1 )
-    """, nativeQuery = true)
-    void consumeNearestExpiringCredit(@Param("userId") Long userId);
 
     @Modifying
     @Transactional

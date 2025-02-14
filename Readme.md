@@ -175,7 +175,7 @@ CREATE TABLE `apple_notification` (
 
 CREATE TABLE `apple_transaction` (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
+    user_id INT(11) NOT NULL,
     subscription_plan VARCHAR(255),
     original_transaction_id VARCHAR(255) NOT NULL,
     transaction_id VARCHAR(255) NOT NULL,

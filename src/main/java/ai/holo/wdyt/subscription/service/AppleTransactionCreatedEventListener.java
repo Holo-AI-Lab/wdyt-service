@@ -2,6 +2,7 @@ package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.common.event.service.EventConsumer;
 import ai.holo.wdyt.subscription.model.entity.AppleTransaction;
+import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
 import ai.holo.wdyt.subscription.model.entity.UserSubscription;
 import ai.holo.wdyt.subscription.model.event.AppleTransactionCreatedEvent;
 import ai.holo.wdyt.subscription.repository.AppleTransactionRepository;
@@ -62,10 +63,8 @@ public class AppleTransactionCreatedEventListener {
 
     private void addCredits(AppleTransaction appleTransaction) {
         Long userId = appleTransaction.getUserId();
-        int creditAmount = appleTransaction.getSubscriptionPlan().getCredit();
-        int creditValidityDays = appleTransaction.getSubscriptionPlan().getDurationDays();
-        Long transactionId = appleTransaction.getId();
-        userCreditService.addCredits(userId, creditAmount, creditValidityDays, transactionId);
+        SubscriptionPlan subscriptionPlan = appleTransaction.getSubscriptionPlan();
+        userCreditService.addCredits(userId, appleTransaction.getId(), subscriptionPlan);
         log.info("User credits added for userId: {}", userId);
     }
 

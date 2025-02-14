@@ -1,13 +1,15 @@
 package ai.holo.wdyt.user.service;
 
 import ai.holo.wdyt.common.S3Service;
-import ai.holo.wdyt.common.exception.AuthenticationException;
+import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.event.service.SecurityContextAware;
+import ai.holo.wdyt.common.exception.AuthenticationException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.exception.ParameterValidationException;
 import ai.holo.wdyt.common.exception.UsernameAlreadyExistingException;
 import ai.holo.wdyt.user.model.dto.*;
 import ai.holo.wdyt.user.model.entity.*;
+import ai.holo.wdyt.user.model.event.NewUserRegisteredEvent;
 import ai.holo.wdyt.user.repository.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -33,13 +35,14 @@ public class UserService implements SecurityContextAware {
     private final String s3Endpoint;
     private final FriendRequestRepository friendRequestRepository;
     private final FriendRepository friendRepository;
+    private final EventPublisher eventPublisher;
 
     public UserService(UserRepository userRepository,
                        RobotService robotService,
                        @Value("${aws.s3.endpoint}") String s3Endpoint,
                        UserFeedbackRepository userFeedbackRepository,
                        S3Service s3Service,
-                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository) {
+                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository, EventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
@@ -48,6 +51,7 @@ public class UserService implements SecurityContextAware {
         this.s3Endpoint = s3Endpoint;
         this.friendRequestRepository = friendRequestRepository;
         this.friendRepository = friendRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     public User createOrRetrieveUser(String email, String name, String appleId) {
@@ -62,6 +66,7 @@ public class UserService implements SecurityContextAware {
             User newUser = new User(email, name, appleId);
             newUser.setUsername(generateUniqueUsername(email));
             User savedUser = userRepository.save(newUser);
+            eventPublisher.publishEvent(new NewUserRegisteredEvent(newUser.getId()));
             // We're generating gender randomly for now..
             Robot robot = robotService.createRobot(savedUser.getId(), getGenderRandomly());
             savedUser.setRobot(robot);
