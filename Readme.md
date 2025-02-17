@@ -152,12 +152,13 @@ CREATE TABLE `shedlock` (
 
 CREATE TABLE `user_subscription` (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
+    user_id INT(11) NOT NULL,
     subscription_plan VARCHAR(255),
     is_active BOOLEAN NOT NULL DEFAULT FALSE,
     app_account_token VARCHAR(255),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_updated_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES user(id),
     INDEX idx_subscription_user_id (user_id),
     INDEX idx_subscription_app_account_token (app_account_token)
 );
@@ -182,6 +183,7 @@ CREATE TABLE `apple_transaction` (
     purchase_date DATETIME,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_updated_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES user(id),
     INDEX idx_apple_transaction_id (transaction_id)
 );
 
@@ -189,7 +191,6 @@ CREATE TABLE `user_credit` (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
     user_id INT(11) NOT NULL,
     credit INT(5) NOT NULL DEFAULT 0,
-    credit_type VARCHAR(255) NOT NULL,
     expires_at DATETIME NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     valid BOOLEAN DEFAULT TRUE,
@@ -200,6 +201,7 @@ CREATE TABLE `user_credit` (
 
 CREATE INDEX idx_user_credit_expires_at ON user_credit(expires_at);
 
+ALTER TABLE `user_credit` ADD COLUMN `credit_type` VARCHAR(255) NOT NULL;
 ```
 
 # Create Docker image and push to ECR

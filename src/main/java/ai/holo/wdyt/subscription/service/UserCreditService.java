@@ -1,9 +1,11 @@
 package ai.holo.wdyt.subscription.service;
 
+import ai.holo.wdyt.subscription.model.dto.UserDetailedCreditsDTO;
 import ai.holo.wdyt.subscription.model.dto.UserValidCreditsDTO;
 import ai.holo.wdyt.subscription.model.entity.CreditType;
 import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
 import ai.holo.wdyt.subscription.model.entity.UserCredit;
+import ai.holo.wdyt.subscription.repository.AppleTransactionRepository;
 import ai.holo.wdyt.subscription.repository.UserCreditRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +13,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -21,9 +25,11 @@ public class UserCreditService {
     private static final String CRON_EXPRESSION = "0 0 0 * * ?";
 
     private final UserCreditRepository creditRepository;
+    private final AppleTransactionRepository appleTransactionRepository;
 
-    public UserCreditService(UserCreditRepository creditRepository) {
+    public UserCreditService(UserCreditRepository creditRepository, AppleTransactionRepository appleTransactionRepository) {
         this.creditRepository = creditRepository;
+        this.appleTransactionRepository = appleTransactionRepository;
     }
 
     @Scheduled(cron = CRON_EXPRESSION)
@@ -65,6 +71,27 @@ public class UserCreditService {
     public UserValidCreditsDTO getTotalCredits(Long userId) {
         List<UserCredit> validCredits = creditRepository.findValidCreditsByUserId(userId);
         return new UserValidCreditsDTO(validCredits.stream().mapToInt(UserCredit::getCredit).sum());
+    }
+
+    public List<UserDetailedCreditsDTO> getDetailedCredits(Long loggedInUserId) {
+        List<UserDetailedCreditsDTO> returnObj = new ArrayList<>();
+        List<UserCredit> validCredits = creditRepository.findValidCreditsByUserId(loggedInUserId);
+        for (UserCredit c : validCredits) {
+            long epochSecond;
+            if (c.getCreditType().equals(CreditType.FREEMIUM)) {
+                epochSecond = c.getExpiresAt().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond();
+                returnObj.add(new UserDetailedCreditsDTO("FREEMIUM", epochSecond, c.getCredit()));
+            } else if (c.getCreditType().equals(CreditType.SUBSCRIPTION)) {
+                epochSecond = c.getExpiresAt().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond();
+                returnObj.add(new UserDetailedCreditsDTO(appleTransactionRepository.
+                        findById(c.getTransactionId()).get().getSubscriptionPlan().getPlanId(),
+                        epochSecond,
+                        c.getCredit()));
+            }else{
+                log.error("Unknown credit type: {}", c.getCreditType());
+            }
+        }
+        return returnObj;
     }
 
     @Transactional
