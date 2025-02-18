@@ -39,6 +39,7 @@ public class UserCreditService {
         renewFreemiumCredits();
     }
 
+    @Transactional
     public void addFreemiumCredits(Long userId) {
         LocalDateTime expirationDate = LocalDateTime.now().plusDays(FREEMIUM_DURATION_DAYS);
         UserCredit newCredit = new UserCredit(userId, FREEMIUM_CREDITS, expirationDate, CreditType.FREEMIUM);
@@ -46,6 +47,7 @@ public class UserCreditService {
         log.info("Added freemium credits for user {} with expiration {}", userId, expirationDate);
     }
 
+    @Transactional
     public void renewFreemiumCredits() {
         List<UserCredit> expiredFreemiumCredits = creditRepository.findExpiredFreemiumCredits(CreditType.FREEMIUM);
         LocalDateTime now = LocalDateTime.now();
@@ -62,17 +64,20 @@ public class UserCreditService {
         }
     }
 
+    @Transactional
     public void addCredits(Long userId, Long transactionId, SubscriptionPlan subscriptionPlan, CreditType creditType) {
         LocalDateTime expirationDate = LocalDateTime.now().plusDays(subscriptionPlan.getDurationDays());
         UserCredit newCredit = new UserCredit(userId, subscriptionPlan.getCredit(), expirationDate, transactionId, creditType);
         creditRepository.save(newCredit);
     }
 
+    @Transactional
     public UserValidCreditsDTO getTotalCredits(Long userId) {
         List<UserCredit> validCredits = creditRepository.findValidCreditsByUserId(userId);
         return new UserValidCreditsDTO(validCredits.stream().mapToInt(UserCredit::getCredit).sum());
     }
 
+    @Transactional
     public List<UserDetailedCreditsDTO> getDetailedCredits(Long loggedInUserId) {
         List<UserDetailedCreditsDTO> returnObj = new ArrayList<>();
         List<UserCredit> validCredits = creditRepository.findValidCreditsByUserId(loggedInUserId);

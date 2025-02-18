@@ -34,8 +34,14 @@ public class AppleNotificationReceivedEventListener {
         log.info("Handling Apple Notification Received Event: {}", event.getAppleNotificationId());
 
         AppleNotification appleNotification = appleNotificationRepository.findById(event.getAppleNotificationId()).orElseThrow(NotFoundException::new);
-        String signedTransactionInfo = appleNotification.getSignedTransactionInfo();
-        UserTransactionDto userTransactionDto = appleJwsVerificationService.verifyAndDecodeSignedTransaction(signedTransactionInfo);
-        appleSubscriptionService.createTransaction(userTransactionDto);
+        String notificationType = appleNotification.getNotificationType();
+        if (notificationType.equals("SUBSCRIBED") || notificationType.equals("DID_RENEW") || notificationType.equals("ONE_TIME_CHARGE")) {
+            String signedTransactionInfo = appleNotification.getSignedTransactionInfo();
+            UserTransactionDto userTransactionDto = appleJwsVerificationService.verifyAndDecodeSignedTransaction(signedTransactionInfo);
+            appleSubscriptionService.createTransaction(userTransactionDto);
+            log.info("Received notification type {} processed successfully, transaction created.", notificationType);
+        }else {
+            log.info("Received notification type {} , any transaction did not created", notificationType);
+        }
     }
 }

@@ -1,7 +1,6 @@
 package ai.holo.wdyt.subscription.model.event;
 
 import ai.holo.wdyt.common.event.Event;
-import ai.holo.wdyt.subscription.model.entity.AppleTransaction;
 import lombok.Getter;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;

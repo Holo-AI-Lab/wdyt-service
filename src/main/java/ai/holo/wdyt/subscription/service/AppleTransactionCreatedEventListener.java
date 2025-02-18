@@ -1,10 +1,7 @@
 package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.common.event.service.EventConsumer;
-import ai.holo.wdyt.subscription.model.entity.AppleTransaction;
-import ai.holo.wdyt.subscription.model.entity.CreditType;
-import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
-import ai.holo.wdyt.subscription.model.entity.UserSubscription;
+import ai.holo.wdyt.subscription.model.entity.*;
 import ai.holo.wdyt.subscription.model.event.AppleTransactionCreatedEvent;
 import ai.holo.wdyt.subscription.repository.AppleTransactionRepository;
 import ai.holo.wdyt.subscription.repository.UserSubscriptionRepository;
@@ -34,21 +31,18 @@ public class AppleTransactionCreatedEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleTransactionSavedEvent(AppleTransactionCreatedEvent event) {
-        // handle event
         log.info("Handling Apple Transaction Created Event: {}", event.getAppleTransactionId());
-        // update subscription status on subscription table
         Optional<AppleTransaction> appleTransaction = appleTransactionRepository.findById(event.getAppleTransactionId());
         if (appleTransaction.isEmpty()) {
             log.error("Apple transaction not found for id: {}", event.getAppleTransactionId());
             throw new RuntimeException("Apple transaction not found for id: " + event.getAppleTransactionId());
-        }
-        // case1
+        }else {
             updateSubscriptionStatus(appleTransaction.get());
             addCredits(appleTransaction.get());
+        }
     }
 
     private void updateSubscriptionStatus(AppleTransaction appleTransaction) {
-        // update subscription status on subscription table
         Optional<UserSubscription> userSubscription = userSubscriptionRepository.findByUserId(appleTransaction.getUserId());
         if (userSubscription.isEmpty()) {
             log.error("User subscription not found for userId: {}", appleTransaction.getUserId());
@@ -66,7 +60,6 @@ public class AppleTransactionCreatedEventListener {
         Long userId = appleTransaction.getUserId();
         SubscriptionPlan subscriptionPlan = appleTransaction.getSubscriptionPlan();
         userCreditService.addCredits(userId, appleTransaction.getId(), subscriptionPlan, CreditType.SUBSCRIPTION);
-        log.info("User credits added for userId: {}", userId);
+        log.info("Credits added for transactionId: {}", appleTransaction.getId());
     }
-
 }
