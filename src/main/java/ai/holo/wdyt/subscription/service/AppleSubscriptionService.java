@@ -65,7 +65,7 @@ public class AppleSubscriptionService {
     }
 
     @Transactional
-    public void createTransaction(UserTransactionDto userTransactionDto) {
+    public void createTransaction(UserTransactionDto userTransactionDto, boolean source) {
         Optional<UserSubscription> subscription = userSubscriptionRepository.findByAppAccountToken(userTransactionDto.appAccountToken());
         if (subscription.isEmpty()) {
             throw new BadRequestException("Subscription not found for App Account Token: " + userTransactionDto.appAccountToken());
@@ -84,6 +84,8 @@ public class AppleSubscriptionService {
         AppleTransaction appleTransaction = new AppleTransaction(userSubscription.getUserId(), subscriptionPlan, userTransactionDto.originalTransactionId(), userTransactionDto.transactionId(), purchaseDate);
         appleTransactionRepository.save(appleTransaction);
         eventPublisher.publishEvent(new AppleTransactionCreatedEvent(appleTransaction.getId()));
+        String src = source ? "Controller(App)" : "Event Listener(db)";
+        log.info("Transaction created for transaction Id: {} and source is {}", userTransactionDto.transactionId(), src);
     }
 
     private String generateUniqueAppAccountToken() {

@@ -2,7 +2,6 @@ package ai.holo.wdyt.subscription.controller;
 
 import ai.holo.wdyt.subscription.model.dto.UserSubscriptionDto;
 import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
-import ai.holo.wdyt.subscription.service.AppleJwsVerificationService;
 import ai.holo.wdyt.subscription.service.AppleSubscriptionService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -19,11 +18,9 @@ import java.util.Map;
 public class AppleSubscriptionController {
 
     private final AppleSubscriptionService appleSubscriptionService;
-    private final AppleJwsVerificationService appleJwsVerificationService;
 
-    public AppleSubscriptionController(AppleSubscriptionService appleSubscriptionService, AppleJwsVerificationService appleJwsVerificationService) {
+    public AppleSubscriptionController(AppleSubscriptionService appleSubscriptionService) {
         this.appleSubscriptionService = appleSubscriptionService;
-        this.appleJwsVerificationService = appleJwsVerificationService;
     }
 
     @PostMapping("/initiate-subscription")
@@ -33,11 +30,11 @@ public class AppleSubscriptionController {
 
     @PostMapping("/notify-transaction")
     public void notifyTransaction(@RequestBody UserTransactionDto userSubscriptionDto) {
-        appleSubscriptionService.createTransaction(userSubscriptionDto);
+        appleSubscriptionService.createTransaction(userSubscriptionDto, true);
     }
 
     @PostMapping("/notification")
-    public void handleAppleNotification(@RequestBody Map<String, String> jwsToken){
+    public void handleAppleNotification(@RequestBody Map<String, String> jwsToken) {
         String token = jwsToken.get("signedPayload");
         if (StringUtils.isEmpty(token)) {
             log.error("signedPayload is missing");
