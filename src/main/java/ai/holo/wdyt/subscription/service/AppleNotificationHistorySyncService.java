@@ -1,6 +1,5 @@
 package ai.holo.wdyt.subscription.service;
 
-import ai.holo.wdyt.subscription.model.dto.NotificationHistoryRequestDTO;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -29,43 +28,21 @@ public class AppleNotificationHistorySyncService {
     // For sandbox:
     private final String appleApiUrl = "https://api.storekit-sandbox.itunes.apple.com/inApps/v1/notifications/history";
 
-    public AppleNotificationHistorySyncService(RestTemplate restTemplate,
-                                               ObjectMapper objectMapper,
+    public AppleNotificationHistorySyncService(ObjectMapper objectMapper,
                                                JwtUtil jwtutil,
                                                AppleSubscriptionService appleSubscriptionService) {
-        this.restTemplate = restTemplate;
+        this.restTemplate = new RestTemplate();
         this.objectMapper = objectMapper;
         this.jwtutil = jwtutil;
         this.appleSubscriptionService = appleSubscriptionService;
     }
 
-    /**
-     * Retrieves the complete notification history and sends each notification directly to the processNotification method.
-     * If a NotificationHistoryRequestDTO parameter is passed, its values (startDate, endDate, onlyFailures) are used.
-     * Otherwise, default values are used (startDate = yesterday, endDate = today, onlyFailures = default value).
-     * The initial request is made with the full body; for subsequent requests, only the paginationToken is sent as a query parameter.
-     * When hasMore is false, all notifications have been retrieved.
-     * The processNotification method handles the signedPayload (saving to the database, publishing events, etc.).
-     * This method is scheduled to run daily at midnight.
-     * @param request a NotificationHistoryRequestDTO (containing startDate, endDate, and onlyFailures), or null to use default values.
-     */
-
     @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
-    public void syncNotificationHistory(NotificationHistoryRequestDTO request) {
-        long startDate;
-        long endDate;
-        boolean onlyFailures;
-        if (request == null) {
-            startDate = Instant.now().minus(1, ChronoUnit.DAYS).toEpochMilli();
-            endDate = Instant.now().toEpochMilli();
-            onlyFailures = true;
-        } else {
-            startDate = request.startDate();
-            endDate = request.endDate();
-            onlyFailures = request.onlyFailures();
-        }
-
+    public void syncNotificationHistory() {
+        long startDate = Instant.now().minus(1, ChronoUnit.DAYS).toEpochMilli();
+        long endDate = Instant.now().toEpochMilli();
+        boolean onlyFailures = true;
         String paginationToken = null;
         boolean hasMore = false;
 

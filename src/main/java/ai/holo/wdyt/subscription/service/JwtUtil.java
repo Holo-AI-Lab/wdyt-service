@@ -7,7 +7,7 @@ import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.security.KeyFactory;
 import java.security.interfaces.ECPrivateKey;
@@ -16,6 +16,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
 
+@Service
 public class JwtUtil {
 
     private final String teamId;
