@@ -42,12 +42,16 @@ public class AppleNotificationReceivedEventListener {
             appleSubscriptionService.createTransaction(userTransactionDto, false);
             log.info("Received notification with Id {} and type {} processed successfully, transaction created.", appleNotification.getId(), notificationType);
         }
-        if (notificationType.equals("EXPIRED") || notificationType.equals("FAILED")) {
-            TransactionPendingDTO transactionPendingDTO = new TransactionPendingDTO(false);
-            appleSubscriptionService.setTransactionPending(transactionPendingDTO);
-            log.info("Received notification with Id {} and type {} processed successfully, transaction pending status is set to false)", appleNotification.getId(), notificationType);
-        } else {
-            log.info("Received notification with Id {} and type {} , any transaction did not created", appleNotification.getId(), notificationType);
+
+        updateSubscriptionPendingStatus(appleNotification);
+    }
+
+    private void updateSubscriptionPendingStatus(AppleNotification appleNotification) {
+        String signedTransactionInfo = appleNotification.getSignedTransactionInfo();
+        if (signedTransactionInfo != null) {
+            UserTransactionDto userTransactionDto = appleJwsVerificationService.verifyAndDecodeSignedTransaction(signedTransactionInfo);
+            appleSubscriptionService.updateTransactionPending(userTransactionDto.appAccountToken(), false);
+
         }
     }
 }

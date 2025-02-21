@@ -1,9 +1,17 @@
 package ai.holo.wdyt.config.authentication.apple;
 
+import com.nimbusds.jose.JOSEObjectType;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import io.jsonwebtoken.Jwts;
 
 import java.security.KeyFactory;
 import java.security.PrivateKey;
+import java.security.interfaces.ECPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.Instant;
 import java.util.Base64;
@@ -63,5 +71,22 @@ public class AppleClientSecretGenerator {
         } catch (Exception e) {
             throw new RuntimeException("Error parsing private key", e);
         }
+    }
+
+    public String generateAppleJwtFromKeyString() throws Exception {
+        ECPrivateKey ecPrivateKey = (ECPrivateKey) getPrivateKey();
+
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(keyId).type(JOSEObjectType.JWT).build();
+
+        long nowInSeconds = System.currentTimeMillis() / 1000;
+        Date issuedAt = new Date(nowInSeconds * 1000);
+        Date expiration = new Date((nowInSeconds + (20 * 60)) * 1000); // 20 minutes later
+
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder().issuer(teamId).issueTime(issuedAt).expirationTime(expiration).build();
+        SignedJWT signedJWT = new SignedJWT(header, claimsSet);
+        JWSSigner signer = new ECDSASigner(ecPrivateKey);
+        signedJWT.sign(signer);
+
+        return signedJWT.serialize();
     }
 }

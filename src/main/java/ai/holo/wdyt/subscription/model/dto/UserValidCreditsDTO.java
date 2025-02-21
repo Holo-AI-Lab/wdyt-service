@@ -1,7 +1,8 @@
 package ai.holo.wdyt.subscription.model.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
-public record UserValidCreditsDTO(int validCredits) {
+import java.time.ZonedDateTime;
+
+public record UserValidCreditsDTO(int totalCredit, SubscriptionPlan activePlan, ZonedDateTime expirationDate) {
 }

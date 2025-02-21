@@ -4,6 +4,7 @@ import ai.holo.wdyt.common.event.service.SecurityContextAware;
 import ai.holo.wdyt.common.exception.AuthenticationException;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserRepository;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -17,9 +18,18 @@ public class AuthenticationContext implements SecurityContextAware {
 
     @Override
     public Long getLoggedInUserId() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return null;
+        }
+        String email = authentication.getName();
+
+        if (email == null) {
+            return null;
+        }
         User user = userRepository.findByEmail(email).orElseThrow(() ->
                 new AuthenticationException(String.format("User with %s email is not found", email)));
-        return user.getId();
+
+        return user == null ? null : user.getId();
     }
 }

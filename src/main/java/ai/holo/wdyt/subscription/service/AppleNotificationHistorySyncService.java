@@ -1,5 +1,6 @@
 package ai.holo.wdyt.subscription.service;
 
+import ai.holo.wdyt.config.authentication.apple.AppleClientSecretGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,7 @@ public class AppleNotificationHistorySyncService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    private final JwtUtil jwtutil;
+    private final AppleClientSecretGenerator appleClientSecretGenerator;
     private final AppleSubscriptionService appleSubscriptionService;
 
     // For production:
@@ -29,14 +30,15 @@ public class AppleNotificationHistorySyncService {
     private final String appleApiUrl = "https://api.storekit-sandbox.itunes.apple.com/inApps/v1/notifications/history";
 
     public AppleNotificationHistorySyncService(ObjectMapper objectMapper,
-                                               JwtUtil jwtutil,
+                                               AppleClientSecretGenerator appleClientSecretGenerator,
                                                AppleSubscriptionService appleSubscriptionService) {
         this.restTemplate = new RestTemplate();
         this.objectMapper = objectMapper;
-        this.jwtutil = jwtutil;
+        this.appleClientSecretGenerator = appleClientSecretGenerator;
         this.appleSubscriptionService = appleSubscriptionService;
     }
 
+    // Schedule for every day at midnight
     @Scheduled(cron = "0 0 0 * * ?")
     @Transactional
     public void syncNotificationHistory() {
@@ -60,7 +62,7 @@ public class AppleNotificationHistorySyncService {
                     requestUrl = appleApiUrl + "?paginationToken=" + paginationToken;
                 }
 
-                String jwtToken = jwtutil.generateAppleJwtFromKeyString();
+                String jwtToken = appleClientSecretGenerator.generateAppleJwtFromKeyString();
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.setBearerAuth(jwtToken);

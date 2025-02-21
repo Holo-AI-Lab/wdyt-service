@@ -2,7 +2,11 @@ package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.exception.BadRequestException;
-import ai.holo.wdyt.subscription.model.dto.*;
+import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.subscription.model.dto.AppleNotificationData;
+import ai.holo.wdyt.subscription.model.dto.AppleNotificationPayload;
+import ai.holo.wdyt.subscription.model.dto.UserSubscriptionDto;
+import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
 import ai.holo.wdyt.subscription.model.entity.AppleNotification;
 import ai.holo.wdyt.subscription.model.entity.AppleTransaction;
 import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
@@ -61,6 +65,12 @@ public class AppleSubscriptionService {
         return new UserSubscriptionDto(savedSubscription);
     }
 
+    public UserSubscriptionDto getUserSubscription() {
+        User user = userService.getUser();
+        UserSubscription subscription = userSubscriptionRepository.findByUserId(user.getId()).orElseThrow(NotFoundException::new);;
+        return new UserSubscriptionDto(subscription);
+    }
+
     @Transactional
     public void createTransaction(UserTransactionDto userTransactionDto, boolean source) {
         Optional<UserSubscription> subscription = userSubscriptionRepository.findByAppAccountToken(userTransactionDto.appAccountToken());
@@ -112,26 +122,15 @@ public class AppleSubscriptionService {
         eventPublisher.publishEvent(new AppleNotificationReceivedEvent(savedNotification.getId()));
     }
 
-    public void setTransactionPending(TransactionPendingDTO pendingDTO) {
-        User user = userService.getUser();
-        Optional<UserSubscription> subscription = userSubscriptionRepository.findByUserId(user.getId());
+    @Transactional
+    public void updateTransactionPending(String appAccountToken, boolean transactionPendingStatus) {
+        Optional<UserSubscription> subscription = userSubscriptionRepository.findByAppAccountToken(appAccountToken);
         if (subscription.isEmpty()) {
-            log.error("Subscription not found for user: {}", user.getId());
-            throw new BadRequestException("Subscription not found for user: " + user.getId());
-        }
-            UserSubscription userSubscription = subscription.get();
-            userSubscription.setTransactionPending(pendingDTO.pendingFlag());
-            userSubscriptionRepository.save(userSubscription);
-    }
-
-    public TransactionPendingDTO getTransactionPending() {
-        User user = userService.getUser();
-        Optional<UserSubscription> subscription = userSubscriptionRepository.findByUserId(user.getId());
-        if (subscription.isEmpty()) {
-            log.error("Subscription not found for user : {}  ", user.getId());
-            throw new BadRequestException("Subscription not found for user: " + user.getId());
+            log.error("Subscription not found for App Account Token: {}", appAccountToken);
+            return;
         }
         UserSubscription userSubscription = subscription.get();
-        return new TransactionPendingDTO(userSubscription.getTransactionPending());
+        userSubscription.setTransactionPending(transactionPendingStatus);
+        userSubscriptionRepository.save(userSubscription);
     }
 }

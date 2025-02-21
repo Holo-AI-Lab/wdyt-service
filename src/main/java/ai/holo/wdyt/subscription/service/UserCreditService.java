@@ -1,20 +1,22 @@
 package ai.holo.wdyt.subscription.service;
 
-import ai.holo.wdyt.subscription.model.dto.UserDetailedCreditsDTO;
 import ai.holo.wdyt.subscription.model.dto.UserValidCreditsDTO;
 import ai.holo.wdyt.subscription.model.entity.CreditType;
 import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
 import ai.holo.wdyt.subscription.model.entity.UserCredit;
 import ai.holo.wdyt.subscription.repository.AppleTransactionRepository;
 import ai.holo.wdyt.subscription.repository.UserCreditRepository;
-import jakarta.transaction.Transactional;
+import ai.holo.wdyt.user.model.entity.User;
+import ai.holo.wdyt.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
+import java.time.ZonedDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -26,10 +28,13 @@ public class UserCreditService {
 
     private final UserCreditRepository creditRepository;
     private final AppleTransactionRepository appleTransactionRepository;
+    private final UserService userService;
 
-    public UserCreditService(UserCreditRepository creditRepository, AppleTransactionRepository appleTransactionRepository) {
+    public UserCreditService(UserCreditRepository creditRepository, AppleTransactionRepository appleTransactionRepository,
+                             UserService userService) {
         this.creditRepository = creditRepository;
         this.appleTransactionRepository = appleTransactionRepository;
+        this.userService = userService;
     }
 
     @Scheduled(cron = CRON_EXPRESSION)
@@ -71,32 +76,21 @@ public class UserCreditService {
         creditRepository.save(newCredit);
     }
 
-    @Transactional
-    public UserValidCreditsDTO getTotalCredits(Long userId) {
-        List<UserCredit> validCredits = creditRepository.findValidCreditsByUserId(userId);
-        return new UserValidCreditsDTO(validCredits.stream().mapToInt(UserCredit::getCredit).sum());
-    }
+    @Transactional(readOnly = true)
+    public UserValidCreditsDTO getCredit() {
+        User user = userService.getUser();
 
-    @Transactional
-    public List<UserDetailedCreditsDTO> getDetailedCredits(Long loggedInUserId) {
-        List<UserDetailedCreditsDTO> returnObj = new ArrayList<>();
-        List<UserCredit> validCredits = creditRepository.findValidCreditsByUserId(loggedInUserId);
-        for (UserCredit c : validCredits) {
-            long epochSecond;
-            if (c.getCreditType().equals(CreditType.FREEMIUM)) {
-                epochSecond = c.getExpiresAt().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond();
-                returnObj.add(new UserDetailedCreditsDTO("FREEMIUM", epochSecond, c.getCredit()));
-            } else if (c.getCreditType().equals(CreditType.SUBSCRIPTION)) {
-                epochSecond = c.getExpiresAt().atZone(ZoneId.systemDefault()).toInstant().getEpochSecond();
-                returnObj.add(new UserDetailedCreditsDTO(appleTransactionRepository.
-                        findById(c.getTransactionId()).get().getSubscriptionPlan().getPlanId(),
-                        epochSecond,
-                        c.getCredit()));
-            }else{
-                log.error("Unknown credit type: {}", c.getCreditType());
-            }
-        }
-        return returnObj;
+        List<UserCredit> validCredits = creditRepository.findValidCreditsByUserId(user.getId());
+        UserCredit activeSubscriptionCredit = validCredits.stream()
+                .filter(c -> CreditType.SUBSCRIPTION.equals(c.getCreditType()))
+                .max(Comparator.comparing(UserCredit::getExpiresAt))
+                .orElse(null);
+        SubscriptionPlan activeSubscriptionPlan = activeSubscriptionCredit != null ?
+                appleTransactionRepository.findById(activeSubscriptionCredit.getTransactionId()).get().getSubscriptionPlan() : null;
+        ZonedDateTime expiredDate = activeSubscriptionCredit != null ? activeSubscriptionCredit.getExpiresAt().atZone(ZoneId.systemDefault()) : null;
+
+        return new UserValidCreditsDTO(validCredits.stream().mapToInt(UserCredit::getCredit).sum(),
+                activeSubscriptionPlan, expiredDate);
     }
 
     @Transactional

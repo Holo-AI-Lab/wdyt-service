@@ -21,9 +21,20 @@ public class AppleSubscriptionController {
         this.appleSubscriptionService = appleSubscriptionService;
     }
 
+    @GetMapping("/user-subscription")
+    public UserSubscriptionDto getUserSubscription() {
+        return appleSubscriptionService.getUserSubscription();
+    }
+
     @PostMapping("/initiate-subscription")
     public UserSubscriptionDto initiateSubscription() {
         return appleSubscriptionService.initiateSubscription();
+    }
+
+
+    @PostMapping("/set-transaction-pending")
+    public UserSubscriptionDto handlePendingNotification(@RequestBody TransactionPendingDTO pendingDTO) {
+        return appleSubscriptionService.setTransactionPending(pendingDTO);
     }
 
     @PostMapping("/notify-transaction")
@@ -39,15 +50,5 @@ public class AppleSubscriptionController {
             throw new IllegalArgumentException("signedPayload is missing");
         }
         appleSubscriptionService.processNotification(token);
-    }
-
-    @PostMapping("/set-transaction-pending")
-    public void handlePendingNotification(@RequestBody TransactionPendingDTO pendingDTO) {
-        appleSubscriptionService.setTransactionPending(pendingDTO);
-    }
-
-    @GetMapping("/get-transaction-pending")
-    public TransactionPendingDTO getTransactionPending() {
-        return appleSubscriptionService.getTransactionPending();
     }
 }
