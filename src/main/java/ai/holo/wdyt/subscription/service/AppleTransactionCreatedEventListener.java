@@ -50,6 +50,7 @@ public class AppleTransactionCreatedEventListener {
         }
         UserSubscription userSubscriptionSave = userSubscription.get();
         userSubscriptionSave.setIsActive(true);
+        userSubscriptionSave.setTransactionPending(false);
         userSubscriptionSave.setLastUpdatedAt(LocalDateTime.now());
         userSubscriptionSave.setSubscriptionPlan(appleTransaction.getSubscriptionPlan());
         userSubscriptionRepository.save(userSubscriptionSave);

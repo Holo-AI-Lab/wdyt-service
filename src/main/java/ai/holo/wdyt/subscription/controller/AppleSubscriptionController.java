@@ -1,14 +1,12 @@
 package ai.holo.wdyt.subscription.controller;
 
+import ai.holo.wdyt.subscription.model.dto.TransactionPendingDTO;
 import ai.holo.wdyt.subscription.model.dto.UserSubscriptionDto;
 import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
 import ai.holo.wdyt.subscription.service.AppleSubscriptionService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -41,5 +39,15 @@ public class AppleSubscriptionController {
             throw new IllegalArgumentException("signedPayload is missing");
         }
         appleSubscriptionService.processNotification(token);
+    }
+
+    @PostMapping("/set-transaction-pending")
+    public void handlePendingNotification(@RequestBody TransactionPendingDTO pendingDTO) {
+        appleSubscriptionService.setTransactionPending(pendingDTO);
+    }
+
+    @GetMapping("/get-transaction-pending")
+    public TransactionPendingDTO getTransactionPending() {
+        return appleSubscriptionService.getTransactionPending();
     }
 }

@@ -2,6 +2,7 @@ package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.common.event.service.EventConsumer;
 import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.subscription.model.dto.TransactionPendingDTO;
 import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
 import ai.holo.wdyt.subscription.model.entity.AppleNotification;
 import ai.holo.wdyt.subscription.model.event.AppleNotificationReceivedEvent;
@@ -40,7 +41,12 @@ public class AppleNotificationReceivedEventListener {
             UserTransactionDto userTransactionDto = appleJwsVerificationService.verifyAndDecodeSignedTransaction(signedTransactionInfo);
             appleSubscriptionService.createTransaction(userTransactionDto, false);
             log.info("Received notification with Id {} and type {} processed successfully, transaction created.", appleNotification.getId(), notificationType);
-        }else {
+        }
+        if (notificationType.equals("EXPIRED") || notificationType.equals("FAILED")) {
+            TransactionPendingDTO transactionPendingDTO = new TransactionPendingDTO(false);
+            appleSubscriptionService.setTransactionPending(transactionPendingDTO);
+            log.info("Received notification with Id {} and type {} processed successfully, transaction pending status is set to false)", appleNotification.getId(), notificationType);
+        } else {
             log.info("Received notification with Id {} and type {} , any transaction did not created", appleNotification.getId(), notificationType);
         }
     }

@@ -202,6 +202,8 @@ CREATE TABLE `user_credit` (
 CREATE INDEX idx_user_credit_expires_at ON user_credit(expires_at);
 
 ALTER TABLE `user_credit` ADD COLUMN `credit_type` VARCHAR(255) NOT NULL;
+
+ALTER TABLE `user_subscription` ADD COLUMN `transaction_pending` BOOLEAN DEFAULT FALSE;
 ```
 
 # Create Docker image and push to ECR

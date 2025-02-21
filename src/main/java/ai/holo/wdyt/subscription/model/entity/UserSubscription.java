@@ -22,6 +22,8 @@ public class UserSubscription {
     private SubscriptionPlan subscriptionPlan;
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = false;
+    @Column(name = "transaction_pending")
+    private Boolean transactionPending = false;
     @Column(name = "app_account_token")
     private String appAccountToken;
     @Column(name = "created_at")
