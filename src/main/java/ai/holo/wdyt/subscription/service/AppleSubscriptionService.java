@@ -67,7 +67,7 @@ public class AppleSubscriptionService {
 
     public UserSubscriptionDto getUserSubscription() {
         User user = userService.getUser();
-        UserSubscription subscription = userSubscriptionRepository.findByUserId(user.getId()).orElseThrow(NotFoundException::new);;
+        UserSubscription subscription = userSubscriptionRepository.findByUserId(user.getId()).orElseThrow(NotFoundException::new);
         return new UserSubscriptionDto(subscription);
     }
 
@@ -123,14 +123,20 @@ public class AppleSubscriptionService {
     }
 
     @Transactional
-    public void updateTransactionPending(String appAccountToken, boolean transactionPendingStatus) {
+    public UserSubscriptionDto updateTransactionPending(String appAccountToken, boolean transactionPendingStatus) {
+        if (appAccountToken == null) {
+            User user = userService.getUser();
+            appAccountToken = userSubscriptionRepository.findByUserId(user.getId()).orElseThrow(NotFoundException::new).getAppAccountToken();
+            log.info("updateTransactionPending method called by endpoint, using App Account Token from User: {}", appAccountToken);
+        }
         Optional<UserSubscription> subscription = userSubscriptionRepository.findByAppAccountToken(appAccountToken);
         if (subscription.isEmpty()) {
             log.error("Subscription not found for App Account Token: {}", appAccountToken);
-            return;
+            return null;
         }
         UserSubscription userSubscription = subscription.get();
         userSubscription.setTransactionPending(transactionPendingStatus);
         userSubscriptionRepository.save(userSubscription);
+        return new UserSubscriptionDto(userSubscription);
     }
 }

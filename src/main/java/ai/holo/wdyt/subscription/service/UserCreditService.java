@@ -37,6 +37,7 @@ public class UserCreditService {
         this.userService = userService;
     }
 
+    // Schedule for every day at midnight
     @Scheduled(cron = CRON_EXPRESSION)
     @Transactional
     public void DailyJobs() {
