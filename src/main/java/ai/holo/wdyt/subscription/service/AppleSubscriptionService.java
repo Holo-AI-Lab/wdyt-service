@@ -3,10 +3,7 @@ package ai.holo.wdyt.subscription.service;
 import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.exception.BadRequestException;
 import ai.holo.wdyt.common.exception.NotFoundException;
-import ai.holo.wdyt.subscription.model.dto.AppleNotificationData;
-import ai.holo.wdyt.subscription.model.dto.AppleNotificationPayload;
-import ai.holo.wdyt.subscription.model.dto.UserSubscriptionDto;
-import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
+import ai.holo.wdyt.subscription.model.dto.*;
 import ai.holo.wdyt.subscription.model.entity.AppleNotification;
 import ai.holo.wdyt.subscription.model.entity.AppleTransaction;
 import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
@@ -123,7 +120,7 @@ public class AppleSubscriptionService {
     }
 
     @Transactional
-    public UserSubscriptionDto updateTransactionPending(String appAccountToken, boolean transactionPendingStatus) {
+    public void updateTransactionPending(String appAccountToken, boolean transactionPendingStatus) {
         if (appAccountToken == null) {
             User user = userService.getUser();
             appAccountToken = userSubscriptionRepository.findByUserId(user.getId()).orElseThrow(NotFoundException::new).getAppAccountToken();
@@ -132,11 +129,20 @@ public class AppleSubscriptionService {
         Optional<UserSubscription> subscription = userSubscriptionRepository.findByAppAccountToken(appAccountToken);
         if (subscription.isEmpty()) {
             log.error("Subscription not found for App Account Token: {}", appAccountToken);
-            return null;
+            return;
         }
         UserSubscription userSubscription = subscription.get();
         userSubscription.setTransactionPending(transactionPendingStatus);
         userSubscriptionRepository.save(userSubscription);
-        return new UserSubscriptionDto(userSubscription);
+        new UserSubscriptionDto(userSubscription);
+    }
+
+    @Transactional
+    public UserSubscriptionDto updateTransactionPending(TransactionPendingDTO pendingDTO) {
+        User user = userService.getUser();
+        UserSubscription subscription = userSubscriptionRepository.findByUserId(user.getId()).orElseThrow(NotFoundException::new);
+        subscription.setTransactionPending(pendingDTO.pending());
+        UserSubscription savedSubscription = userSubscriptionRepository.save(subscription);
+        return new UserSubscriptionDto(savedSubscription);
     }
 }

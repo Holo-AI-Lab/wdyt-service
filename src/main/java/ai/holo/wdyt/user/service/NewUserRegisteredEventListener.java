@@ -1,8 +1,9 @@
-package ai.holo.wdyt.subscription.service;
+package ai.holo.wdyt.user.service;
 
 import ai.holo.wdyt.common.event.service.EventConsumer;
 import ai.holo.wdyt.subscription.model.entity.UserSubscription;
 import ai.holo.wdyt.subscription.repository.UserSubscriptionRepository;
+import ai.holo.wdyt.subscription.service.UserCreditService;
 import ai.holo.wdyt.user.model.event.NewUserRegisteredEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;

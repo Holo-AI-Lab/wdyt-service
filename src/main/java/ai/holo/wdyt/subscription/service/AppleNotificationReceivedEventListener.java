@@ -51,7 +51,6 @@ public class AppleNotificationReceivedEventListener {
         if (signedTransactionInfo != null) {
             UserTransactionDto userTransactionDto = appleJwsVerificationService.verifyAndDecodeSignedTransaction(signedTransactionInfo);
             appleSubscriptionService.updateTransactionPending(userTransactionDto.appAccountToken(), false);
-
         }
     }
 }

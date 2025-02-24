@@ -35,7 +35,7 @@ public class AppleSubscriptionController {
 
     @PostMapping("/update-transaction-pending")
     public UserSubscriptionDto handlePendingNotification(@RequestBody TransactionPendingDTO pendingDTO) {
-        return appleSubscriptionService.updateTransactionPending(null ,pendingDTO.pendingFlag());
+        return appleSubscriptionService.updateTransactionPending(pendingDTO);
     }
 
     @PostMapping("/notify-transaction")
