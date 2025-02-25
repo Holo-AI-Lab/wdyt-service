@@ -1,0 +1,13 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appID": "58T5MVZ37N.Holo.ai.wdyt.app",
+                "paths": [
+                    "/api/v1/referral/use/*"
+                ]
+            }
+        ]
+    }
+}

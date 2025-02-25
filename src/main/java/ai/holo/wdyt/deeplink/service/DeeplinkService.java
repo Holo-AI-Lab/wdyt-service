@@ -12,10 +12,12 @@ import ai.holo.wdyt.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -95,11 +97,12 @@ public class DeeplinkService {
     }
 
     public String getDeeplinkReferralRedirectHtml(String nonce) throws IOException {
-        Path path = Paths.get("src/main/resources/html/referral.html");
-        String content;
-        content = Files.readString(path);
-        content = content.replace("{{NONCE}}", nonce);
-        return content.replace("{{BASE_URL}}", baseUrl);
+        ClassPathResource resource = new ClassPathResource("html/referral.html");
+        try (var inputStream = resource.getInputStream()) {
+            String content = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            content = content.replace("{{NONCE}}", nonce);
+            return content.replace("{{BASE_URL}}", baseUrl);
+        }
     }
 
     @Transactional
