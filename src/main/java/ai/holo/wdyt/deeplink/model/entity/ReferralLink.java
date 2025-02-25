@@ -33,7 +33,7 @@ public class ReferralLink {
         this.nonce = nonce;
         createdAt = LocalDateTime.now();
         // Referral link expires in one day
-        expirationDate = createdAt.plusDays(1);
+        expirationDate = createdAt.plusDays(7);
     }
 
     public boolean isExpired() {

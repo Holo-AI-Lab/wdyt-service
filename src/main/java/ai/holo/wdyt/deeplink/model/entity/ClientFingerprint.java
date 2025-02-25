@@ -30,7 +30,7 @@ public class ClientFingerprint {
         this.userFingerprint = userFingerprint;
         createdAt = LocalDateTime.now();
         // Client fingerprint expires in one day
-        expirationDate = createdAt.plusDays(1);
+        expirationDate = createdAt.plusDays(7);
     }
 
     public boolean isExpired() {

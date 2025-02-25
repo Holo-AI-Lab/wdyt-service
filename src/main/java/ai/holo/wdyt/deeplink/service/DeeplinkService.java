@@ -51,7 +51,7 @@ public class DeeplinkService {
         ReferralLink referralLink = new ReferralLink(user.getId(), nonce);
         ReferralLink savedReferralLink = referralLinkRepository.save(referralLink);
         ZonedDateTime expireDate = savedReferralLink.getExpirationDate().atZone(ZoneId.systemDefault());
-        return new ReferralLinkDto(savedReferralLink.getNonce(), expireDate);
+        return new ReferralLinkDto(String.format("%s/api/v1/referral/use/%s", baseUrl, savedReferralLink.getNonce()), expireDate);
     }
 
     @Transactional
