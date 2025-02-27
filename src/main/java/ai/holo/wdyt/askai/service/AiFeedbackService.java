@@ -263,7 +263,7 @@ public class AiFeedbackService {
         feedback.updateTags(tags);
         AiFeedback savedAiFeedback = aiFeedbackRepository.save(feedback);
 
-        eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId()));
+        eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId(), currentUser.getId()));
 
         return generateAiFeedbackDto(savedAiFeedback);
     }
@@ -284,19 +284,16 @@ public class AiFeedbackService {
 
             AiFeedbackImagePath imagePath1 = new AiFeedbackImagePath(feedback, 1, aiSubmissionImage1.rawImagePath(), aiSubmissionImage1.extractedImagePath());
             AiFeedbackImagePath imagePath2 = new AiFeedbackImagePath(feedback, 2, aiSubmissionImage2.rawImagePath(), aiSubmissionImage2.extractedImagePath());
-
             feedback.getAiFeedbackImagePaths().add(imagePath1);
             feedback.getAiFeedbackImagePaths().add(imagePath2);
         }
-
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
-
         feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), promptId, gptResponse, null, locationAndWeather, LocalDateTime.now()));
-
         Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(gptResponse, aiSubmissionImage1.imageType());
         Map<String, List<String>> tags = getTags(analysis);
         feedback.updateTags(tags);
         AiFeedback savedAiFeedback = aiFeedbackRepository.save(feedback);
+        eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId(), currentUser.getId()));
         return generateAiFeedbackDto(savedAiFeedback);
     }
 

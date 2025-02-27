@@ -10,9 +10,11 @@ import java.util.List;
 @Getter
 public class AiFeedbackReceivedEvent extends Event {
     private final Long aiFeedbackId;
+    private final Long userId;
 
-    public AiFeedbackReceivedEvent(Long aiFeedbackId) {
+    public AiFeedbackReceivedEvent(Long aiFeedbackId, Long userId) {
         this.aiFeedbackId = aiFeedbackId;
+        this.userId = userId;
     }
 
     @Override
