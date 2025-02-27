@@ -1,12 +1,12 @@
 package ai.holo.wdyt.askai.controller;
 
 import ai.holo.wdyt.askai.model.dto.*;
-import ai.holo.wdyt.askai.model.entity.AiFeedback;
+import ai.holo.wdyt.askai.model.entity.SubmissionType;
 import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
-import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
+import org.apache.coyote.BadRequestException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
@@ -40,13 +40,42 @@ public class AiFeedbackController {
         AiFeedbackService.AISubmissionImage aiSubmissionImage = aiFeedbackService.checkImagesAndMakeNecessaryPreprocessing(imageBytes, currentUser, aiFeedbackSubmissionDto);
         LocationAndWeatherDto locationAndWeather = aiFeedbackService.getLocationAndWeather(aiFeedbackSubmissionDto);
 
-        AiFeedbackService.AiSubmissionPrompt prompt = aiFeedbackService.preparePrompt(aiFeedbackSubmissionDto, currentUser, aiSubmissionImage, locationAndWeather);
+        AiFeedbackService.AiSubmissionPrompt prompt = aiFeedbackService.preparePrompt(aiFeedbackSubmissionDto, currentUser, aiSubmissionImage, locationAndWeather, SubmissionType.SINGLE);
 
         // Call ChatGPT with retries
         String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage.extractedImagePath(), prompt.promptText(), aiSubmissionImage.imageType());
 
         // Save AI response
-        return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto, prompt.prompt().getId(), gptResponse, aiSubmissionImage, locationAndWeather);
+        return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto, prompt.prompt().getId(), gptResponse, aiSubmissionImage, locationAndWeather, SubmissionType.SINGLE);
+    }
+
+    @PostMapping(value = "/submit-two-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public AiFeedbackDetailedDto submitTwoImage(@RequestPart(value = "image1", required = false) MultipartFile image1,
+                                                @RequestPart(value = "image2", required = false) MultipartFile image2,
+                                                @RequestPart("data") String data) throws IOException {
+
+        byte[] imageBytes1 = image1 != null ? image1.getBytes() : null;
+        byte[] imageBytes2 = image2 != null ? image2.getBytes() : null;
+
+        AiFeedbackSubmissionDto aiFeedbackSubmissionDto = aiFeedbackService.validateAndParseSubmissionDto(imageBytes1, data);
+
+        User currentUser = userService.getUser();
+
+        AiFeedbackService.AISubmissionImage aiSubmissionImage1 = aiFeedbackService.checkImagesAndMakeNecessaryPreprocessing(imageBytes1, currentUser, aiFeedbackSubmissionDto);
+        AiFeedbackService.AISubmissionImage aiSubmissionImage2 = aiFeedbackService.checkImagesAndMakeNecessaryPreprocessing(imageBytes2, currentUser, aiFeedbackSubmissionDto);
+        if (aiSubmissionImage1.imageType() != aiSubmissionImage2.imageType()){
+            throw new BadRequestException("Provided images are not same image type.");
+        }
+        LocationAndWeatherDto locationAndWeather = aiFeedbackService.getLocationAndWeather(aiFeedbackSubmissionDto);
+
+        AiFeedbackService.AiSubmissionPrompt prompt = aiFeedbackService.preparePrompt(aiFeedbackSubmissionDto,
+                currentUser, aiSubmissionImage1, locationAndWeather, SubmissionType.COMPARE);
+
+        // Call ChatGPT with retries
+        String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage1.extractedImagePath(), aiSubmissionImage2.extractedImagePath(), prompt.promptText(), aiSubmissionImage1.imageType());
+
+        // Save AI response
+        return aiFeedbackService.saveAiCompareResponse(aiFeedbackSubmissionDto, prompt.prompt().getId(), gptResponse, aiSubmissionImage1, aiSubmissionImage2,  locationAndWeather, SubmissionType.COMPARE);
     }
 
     @GetMapping("/")

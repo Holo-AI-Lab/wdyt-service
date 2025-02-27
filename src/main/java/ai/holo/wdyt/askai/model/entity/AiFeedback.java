@@ -25,9 +25,17 @@ public class AiFeedback {
     private String rawImagePath;
     @Column(name = "extracted_image_path")
     private String extractedImagePath;
+
+    // Yeni eklenen ilişki: Bir AiFeedback birden fazla AiFeedbackImagePath'e sahip olabilir.
+    @OneToMany(mappedBy = "aiFeedback", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<AiFeedbackImagePath> aiFeedbackImagePaths = new ArrayList<>();
+
     @Column(name = "image_type")
     @Enumerated(EnumType.STRING)
     private ImageType imageType;
+    @Column(name = "submission_type")
+    @Enumerated(EnumType.STRING)
+    private SubmissionType submissionType;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     @Column(name = "like_style")
@@ -45,11 +53,12 @@ public class AiFeedback {
 
     public AiFeedback(Long userId, String rawImagePath,
                       ImageType imageType, String extractedImagePath, Integer topListOrder,
-                      Integer order) {
+                      Integer order, SubmissionType submissionType) {
         this.userId = userId;
         this.rawImagePath = rawImagePath;
         this.extractedImagePath = extractedImagePath;
         this.imageType = imageType;
+        this.submissionType = submissionType;
         this.createdAt = LocalDateTime.now();
         this.topListOrder = topListOrder;
         this.order = order;

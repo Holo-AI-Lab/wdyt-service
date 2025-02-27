@@ -43,6 +43,26 @@ public class ChatGptService {
 
     }
 
+    public String sendPromptWithImages(String imageUrl1, String imageUrl2, String promptText) {
+        List<Message> messages = List.of(new Message("user", List.of(
+                new MessageContent("text", promptText, null),
+                new MessageContent("image_url", null, new ImageAttachment(imageUrl1)),
+                new MessageContent("image_url", null, new ImageAttachment(imageUrl2))
+        )));
+
+        ChatGPTRequest request = new ChatGPTRequest(gptVersion, messages);
+
+        return webClient.post()
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> handleError(clientResponse, "Client error"))
+                .onStatus(HttpStatusCode::is5xxServerError, clientResponse -> handleError(clientResponse, "Server error"))
+                .bodyToMono(String.class)
+                .block();
+
+    }
+
     private static Mono<? extends Throwable> handleError(ClientResponse clientResponse, String errorType) {
         // Log the error details
         return clientResponse.bodyToMono(String.class)

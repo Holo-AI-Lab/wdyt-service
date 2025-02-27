@@ -19,6 +19,9 @@ public class ChatGptPrompt {
     @Column(name = "image_type")
     @Enumerated(EnumType.STRING)
     private ImageType imageType;
+    @Column(name = "submission_type")
+    @Enumerated(EnumType.STRING)
+    private SubmissionType submissionType;
     @Column(name = "active")
     private boolean active;
 }

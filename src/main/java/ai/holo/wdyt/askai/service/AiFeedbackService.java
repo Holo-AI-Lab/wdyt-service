@@ -93,10 +93,10 @@ public class AiFeedbackService {
         this.eventPublisher = eventPublisher;
     }
 
-    public AiSubmissionPrompt preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather) {
+    public AiSubmissionPrompt preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather, SubmissionType submissionType) {
         // Send prompt with image to ChatGPT
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
-        ChatGptPrompt prompt = promptService.getPrompt(aiSubmissionImage.imageType());
+        ChatGptPrompt prompt = promptService.getPrompt(aiSubmissionImage.imageType(), submissionType);
         String promptText = getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions());
         return new AiSubmissionPrompt(prompt, promptText);
     }
@@ -206,6 +206,32 @@ public class AiFeedbackService {
         throw new IllegalStateException("Unexpected error in retry logic"); // Should never reach here
     }
 
+    public String sendPromptWithRetries(String extractedImagePath1, String extractedImagePath2, String promptText, ImageType imageType) {
+        String extractedImageS3Url1 = getFileS3Url(extractedImagePath1);
+        String extractedImageS3Url2 = getFileS3Url(extractedImagePath2);
+        int retries = MAX_RETRY_COUNT;
+        for (int i = 0; i < retries; i++) {
+            String gptResponse = null;
+            try {
+                // Attempt to send the prompt and extract the response
+                gptResponse = chatGptService.sendPromptWithImages(extractedImageS3Url1, extractedImageS3Url2, promptText);
+                extractResponse(gptResponse, imageType);
+                return gptResponse; // Return the response if successful
+            } catch (RuntimeException e) {
+                if (i == retries - 1) { // If it's the last attempt, rethrow the exception
+                    log.error("Failed to get response from AI service. Response: {}", gptResponse);
+                    throw new InvalidImageException();
+                }
+                // Log the retry attempt
+                log.warn("Retrying sendPromptWithImage due to failure: " + e.getMessage());
+
+                // Sleep for 500ms before retrying
+                sleep500Millis();
+            }
+        }
+        throw new IllegalStateException("Unexpected error in retry logic"); // Should never reach here
+    }
+
     private void sleep500Millis() {
         try {
             Thread.sleep(500);
@@ -217,7 +243,7 @@ public class AiFeedbackService {
 
     @Transactional
     public AiFeedbackDetailedDto saveAiResponse(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, Long promptId,
-                                                String gptResponse, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather) {
+                                                String gptResponse, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather, SubmissionType submissionType) {
         User currentUser = userService.getUser();
         AiFeedback feedback;
         if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
@@ -225,7 +251,7 @@ public class AiFeedbackService {
         } else {
             AiSubmissionOrder order = getOrder(currentUser);
             feedback = new AiFeedback(currentUser.getId(), aiSubmissionImage.rawImagePath(), aiSubmissionImage.imageType(),
-                    aiSubmissionImage.extractedImagePath(), order.topListOrder, order.order);
+                    aiSubmissionImage.extractedImagePath(), order.topListOrder, order.order, submissionType);
 
         }
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
@@ -241,6 +267,39 @@ public class AiFeedbackService {
 
         return generateAiFeedbackDto(savedAiFeedback);
     }
+
+    @Transactional
+    public AiFeedbackDetailedDto saveAiCompareResponse(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, Long promptId, String gptResponse,
+                                                       AISubmissionImage aiSubmissionImage1, AISubmissionImage aiSubmissionImage2, LocationAndWeatherDto locationAndWeather, SubmissionType submissionType) {
+        User currentUser = userService.getUser();
+        AiFeedback feedback;
+
+        if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
+            feedback = aiFeedbackRepository.findById(aiFeedbackSubmissionDto.aiFeedbackId())
+                    .orElseThrow(NotFoundException::new);
+        } else {
+            AiSubmissionOrder order = getOrder(currentUser);
+            feedback = new AiFeedback(currentUser.getId(), aiSubmissionImage1.rawImagePath(), aiSubmissionImage1.imageType(),
+                    aiSubmissionImage1.extractedImagePath(), order.topListOrder, order.order, submissionType);
+
+            AiFeedbackImagePath imagePath1 = new AiFeedbackImagePath(feedback, 1, aiSubmissionImage1.rawImagePath(), aiSubmissionImage1.extractedImagePath());
+            AiFeedbackImagePath imagePath2 = new AiFeedbackImagePath(feedback, 2, aiSubmissionImage2.rawImagePath(), aiSubmissionImage2.extractedImagePath());
+
+            feedback.getAiFeedbackImagePaths().add(imagePath1);
+            feedback.getAiFeedbackImagePaths().add(imagePath2);
+        }
+
+        User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
+
+        feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), promptId, gptResponse, null, locationAndWeather, LocalDateTime.now()));
+
+        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(gptResponse, aiSubmissionImage1.imageType());
+        Map<String, List<String>> tags = getTags(analysis);
+        feedback.updateTags(tags);
+        AiFeedback savedAiFeedback = aiFeedbackRepository.save(feedback);
+        return generateAiFeedbackDto(savedAiFeedback);
+    }
+
 
     private Map<String, List<String>> getTags(Pair<OutfitAnalysis, HeadStyleAnalysis> analysis) {
         Taggable taggable = analysis.getLeft() != null ? analysis.getLeft() : analysis.getRight();
