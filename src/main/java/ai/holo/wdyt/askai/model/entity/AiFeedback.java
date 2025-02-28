@@ -26,7 +26,6 @@ public class AiFeedback {
     @Column(name = "extracted_image_path")
     private String extractedImagePath;
 
-    // Yeni eklenen ilişki: Bir AiFeedback birden fazla AiFeedbackImagePath'e sahip olabilir.
     @OneToMany(mappedBy = "aiFeedback", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<AiFeedbackImagePath> aiFeedbackImagePaths = new ArrayList<>();
 
