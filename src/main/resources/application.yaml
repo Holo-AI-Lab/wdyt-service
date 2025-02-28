@@ -16,7 +16,7 @@ aws:
     bucket: wdyt-test-bucket
     endpoint: https://duoymrhqgte1g.cloudfront.net
   sns:
-    pushNotificationArn: arn:aws:sns:us-east-1:123456789012:wdyt-test-topic
+    pushNotificationArn: arn:aws:sns:us-east-1:976193257823:app/APNS_SANDBOX/wdyt-test-push
 integrations:
   create-robot:
     url: https://test.the2nd.ai/aiCompanion/api/wdyt/robot/createRobot
