@@ -227,6 +227,18 @@ CREATE TABLE `referral_link` (
     INDEX idx_referral_link_nonce (nonce)
 );
 
+ALTER TABLE `user` ADD COLUMN `device_token` VARCHAR(255) NULL;
+
+CREATE TABLE `push_notification` (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    type VARCHAR(25) NOT NULL,
+    user_id INT(11) NOT NULL,
+    content JSON NOT NULL,
+    is_consumed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_notification_user_id (user_id)
+);
 
 ```
 

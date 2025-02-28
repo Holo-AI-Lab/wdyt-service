@@ -2,6 +2,7 @@ package ai.holo.wdyt.auth.controller;
 
 import ai.holo.wdyt.auth.model.AppleAuthenticationDto;
 import ai.holo.wdyt.auth.model.JwtTokenDto;
+import ai.holo.wdyt.auth.model.UpdateDeviceTokenDto;
 import ai.holo.wdyt.auth.service.AppleSignInService;
 import ai.holo.wdyt.auth.service.JwtService;
 import ai.holo.wdyt.common.exception.AuthenticationException;
@@ -51,5 +52,15 @@ public class AppleSignInController {
             log.error("Authentication failed.", e);
             throw new AuthenticationException("Authentication failed: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/logout")
+    public void logout() {
+        userService.logout();
+    }
+
+    @PostMapping("/update-device-token")
+    public void updateDeviceToken(@Valid @RequestBody UpdateDeviceTokenDto deviceTokenDto) {
+        userService.updateDeviceToken(deviceTokenDto.deviceToken());
     }
 }

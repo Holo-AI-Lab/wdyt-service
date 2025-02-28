@@ -26,6 +26,7 @@ dependencies {
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
 	implementation("software.amazon.awssdk:secretsmanager:2.29.29")
 	implementation("software.amazon.awssdk:auth:2.29.29")
+	implementation("software.amazon.awssdk:sns:2.29.29")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")

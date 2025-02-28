@@ -75,4 +75,8 @@ public class UserController {
     public List<String> getStyles(@RequestParam(value = "filter", required = false) String filter) {
         return userService.getStyles(filter);
     }
+
+    public void sendHellowWorldPushNotification() {
+        userService.sendHelloWorldPushNotification();
+    }
 }

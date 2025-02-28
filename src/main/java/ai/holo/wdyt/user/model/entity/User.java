@@ -31,6 +31,9 @@ public class User {
     private Robot robot;
     @Column(name = "is_style_adapted")
     private boolean isStyleAdapted;
+    // Used for push notifications
+    @Column(name = "device_token")
+    private String deviceToken;
     @Convert(converter = UserSelectedStyleConverter.class)
     @Column(name = "user_selected_style")
     private UserSelectedStyle selectedStyle;

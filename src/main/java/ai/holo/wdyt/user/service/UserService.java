@@ -6,6 +6,7 @@ import ai.holo.wdyt.common.exception.AuthenticationException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.exception.ParameterValidationException;
 import ai.holo.wdyt.common.exception.UsernameAlreadyExistingException;
+import ai.holo.wdyt.common.notification.service.PushNotificationService;
 import ai.holo.wdyt.user.model.dto.*;
 import ai.holo.wdyt.user.model.entity.*;
 import ai.holo.wdyt.user.model.event.NewUserRegisteredEvent;
@@ -35,13 +36,14 @@ public class UserService {
     private final FriendRequestRepository friendRequestRepository;
     private final FriendRepository friendRepository;
     private final EventPublisher eventPublisher;
+    private final PushNotificationService pushNotificationService;
 
     public UserService(UserRepository userRepository,
                        RobotService robotService,
                        @Value("${aws.s3.endpoint}") String s3Endpoint,
                        UserFeedbackRepository userFeedbackRepository,
                        S3Service s3Service,
-                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository, EventPublisher eventPublisher) {
+                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository, EventPublisher eventPublisher, PushNotificationService pushNotificationService) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
@@ -51,6 +53,7 @@ public class UserService {
         this.friendRequestRepository = friendRequestRepository;
         this.friendRepository = friendRepository;
         this.eventPublisher = eventPublisher;
+        this.pushNotificationService = pushNotificationService;
     }
 
     public User createOrRetrieveUser(String email, String name, String appleId) {
@@ -240,5 +243,22 @@ public class UserService {
     public boolean isCurrentUserFriendWith(Long userId) {
         Long currentUserId = getUser().getId();
         return friendRepository.existsByUserIdAndFriendId(currentUserId, userId);
+    }
+
+    @Transactional
+    public void logout() {
+        updateDeviceToken(null);
+    }
+
+    @Transactional
+    public void updateDeviceToken(String deviceToken) {
+        User user = getUser();
+        user.setDeviceToken(deviceToken);
+        userRepository.save(user);
+    }
+
+    public void sendHelloWorldPushNotification() {
+        pushNotificationService.sendPushNotification(getUser().getId(), "Hello, World!");
+
     }
 }
