@@ -91,6 +91,11 @@ public class DeeplinkService {
             referral.setRedeemedAt(LocalDateTime.now());
 
             Long invitedUserId = userService.getUser().getId();
+            if (referral.getUserId().equals(invitedUserId)) {
+                // User cannot refer themselves
+                log.warn("User {} cannot refer themselves", invitedUserId);
+                return;
+            }
             eventPublisher.publishEvent(new ReferralUsedEvent(referral.getUserId(), invitedUserId));
             referralLinkRepository.save(referral);
         }

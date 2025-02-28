@@ -29,12 +29,9 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ fingerprint })
-        })
-            .then(response => {
-                // Redirect to App Store
-                window.location.href = "https://apps.apple.com/app/6738694684"; // Replace with real app store URL
-            })
-            .catch(error => console.error("Error sending data:", error));
+        }).then(() => {
+            window.location.href = "https://thewdyt.com/";
+        }).catch(error => console.error("Error sending data:", error));
     });
 </script>
 </body>
