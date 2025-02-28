@@ -13,5 +13,6 @@ public record AppleNotificationHistoryResponse(
         String paginationToken,
         List<AppleNotificationItem> notificationHistory
 ) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record AppleNotificationItem(String signedPayload) {}
 }
