@@ -76,6 +76,7 @@ public class UserController {
         return userService.getStyles(filter);
     }
 
+    @PostMapping("/send-hello-world-push-notification")
     public void sendHellowWorldPushNotification() {
         userService.sendHelloWorldPushNotification();
     }

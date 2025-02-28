@@ -259,6 +259,5 @@ public class UserService {
 
     public void sendHelloWorldPushNotification() {
         pushNotificationService.sendPushNotification(getUser().getId(), "Hello, World!");
-
     }
 }
