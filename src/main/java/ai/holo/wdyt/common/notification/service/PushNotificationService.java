@@ -41,7 +41,7 @@ public class PushNotificationService {
     public void sendPushNotification(Long userId, String message) {
         User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
         String snsEndpoint = createSnsEndpoint(user.getDeviceToken());
-        String content = buildPushMessage(message);
+        String content = buildPushMessage(String.format("Hey %s", user.getName()), message);
         sendNotification(message, snsEndpoint);
 
         pushNotificationRepository.save(new PushNotification(NotificationType.OTHER, userId, content));
@@ -67,7 +67,7 @@ public class PushNotificationService {
         snsClient.publish(request);
     }
 
-    private String buildPushMessage(String message) {
-        return "{ \"APNS_SANDBOX\": \"{ \\\"aps\\\": { \\\"alert\\\": \\\"" + message + "\\\", \\\"sound\\\": \\\"default\\\" } }\" }";
+    private String buildPushMessage(String title, String message) {
+        return "{ \\\"aps\\\": { \\\"alert\\\": { \\\"title\\\": \\\"" + title + "\\\", \\\"body\\\": \\\"" + message + "\\\" }, \\\"sound\\\": \\\"default\\\" } }";
     }
 }
