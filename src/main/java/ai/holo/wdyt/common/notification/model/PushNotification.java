@@ -7,7 +7,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 
-@Entity(name = "user_notification")
+@Entity(name = "push_notification")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,7 +18,7 @@ public class PushNotification {
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
     private NotificationType notificationType;
-    @Column(name = "name")
+    @Column(name = "user_id")
     private Long userId;
     @Column(name = "content")
     private String content;
