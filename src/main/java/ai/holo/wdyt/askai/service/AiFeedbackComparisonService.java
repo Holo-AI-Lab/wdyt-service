@@ -61,7 +61,7 @@ public class AiFeedbackComparisonService {
 
     @Transactional
     public AiComparisonDetailedDto saveAiCompareResponse(AiComparisonSubmissionDto comparisonSubmissionDto, AiSubmissionPrompt prompt, String gptResponse,
-                                                         AiFeedbackService.AISubmissionImagesForComparision comparisonImages, LocationAndWeatherDto locationAndWeather) {
+                                                         AISubmissionImagesForComparison comparisonImages, LocationAndWeatherDto locationAndWeather) {
 
         AiFeedback aiFeedback1 = aiFeedbackRepository.findById(comparisonSubmissionDto.feedback1()).orElseThrow(NotFoundException::new);
         AiFeedback aiFeedback2 = aiFeedbackRepository.findById(comparisonSubmissionDto.feedback2()).orElseThrow(NotFoundException::new);
@@ -107,16 +107,16 @@ public class AiFeedbackComparisonService {
         }
     }
 
-    public AiFeedbackService.AISubmissionImagesForComparision getComparisonImages(AiComparisonSubmissionDto comparisonSubmissionDto) {
+    public AISubmissionImagesForComparison getComparisonImages(AiComparisonSubmissionDto comparisonSubmissionDto) {
         AiFeedback aiFeedback1 = aiFeedbackRepository.findById(comparisonSubmissionDto.feedback1()).orElseThrow(NotFoundException::new);
-        AiFeedbackService.AISubmissionImage image1 = new AiFeedbackService.AISubmissionImage(aiFeedback1.getImageType(), aiFeedback1.getRawImagePath(), aiFeedback1.getExtractedImagePath());
+        AIComparisonSubmissionImage image1 = new AIComparisonSubmissionImage(aiFeedback1.getImageType(), aiFeedback1.getRawImagePath(), aiFeedback1.getExtractedImagePath());
 
         AiFeedback aiFeedback2 = aiFeedbackRepository.findById(comparisonSubmissionDto.feedback2()).orElseThrow(NotFoundException::new);
-        AiFeedbackService.AISubmissionImage image2 = new AiFeedbackService.AISubmissionImage(aiFeedback2.getImageType(), aiFeedback2.getRawImagePath(), aiFeedback2.getExtractedImagePath());
+        AIComparisonSubmissionImage image2 = new AIComparisonSubmissionImage(aiFeedback2.getImageType(), aiFeedback2.getRawImagePath(), aiFeedback2.getExtractedImagePath());
         if (image1.imageType() != image2.imageType()) {
             throw new BadRequestException("Provided images are not same image type.");
         }
-        return new AiFeedbackService.AISubmissionImagesForComparision(image1, image2);
+        return new AISubmissionImagesForComparison(image1, image2);
     }
 
     public AiSubmissionPrompt getComparisonPrompt(AiComparisonSubmissionDto comparisonSubmissionDto, User currentUser,
@@ -154,5 +154,9 @@ public class AiFeedbackComparisonService {
 
         return callSupplierWithRetryService.executeWithRetries(gptResponseSupplier);
     }
+
+    public record AIComparisonSubmissionImage(ImageType imageType, String rawImagePath, String extractedImagePath) {}
+
+    public record AISubmissionImagesForComparison(AIComparisonSubmissionImage image1, AIComparisonSubmissionImage image2) {}
 
 }
