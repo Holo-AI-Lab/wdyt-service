@@ -75,10 +75,10 @@ public class AiFeedbackSearchService {
     }
 
     public Page<AiFeedback> findAiFeedbacksByTags(Long userId, Map<String, List<String>> tagFilters, Boolean liked,
-                                                  Long excludeUserId, Pageable pageable) {
+                                                  Long excludeUserId, Long feedbackIdForComparison, Pageable pageable) {
         // Build the base query strings
         String baseQuery = "SELECT af.* FROM ai_feedback af";
-        String whereClause = buildWhereClause(tagFilters, liked, excludeUserId);
+        String whereClause = buildWhereClause(tagFilters, liked, excludeUserId, feedbackIdForComparison);
 
         // Add sorting from the Pageable object
         StringBuilder queryString = new StringBuilder(baseQuery).append(whereClause);
@@ -86,7 +86,7 @@ public class AiFeedbackSearchService {
 
         // Create the main query
         Query query = entityManager.createNativeQuery(queryString.toString(), AiFeedback.class);
-        setQueryParameters(query, userId, tagFilters, liked, excludeUserId);
+        setQueryParameters(query, userId, tagFilters, liked, excludeUserId, feedbackIdForComparison);
 
         // Set pagination parameters
         int firstResult = pageable.getPageNumber() * pageable.getPageSize();
@@ -99,13 +99,13 @@ public class AiFeedbackSearchService {
         // Get total count for pagination
         String countQueryString = "SELECT COUNT(*) FROM ai_feedback af" + whereClause;
         Query countQuery = entityManager.createNativeQuery(countQueryString);
-        setQueryParameters(countQuery, userId, tagFilters, liked, excludeUserId);
+        setQueryParameters(countQuery, userId, tagFilters, liked, excludeUserId, feedbackIdForComparison);
 
         long totalCount = ((Number) countQuery.getSingleResult()).longValue();
         return new PageImpl<>(results, pageable, totalCount);
     }
 
-    private String buildWhereClause(Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId) {
+    private String buildWhereClause(Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId, Long feedbackIdForComparison) {
         StringBuilder whereClause = new StringBuilder(" WHERE af.user_id = :userId");
 
         if (liked != null) {
@@ -114,6 +114,16 @@ public class AiFeedbackSearchService {
 
         if (excludeUserId != null) {
             whereClause.append(" AND (af.feedback_entries IS NULL OR NOT JSON_CONTAINS(af.feedback_entries, JSON_OBJECT('userId', :excludeUserId), '$'))");
+        }
+
+        if (feedbackIdForComparison != null) {
+            whereClause.append("""
+                 AND id NOT IN (
+                    SELECT ai_feedback_id1 FROM ai_comparison_feedback WHERE ai_feedback_id2 = :feedbackIdForComparison
+                    UNION
+                    SELECT ai_feedback_id2 FROM ai_comparison_feedback WHERE ai_feedback_id1 = :feedbackIdForComparison
+                )
+                """);
         }
 
         for (Map.Entry<String, List<String>> entry : tagFilters.entrySet()) {
@@ -132,7 +142,7 @@ public class AiFeedbackSearchService {
         return whereClause.toString();
     }
 
-    private void setQueryParameters(Query query, Long userId, Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId) {
+    private void setQueryParameters(Query query, Long userId, Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId, Long feedbackIdForComparison) {
         query.setParameter("userId", userId);
 
         if (liked != null) {
@@ -141,6 +151,10 @@ public class AiFeedbackSearchService {
 
         if (excludeUserId != null) {
             query.setParameter("excludeUserId", excludeUserId);
+        }
+
+        if (feedbackIdForComparison != null) {
+            query.setParameter("feedbackIdForComparison", feedbackIdForComparison);
         }
 
         for (Map.Entry<String, List<String>> entry : tagFilters.entrySet()) {
