@@ -30,6 +30,15 @@ public class AiFeedbackSearchService {
         return getTagsFromAiFeedback("ai_feedback", userId, tag);
     }
 
+    public List<String> findTopThreeDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(Long userId, String tag) {
+        List<String> tagsFromAiFeedback = getTagsFromAiFeedback("ai_feedback", userId, tag);
+        List<String> tagsFromComparison = getTagsFromAiFeedback("ai_comparison_feedback", userId, tag);
+        List<String> tags = Stream.concat(tagsFromAiFeedback.stream(), tagsFromComparison.stream())
+                .distinct()
+                .collect(Collectors.toList());
+        return tags.subList(0, Math.min(3, tags.size()));
+    }
+
     public List<String> findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(Long userId, String tag) {
         List<String> tagsFromAiFeedback = getTagsFromAiFeedback("ai_feedback", userId, tag);
         List<String> tagsFromComparison = getTagsFromAiFeedback("ai_comparison_feedback", userId, tag);
@@ -57,7 +66,7 @@ public class AiFeedbackSearchService {
         return result;
     }
 
-    public List<String> getStyles(User aiUser) {
+    public List<String> getStylesBasedOnUserStyleAdaptedPreference(User aiUser) {
         if (aiUser.isStyleAdapted()) {
             List<String> userMostUsedStyles = findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(aiUser.getId(), "style");
             return userMostUsedStyles.subList(0, Math.min(3, userMostUsedStyles.size()));

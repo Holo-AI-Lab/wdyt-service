@@ -93,7 +93,7 @@ public class AiFeedbackService {
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
         ChatGptPrompt prompt = promptService.getPrompt(imageType, SubmissionType.SINGLE);
 
-        List<String> styles = aiFeedbackSearchService.getStyles(aiUser);
+        List<String> styles = aiFeedbackSearchService.getStylesBasedOnUserStyleAdaptedPreference(aiUser);
         String promptText = promptService.getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions(), SubmissionType.SINGLE, styles);
         return new AiSubmissionPrompt(prompt, promptText);
     }

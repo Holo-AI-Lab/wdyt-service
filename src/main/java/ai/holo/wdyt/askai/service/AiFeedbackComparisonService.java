@@ -122,7 +122,7 @@ public class AiFeedbackComparisonService {
     public AiSubmissionPrompt getComparisonPrompt(AiComparisonSubmissionDto comparisonSubmissionDto, User currentUser,
                                                   ImageType imageType, LocationAndWeatherDto locationAndWeather) {
         ChatGptPrompt prompt = promptService.getPrompt(imageType, SubmissionType.COMPARE);
-        List<String> styles = aiFeedbackSearchService.getStyles(currentUser);
+        List<String> styles = aiFeedbackSearchService.getStylesBasedOnUserStyleAdaptedPreference(currentUser);
         String promptText = promptService.getPromptText(prompt, currentUser, comparisonSubmissionDto.clientTime(), locationAndWeather, comparisonSubmissionDto.occasions(), SubmissionType.COMPARE, styles);
         return new AiSubmissionPrompt(prompt, promptText);
     }
