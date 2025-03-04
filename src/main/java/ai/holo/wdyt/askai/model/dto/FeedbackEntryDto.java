@@ -8,10 +8,11 @@ public record FeedbackEntryDto(String id,
                                UserDto aiUserInfo,
                                OutfitAnalysis outfitAnalysis,
                                HeadStyleAnalysis headStyleAnalysis,
+                               ComparisonAnalysis comparisonAnalysis,
                                Boolean aiResponseLiked,
                                LocationAndWeatherDto locationAndWeather) {
 
-    public FeedbackEntryDto(FeedbackEntry feedback, OutfitAnalysis outfitAnalysis, HeadStyleAnalysis headStyleAnalysis, UserDto userInfo) {
-        this(feedback.id(), userInfo, outfitAnalysis, headStyleAnalysis, feedback.likeAiResponse(), feedback.locationAndWeather());
+    public FeedbackEntryDto(FeedbackEntry feedback, OutfitAnalysis outfitAnalysis, HeadStyleAnalysis headStyleAnalysis, ComparisonAnalysis comparisonAnalysis, UserDto userInfo) {
+        this(feedback.id(), userInfo, outfitAnalysis, headStyleAnalysis, comparisonAnalysis, feedback.likeAiResponse(), feedback.locationAndWeather());
     }
 }

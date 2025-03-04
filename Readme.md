@@ -259,17 +259,22 @@ INSERT INTO gpt_prompt (prompt, submission_type, image_type, active) VALUES (
     true
 );
 
-// NEW
-CREATE TABLE ai_feedback_image_paths (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    ai_feedback_id INT NOT NULL,
-    image_position INT NOT NULL,
-    raw_image_path VARCHAR(255) NOT NULL,
-    extracted_image_path VARCHAR(255) NOT NULL,
-    CONSTRAINT fk_ai_feedback 
-        FOREIGN KEY (ai_feedback_id) 
-        REFERENCES ai_feedback(id) 
-        ON DELETE CASCADE
+CREATE TABLE ai_comparison_feedback (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    user_id INT(11) NOT NULL,
+    ai_feedback_id1 INT(11) NOT NULL,
+    ai_feedback_id2 INT(11) NOT NULL,
+    image_type VARCHAR(255) NOT NULL DEFAULT 'OTHER',
+    image1_path VARCHAR(500) NOT NULL,
+    image2_path VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    like_style BOOLEAN DEFAULT false,
+    tags JSON NULL,
+    feedback_entries JSON NULL,
+    FOREIGN KEY (user_id) REFERENCES user(id),
+    FOREIGN KEY (user_id) REFERENCES user(id),
+    FOREIGN KEY (ai_feedback_id1) REFERENCES ai_feedback(id),
+    FOREIGN KEY (ai_feedback_id2) REFERENCES ai_feedback(id)
 );
 
 

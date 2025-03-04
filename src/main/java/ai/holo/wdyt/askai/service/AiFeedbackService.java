@@ -7,15 +7,13 @@ import ai.holo.wdyt.askai.repository.AiFeedbackOrderRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.OccasionRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
-import ai.holo.wdyt.common.event.service.EventPublisher;
-import ai.holo.wdyt.common.json.JsonUtils;
 import ai.holo.wdyt.common.S3Service;
+import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
+import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.exception.BadRequestException;
-import ai.holo.wdyt.common.exception.InvalidImageException;
 import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.common.json.JsonUtils;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
-import ai.holo.wdyt.location.model.WeatherDto;
-import ai.holo.wdyt.location.service.IpGeoLocationService;
 import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
@@ -32,38 +30,32 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 @Service
 @Slf4j
 public class AiFeedbackService {
-    public static final String BODY_JSON_FORMATTING_PROMPT = "Tag styles, occasions and colors from the output and map to the tags field in the following json structure. We would like the response in this format: {\"outfit_style\":\"string\",\"style_match\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"outfit_details\":[{\"item\":\"string\",\"color\":\"string\",\"description\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"outfit\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":\"string\",\"compliment\":\"string\",\"tags\":[style:[\"string\"],occasion:[\"string\"],color:[\"string\"]]}";
-    public static final String HEAD_JSON_FORMATTING_PROMPT = "Tag head styles, occasion fits and colors of any wearings from the output and map to the tags field in the following json structure. We would like the response in this format: {\"head_style\":\"string\",\"style_face_fit\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"detailed_elements\":[{\"item\":\"string\",\"description\":\"string\",\"color\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"elements\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":\"string\",\"compliment\":\"string\",\"tags\":[style:[\"string\"],occasion:[\"string\"],color:[\"string\"]]}";
-    public static final int MAX_RETRY_COUNT = 3;
     private final ChatGptService chatGptService;
     private final S3Service s3Service;
     private final PhotoroomBgExtractionService photoroomBgExtractionService;
     private final ImageClassificationService imageClassificationService;
     private final UserService userService;
     private final AiFeedbackRepository aiFeedbackRepository;
-    private final String s3Endpoint;
     private final int topListCount;
-    private final IpGeoLocationService ipGeoLocationService;
     private final PromptService promptService;
     private final AiFeedbackOrderRepository aiFeedbackOrderRepository;
     private final ReportAiFeedbackRepository reportAiFeedbackRepository;
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final OccasionRepository occasionRepository;
+    private final CallSupplierWithRetryService callSupplierWithRetryService;
     private final EventPublisher eventPublisher;
 
     public AiFeedbackService(ChatGptService chatGptService, S3Service s3Service,
@@ -71,34 +63,46 @@ public class AiFeedbackService {
                              ImageClassificationService imageClassificationService,
                              UserService userService,
                              AiFeedbackRepository aiFeedbackRepository,
-                             @Value("${aws.s3.endpoint}") String s3Endpoint,
                              @Value("${configuration.topListCount}") int topListCount,
-                             IpGeoLocationService ipGeoLocationService, PromptService promptService,
+                             PromptService promptService,
                              AiFeedbackOrderRepository aiFeedbackOrderRepository,
-                             ReportAiFeedbackRepository reportAiFeedbackRepository, AiFeedbackSearchService aiFeedbackSearchService, OccasionRepository occasionRepository, EventPublisher eventPublisher) {
+                             ReportAiFeedbackRepository reportAiFeedbackRepository,
+                             AiFeedbackSearchService aiFeedbackSearchService,
+                             OccasionRepository occasionRepository,
+                             CallSupplierWithRetryService callSupplierWithRetryService,
+                             EventPublisher eventPublisher) {
         this.chatGptService = chatGptService;
         this.s3Service = s3Service;
         this.photoroomBgExtractionService = photoroomBgExtractionService;
         this.imageClassificationService = imageClassificationService;
         this.userService = userService;
         this.aiFeedbackRepository = aiFeedbackRepository;
-        this.s3Endpoint = s3Endpoint;
         this.topListCount = topListCount;
-        this.ipGeoLocationService = ipGeoLocationService;
         this.promptService = promptService;
         this.aiFeedbackOrderRepository = aiFeedbackOrderRepository;
         this.reportAiFeedbackRepository = reportAiFeedbackRepository;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.occasionRepository = occasionRepository;
+        this.callSupplierWithRetryService = callSupplierWithRetryService;
         this.eventPublisher = eventPublisher;
     }
 
-    public AiSubmissionPrompt preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather, SubmissionType submissionType) {
+    @Transactional(readOnly = true)
+    public AiSubmissionPrompt preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, ImageType imageType, LocationAndWeatherDto locationAndWeather) {
         // Send prompt with image to ChatGPT
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
-        ChatGptPrompt prompt = promptService.getPrompt(aiSubmissionImage.imageType(), submissionType);
-        String promptText = getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions());
+        ChatGptPrompt prompt = promptService.getPrompt(imageType, SubmissionType.SINGLE);
+
+        String promptText = promptService.getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions(), SubmissionType.SINGLE, getStyles(aiUser));
         return new AiSubmissionPrompt(prompt, promptText);
+    }
+
+    private List<String> getStyles(User aiUser) {
+        if (aiUser.isStyleAdapted()) {
+            List<String> userMostUsedStyles = getFilters("style");
+            return userMostUsedStyles.subList(0, Math.min(3, userMostUsedStyles.size()));
+        }
+        return aiUser.getSelectedStyle() != null ? aiUser.getSelectedStyle().styles() : List.of();
     }
 
     public AiFeedbackSubmissionDto validateAndParseSubmissionDto(byte[] image, String data) throws JsonProcessingException {
@@ -157,18 +161,6 @@ public class AiFeedbackService {
         return new AISubmissionImage(imageType, rawImagePath, extractedImagePath);
     }
 
-    public LocationAndWeatherDto getLocationAndWeather(AiFeedbackSubmissionDto aiFeedbackSubmissionDto) {
-        LocationAndWeatherDto locationAndWeather = aiFeedbackSubmissionDto.locationAndWeather();
-        if(locationAndWeather == null) {
-            if (aiFeedbackSubmissionDto.clientIpAddress() == null) {
-                throw new BadRequestException("clientIpAddress is required when locationAndWeather is not provided");
-            }
-            // Get location and weather by IP
-            locationAndWeather = ipGeoLocationService.getLocationAndWeatherByIp(aiFeedbackSubmissionDto.clientIpAddress());
-        }
-        return locationAndWeather;
-    }
-
     private void checkImageOrPreviousSubmissionIdIsProvided(byte[] image, AiFeedbackSubmissionDto aiFeedbackSubmissionDto) {
         if (image == null && aiFeedbackSubmissionDto.aiFeedbackId() == null) {
             throw new BadRequestException("Either image or previous submission id is required");
@@ -182,63 +174,16 @@ public class AiFeedbackService {
     }
 
     public String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
-        String extractedImageS3Url = getFileS3Url(extractedImagePath);
-        int retries = MAX_RETRY_COUNT;
-        for (int i = 0; i < retries; i++) {
-            String gptResponse = null;
-            try {
-                // Attempt to send the prompt and extract the response
-                gptResponse = chatGptService.sendPromptWithImage(extractedImageS3Url, promptText);
-                extractResponse(gptResponse, imageType);
-                return gptResponse; // Return the response if successful
-            } catch (RuntimeException e) {
-                if (i == retries - 1) { // If it's the last attempt, rethrow the exception
-                    log.error("Failed to get response from AI service. Response: {}", gptResponse);
-                    throw new InvalidImageException();
-                }
-                // Log the retry attempt
-                log.warn("Retrying sendPromptWithImage due to failure: " + e.getMessage());
+        String extractedImageS3Url = s3Service.getFileS3Url(extractedImagePath);
 
-                // Sleep for 500ms before retrying
-                sleep500Millis();
-            }
-        }
-        throw new IllegalStateException("Unexpected error in retry logic"); // Should never reach here
-    }
+        Supplier<String> gptResponseSupplier = () -> {
+            // Attempt to send the prompt and extract the response
+            String response = chatGptService.sendPromptWithImage(extractedImageS3Url, promptText);
+            extractResponse(response, imageType);
+            return response;
+        };
 
-    public String sendPromptWithRetries(String extractedImagePath1, String extractedImagePath2, String promptText, ImageType imageType) {
-        String extractedImageS3Url1 = getFileS3Url(extractedImagePath1);
-        String extractedImageS3Url2 = getFileS3Url(extractedImagePath2);
-        int retries = MAX_RETRY_COUNT;
-        for (int i = 0; i < retries; i++) {
-            String gptResponse = null;
-            try {
-                // Attempt to send the prompt and extract the response
-                gptResponse = chatGptService.sendPromptWithImages(extractedImageS3Url1, extractedImageS3Url2, promptText);
-                extractResponse(gptResponse, imageType);
-                return gptResponse; // Return the response if successful
-            } catch (RuntimeException e) {
-                if (i == retries - 1) { // If it's the last attempt, rethrow the exception
-                    log.error("Failed to get response from AI service. Response: {}", gptResponse);
-                    throw new InvalidImageException();
-                }
-                // Log the retry attempt
-                log.warn("Retrying sendPromptWithImage due to failure: " + e.getMessage());
-
-                // Sleep for 500ms before retrying
-                sleep500Millis();
-            }
-        }
-        throw new IllegalStateException("Unexpected error in retry logic"); // Should never reach here
-    }
-
-    private void sleep500Millis() {
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException interruptedException) {
-            Thread.currentThread().interrupt(); // Restore interrupted status
-            throw new RuntimeException("Retry was interrupted", interruptedException);
-        }
+        return callSupplierWithRetryService.executeWithRetries(gptResponseSupplier);
     }
 
     @Transactional
@@ -268,51 +213,11 @@ public class AiFeedbackService {
         return generateAiFeedbackDto(savedAiFeedback);
     }
 
-    @Transactional
-    public AiFeedbackDetailedDto saveAiCompareResponse(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, Long promptId, String gptResponse,
-                                                       AISubmissionImage aiSubmissionImage1, AISubmissionImage aiSubmissionImage2, LocationAndWeatherDto locationAndWeather, SubmissionType submissionType) {
-        User currentUser = userService.getUser();
-        AiFeedback feedback;
-
-        if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
-            feedback = aiFeedbackRepository.findById(aiFeedbackSubmissionDto.aiFeedbackId())
-                    .orElseThrow(NotFoundException::new);
-        } else {
-            AiSubmissionOrder order = getOrder(currentUser);
-            feedback = new AiFeedback(currentUser.getId(), aiSubmissionImage1.rawImagePath(), aiSubmissionImage1.imageType(),
-                    aiSubmissionImage1.extractedImagePath(), order.topListOrder, order.order, submissionType);
-
-            AiFeedbackImagePath imagePath1 = new AiFeedbackImagePath(feedback, 1, aiSubmissionImage1.rawImagePath(), aiSubmissionImage1.extractedImagePath());
-            AiFeedbackImagePath imagePath2 = new AiFeedbackImagePath(feedback, 2, aiSubmissionImage2.rawImagePath(), aiSubmissionImage2.extractedImagePath());
-            feedback.getAiFeedbackImagePaths().add(imagePath1);
-            feedback.getAiFeedbackImagePaths().add(imagePath2);
-        }
-        User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
-        feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), promptId, gptResponse, null, locationAndWeather, LocalDateTime.now()));
-        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(gptResponse, aiSubmissionImage1.imageType());
-        Map<String, List<String>> tags = getTags(analysis);
-        feedback.updateTags(tags);
-        AiFeedback savedAiFeedback = aiFeedbackRepository.save(feedback);
-        eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId(), currentUser.getId()));
-        return generateAiFeedbackDto(savedAiFeedback);
-    }
-
 
     private Map<String, List<String>> getTags(Pair<OutfitAnalysis, HeadStyleAnalysis> analysis) {
         Taggable taggable = analysis.getLeft() != null ? analysis.getLeft() : analysis.getRight();
-        Map<String, List<String>> tags = new HashMap<>();
-        if (!CollectionUtils.isEmpty(taggable.getTag().style())) {
-            tags.put("style", taggable.getTag().style());
-        }
-        if (!CollectionUtils.isEmpty(taggable.getTag().occasion())) {
-            tags.put("occasion", taggable.getTag().occasion());
-        }
-        if (!CollectionUtils.isEmpty(taggable.getTag().color())) {
-            tags.put("color", taggable.getTag().color());
-        }
-        return tags;
+        return taggable.getTags();
     }
-
 
     private AiSubmissionOrder getOrder(User user) {
         Integer topListOrder = null;
@@ -328,56 +233,6 @@ public class AiFeedbackService {
             aiFeedbackOrderRepository.save(aiFeedbackOrder);
         }
         return new AiSubmissionOrder(topListOrder, order);
-    }
-
-    private String getPromptText(ChatGptPrompt prompt, User aiUser, ZonedDateTime date, LocationAndWeatherDto locationAndWeather,
-                                 List<String> occasions) {
-        String formattedDate = date.toString();
-        String promptText = prompt.getPrompt();
-        String jsonFormattingSuffix = ImageType.BODY.equals(prompt.getImageType()) ? BODY_JSON_FORMATTING_PROMPT : HEAD_JSON_FORMATTING_PROMPT;
-        promptText = promptText + jsonFormattingSuffix;
-
-        List<String> parameterOccasions = occasions != null ? occasions : List.of();
-        String occasion = String.join(",", parameterOccasions);
-        List<String> styles = getStyles(aiUser);
-
-        String locationRegex = "\\$\\{local}";
-        String dateRegex = "\\$\\{date}";
-        String weatherRegex = "\\$\\{weather}";
-        String occasionRegex = "\\$\\{occasion}";
-        String style1Regex = !styles.isEmpty() ? "\\$\\{style 1}" : null;
-        String style2Regex = styles.size() >= 2 ? "\\$\\{style 2}" : null;
-        String style3Regex = styles.size() >=3 ? "\\$\\{style 3}" : null;
-
-        String location = locationAndWeather.location().getLocation();
-        WeatherDto weather = locationAndWeather.weather();
-        String weatherCondition = weather != null ? String.format("Temperature Celsius: %f, condition: %s", weather.tempC(),
-                weather.condition()) : "Weather data not available";
-
-        // Replace all occurrences of ${location} and ${date}
-        promptText = promptText.replaceAll(locationRegex, location);
-        promptText = promptText.replaceAll(dateRegex, formattedDate);
-        promptText = promptText.replaceAll(weatherRegex, weatherCondition);
-        promptText = promptText.replaceAll(occasionRegex, occasion);
-        if (style1Regex != null) {
-            promptText = promptText.replaceAll(style1Regex, styles.get(0));
-        }
-        if (style2Regex != null) {
-            promptText = promptText.replaceAll(style2Regex, styles.get(1));
-        }
-        if (style3Regex != null) {
-            promptText = promptText.replaceAll(style3Regex, styles.get(2));
-        }
-        return promptText.replaceAll(dateRegex, formattedDate);
-
-    }
-
-    private List<String> getStyles(User aiUser) {
-        if (aiUser.isStyleAdapted()) {
-            List<String> userMostUsedStyles = getFilters("style");
-            return userMostUsedStyles.subList(0, Math.min(3, userMostUsedStyles.size()));
-        }
-        return aiUser.getSelectedStyle() != null ? aiUser.getSelectedStyle().styles() : List.of();
     }
 
     private Pair<OutfitAnalysis, HeadStyleAnalysis> extractResponse(String response, ImageType imageType) {
@@ -397,10 +252,6 @@ public class AiFeedbackService {
             log.error("Failed to extract response from AI response", e);
             throw new RuntimeException(e);
         }
-    }
-
-    private String getFileS3Url(String path) {
-        return String.format("%s/%s", s3Endpoint, path);
     }
 
     private String saveExtractedImageOnS3(User user, long currentTimeMillis, InputStream extractedImage) {
@@ -425,7 +276,7 @@ public class AiFeedbackService {
         PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
         UserDto userInfo = userService.getUserInfo();
         return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked, excludeUserId, pageRequestWithSort).map(aiFeedback ->
-                new AiFeedbackDto(aiFeedback, getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
+                new AiFeedbackDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
     }
 
     @Transactional
@@ -457,7 +308,7 @@ public class AiFeedbackService {
         AiFeedback aiFeedback = aiFeedbackRepository.findById(likeStyleDto.id()).orElseThrow(NotFoundException::new);
         aiFeedback.setLikeStyle(likeStyleDto.like());
         AiFeedback savedFeedback = aiFeedbackRepository.save(aiFeedback);
-        return new AiFeedbackDto(savedFeedback, getFileS3Url(savedFeedback.getExtractedImagePath()), userService.getUserInfo());
+        return new AiFeedbackDto(savedFeedback, s3Service.getFileS3Url(savedFeedback.getExtractedImagePath()), userService.getUserInfo());
     }
 
     @Transactional
@@ -473,7 +324,7 @@ public class AiFeedbackService {
         }).toList();
         aiFeedback.setFeedbackEntries(updatedFeedbackEntries);
         AiFeedback savedFeedback = aiFeedbackRepository.save(aiFeedback);
-        return new AiFeedbackDto(savedFeedback, getFileS3Url(savedFeedback.getExtractedImagePath()), userService.getUserInfo());
+        return new AiFeedbackDto(savedFeedback, s3Service.getFileS3Url(savedFeedback.getExtractedImagePath()), userService.getUserInfo());
     }
 
     private void checkFeedbackIsExistingAndNotLikedAlready(LikeAiResponseDto likeAiResponseDto, AiFeedback aiFeedback) {
@@ -500,9 +351,9 @@ public class AiFeedbackService {
         List<FeedbackEntryDto> feedbackEntryDtos = aiFeedback.getFeedbackEntries().stream().map(feedback -> {
             Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(feedback.response(), aiFeedback.getImageType());
             User aiUser = userService.getUserById(feedback.userId());
-            return new FeedbackEntryDto(feedback, analysis.getLeft(), analysis.getRight(), new UserDto(aiUser));
+            return new FeedbackEntryDto(feedback, analysis.getLeft(), analysis.getRight(), null, new UserDto(aiUser));
         }).toList();
-        return new AiFeedbackDetailedDto(aiFeedback, getFileS3Url(aiFeedback.getExtractedImagePath()),
+        return new AiFeedbackDetailedDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()),
                 userService.getUserInfo(), feedbackEntryDtos);
     }
 
@@ -575,10 +426,7 @@ public class AiFeedbackService {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AIMessage (String content) {
     }
-    public record AiSubmissionPrompt(ChatGptPrompt prompt, String promptText) {
-    }
     private record AiSubmissionOrder(Integer topListOrder, Integer order) {
     }
     public record AISubmissionImage(ImageType imageType, String rawImagePath, String extractedImagePath) {}
-
 }

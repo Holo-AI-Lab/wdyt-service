@@ -11,34 +11,30 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Entity(name = "ai_feedback")
+@Entity(name = "ai_comparison_feedback")
 @Getter
 @Setter
 @NoArgsConstructor
-public class AiFeedback {
+public class AiComparisonFeedback {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(name = "user_id")
     private Long userId;
-    @Column(name = "raw_image_path")
-    private String rawImagePath;
-    @Column(name = "extracted_image_path")
-    private String extractedImagePath;
+    @Column(name = "ai_feedback_id1")
+    private Long aiFeedbackId1;
+    @Column(name = "ai_feedback_id2")
+    private Long aiFeedbackId2;
     @Column(name = "image_type")
-    @Enumerated(EnumType.STRING)
     private ImageType imageType;
-    @Column(name = "submission_type")
-    @Enumerated(EnumType.STRING)
-    private SubmissionType submissionType;
+    @Column(name = "image1_path")
+    private String image1Path;
+    @Column(name = "image2_path")
+    private String image2Path;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     @Column(name = "like_style")
     private boolean likeStyle;
-    @Column(name = "top_list_order")
-    private Integer topListOrder;
-    @Column(name = "standard_order")
-    private Integer order;
     @Convert(converter = TagConverter.class)
     @Column(columnDefinition = "JSON")
     private Map<String, List<String>> tags = new HashMap<>();
@@ -46,17 +42,15 @@ public class AiFeedback {
     @Column(name = "feedback_entries", columnDefinition = "JSON")
     private List<FeedbackEntry> feedbackEntries = new ArrayList<>();
 
-    public AiFeedback(Long userId, String rawImagePath,
-                      ImageType imageType, String extractedImagePath, Integer topListOrder,
-                      Integer order, SubmissionType submissionType) {
+    public AiComparisonFeedback(Long userId, Long feedback1, Long feedback2,
+                                 ImageType imageType, String image1Path, String image2Path) {
         this.userId = userId;
-        this.rawImagePath = rawImagePath;
-        this.extractedImagePath = extractedImagePath;
+        this.aiFeedbackId1 = feedback1;
+        this.aiFeedbackId2 = feedback2;
         this.imageType = imageType;
-        this.submissionType = submissionType;
+        this.image1Path = image1Path;
+        this.image2Path = image2Path;
         this.createdAt = LocalDateTime.now();
-        this.topListOrder = topListOrder;
-        this.order = order;
     }
 
     public void addFeedbackEntry(FeedbackEntry feedbackEntry) {

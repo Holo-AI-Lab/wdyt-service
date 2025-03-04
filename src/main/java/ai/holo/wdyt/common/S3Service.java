@@ -18,12 +18,15 @@ import java.util.stream.Collectors;
 @Slf4j
 public class S3Service {
     private final String bucketName;
+    private final String s3Endpoint;
     private final S3Client client;
 
     public S3Service(@Value("${aws.region}") String region,
                      @Value("${aws.profile}") String awsProfile,
-                     @Value("${aws.s3.bucket}") String bucketName) {
+                     @Value("${aws.s3.bucket}") String bucketName,
+                     @Value("${aws.s3.endpoint}") String s3Endpoint) {
         this.bucketName = bucketName;
+        this.s3Endpoint = s3Endpoint;
         this.client = S3Client.builder().region(Region.of(region)).
                 credentialsProvider(ProfileCredentialsProvider.create(awsProfile)).build();
     }
@@ -76,5 +79,9 @@ public class S3Service {
 
             listRequest = listRequest.toBuilder().continuationToken(listResponse.nextContinuationToken()).build();
         } while (listResponse.isTruncated());
+    }
+
+    public String getFileS3Url(String path) {
+        return String.format("%s/%s", s3Endpoint, path);
     }
 }
