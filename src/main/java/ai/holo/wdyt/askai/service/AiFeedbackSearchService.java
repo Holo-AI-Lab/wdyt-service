@@ -1,6 +1,7 @@
 package ai.holo.wdyt.askai.service;
 
 import ai.holo.wdyt.askai.model.entity.AiFeedback;
+import ai.holo.wdyt.user.model.entity.User;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.util.CollectionUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -24,15 +26,27 @@ public class AiFeedbackSearchService {
         this.entityManager = entityManager;
     }
 
-    public List<String> findDistinctTagsByUserIdAndTag(Long userId, String tag) {
+    public List<String> findDistinctTagsFromAiFeedbackByUserIdAndTag(Long userId, String tag) {
+        return getTagsFromAiFeedback("ai_feedback", userId, tag);
+    }
+
+    public List<String> findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(Long userId, String tag) {
+        List<String> tagsFromAiFeedback = getTagsFromAiFeedback("ai_feedback", userId, tag);
+        List<String> tagsFromComparison = getTagsFromAiFeedback("ai_comparison_feedback", userId, tag);
+        return Stream.concat(tagsFromAiFeedback.stream(), tagsFromComparison.stream())
+                .distinct()
+                .collect(Collectors.toList());
+    }
+
+    private List<String> getTagsFromAiFeedback(String table, Long userId, String tag) {
         String queryString = String.format(
                 "SELECT tag " +
-                        "FROM ai_feedback, " +
+                        "FROM %s, " +
                         "JSON_TABLE(tags->'$.%s', '$[*]' COLUMNS(tag TEXT PATH '$')) AS distinct_tags " +
                         "WHERE user_id = :userId " +
                         "GROUP BY tag " +
                         "ORDER BY COUNT(tag) DESC",
-                tag
+                table, tag
         );
 
         Query query = entityManager.createNativeQuery(queryString);
@@ -43,6 +57,13 @@ public class AiFeedbackSearchService {
         return result;
     }
 
+    public List<String> getStyles(User aiUser) {
+        if (aiUser.isStyleAdapted()) {
+            List<String> userMostUsedStyles = findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(aiUser.getId(), "style");
+            return userMostUsedStyles.subList(0, Math.min(3, userMostUsedStyles.size()));
+        }
+        return aiUser.getSelectedStyle() != null ? aiUser.getSelectedStyle().styles() : List.of();
+    }
 
     public Page<AiFeedback> findAiFeedbacksByTags(Long userId, Map<String, List<String>> tagFilters, Boolean liked,
                                                   Long excludeUserId, Pageable pageable) {

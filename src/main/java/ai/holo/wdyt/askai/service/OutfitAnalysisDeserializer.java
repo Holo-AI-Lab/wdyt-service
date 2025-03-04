@@ -1,5 +1,6 @@
 package ai.holo.wdyt.askai.service;
 
+import ai.holo.wdyt.askai.model.dto.Color;
 import ai.holo.wdyt.askai.model.dto.OutfitAnalysis;
 import ai.holo.wdyt.askai.model.dto.Tag;
 import com.fasterxml.jackson.core.JsonParser;
@@ -72,6 +73,24 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
                 }
                 return list;
             }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    private List<Color> getColor(JsonNode rootNode) {
+        try {
+            List<Color> colors = new ArrayList<>();
+            JsonNode outfitDetailsNode = rootNode.get("color");
+
+            if (outfitDetailsNode.isArray()) {
+                for (JsonNode detailNode : outfitDetailsNode) {
+                    colors.add(new Color(
+                            detailNode.get("name").asText(),
+                            detailNode.get("code").asText()));
+                }
+            }
+            return colors;
         } catch (Exception ignored) {
         }
         return null;
@@ -167,7 +186,7 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
             JsonNode tagNode = rootNode.get("tags");
             List<String> styles = getListText(tagNode, "style");
             List<String> occasions = getListText(tagNode, "occasion");
-            List<String> color = getListText(tagNode, "color");
+            List<Color> color = getColor(tagNode);
             return new Tag(styles, occasions, color);
         } catch (Exception ignored) {
         }

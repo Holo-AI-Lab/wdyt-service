@@ -1,5 +1,6 @@
 package ai.holo.wdyt.askai.service;
 
+import ai.holo.wdyt.askai.model.dto.Color;
 import ai.holo.wdyt.askai.model.dto.ComparisonAnalysis;
 import ai.holo.wdyt.askai.model.dto.Tag;
 import com.fasterxml.jackson.core.JsonParser;
@@ -139,7 +140,7 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
             JsonNode tagsNode = rootNode.get("tags");
             List<String> style = getListText(tagsNode, "style");
             List<String> occasion = getListText(tagsNode, "occasion");
-            List<String> color = getListText(tagsNode, "color");
+            List<Color> color = getColor(tagsNode);
             return new Tag(style, occasion, color);
         } catch (Exception ignored) {
         }
@@ -160,5 +161,24 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
         }
         return null;
     }
+
+    private List<Color> getColor(JsonNode rootNode) {
+        try {
+            List<Color> colors = new ArrayList<>();
+            JsonNode outfitDetailsNode = rootNode.get("color");
+
+            if (outfitDetailsNode.isArray()) {
+                for (JsonNode detailNode : outfitDetailsNode) {
+                    colors.add(new Color(
+                            detailNode.get("name").asText(),
+                            detailNode.get("code").asText()));
+                }
+            }
+            return colors;
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
 
 }

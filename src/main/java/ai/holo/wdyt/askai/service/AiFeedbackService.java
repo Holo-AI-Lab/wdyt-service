@@ -93,16 +93,9 @@ public class AiFeedbackService {
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
         ChatGptPrompt prompt = promptService.getPrompt(imageType, SubmissionType.SINGLE);
 
-        String promptText = promptService.getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions(), SubmissionType.SINGLE, getStyles(aiUser));
+        List<String> styles = aiFeedbackSearchService.getStyles(aiUser);
+        String promptText = promptService.getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions(), SubmissionType.SINGLE, styles);
         return new AiSubmissionPrompt(prompt, promptText);
-    }
-
-    private List<String> getStyles(User aiUser) {
-        if (aiUser.isStyleAdapted()) {
-            List<String> userMostUsedStyles = getFilters("style");
-            return userMostUsedStyles.subList(0, Math.min(3, userMostUsedStyles.size()));
-        }
-        return aiUser.getSelectedStyle() != null ? aiUser.getSelectedStyle().styles() : List.of();
     }
 
     public AiFeedbackSubmissionDto validateAndParseSubmissionDto(byte[] image, String data) throws JsonProcessingException {
@@ -410,7 +403,7 @@ public class AiFeedbackService {
     @Transactional(readOnly = true)
     public List<String> getFilters(String tag) {
         User user = userService.getUser();
-        return aiFeedbackSearchService.findDistinctTagsByUserIdAndTag(user.getId(), tag);
+        return aiFeedbackSearchService.findDistinctTagsFromAiFeedbackByUserIdAndTag(user.getId(), tag);
     }
 
     public List<String> getOccasions(String filter) {

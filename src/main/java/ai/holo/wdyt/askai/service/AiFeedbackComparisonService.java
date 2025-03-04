@@ -122,23 +122,9 @@ public class AiFeedbackComparisonService {
     public AiSubmissionPrompt getComparisonPrompt(AiComparisonSubmissionDto comparisonSubmissionDto, User currentUser,
                                                   ImageType imageType, LocationAndWeatherDto locationAndWeather) {
         ChatGptPrompt prompt = promptService.getPrompt(imageType, SubmissionType.COMPARE);
-        List<String> styles = getStyles(currentUser);
+        List<String> styles = aiFeedbackSearchService.getStyles(currentUser);
         String promptText = promptService.getPromptText(prompt, currentUser, comparisonSubmissionDto.clientTime(), locationAndWeather, comparisonSubmissionDto.occasions(), SubmissionType.COMPARE, styles);
         return new AiSubmissionPrompt(prompt, promptText);
-    }
-
-    private List<String> getStyles(User aiUser) {
-        if (aiUser.isStyleAdapted()) {
-            List<String> userMostUsedStyles = getFilters("style");
-            return userMostUsedStyles.subList(0, Math.min(3, userMostUsedStyles.size()));
-        }
-        return aiUser.getSelectedStyle() != null ? aiUser.getSelectedStyle().styles() : List.of();
-    }
-
-    @Transactional(readOnly = true)
-    public List<String> getFilters(String tag) {
-        User user = userService.getUser();
-        return aiFeedbackSearchService.findDistinctTagsByUserIdAndTag(user.getId(), tag);
     }
 
     public String sendPromptWithRetries(String extractedImagePath1, String extractedImagePath2, String promptText) {

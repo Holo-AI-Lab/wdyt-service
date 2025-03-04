@@ -1,5 +1,6 @@
 package ai.holo.wdyt.askai.model.entity;
 
+import ai.holo.wdyt.askai.model.dto.Color;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
