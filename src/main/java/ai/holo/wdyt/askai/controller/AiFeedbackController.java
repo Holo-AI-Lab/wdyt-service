@@ -59,6 +59,7 @@ public class AiFeedbackController {
                                                @RequestParam(value = "style", required = false) String[] style,
                                                @RequestParam(value = "excludeFeedbacksWithUserId", required = false) Long excludeUserId,
                                                @RequestParam(value = "feedbackIdForComparison", required = false) Long feedbackIdForComparison,
+                                               @RequestParam(value = "idsNot", required = false) List<Long> idsNot,
                                                @RequestParam(value = "occasion", required = false) String[] occasion,
                                                @RequestParam(defaultValue = "100") Integer size,
                                                @RequestParam(defaultValue = "0") Integer page) {
@@ -68,7 +69,7 @@ public class AiFeedbackController {
                 "style", style != null ? Arrays.asList(style) : List.of(),
                 "occasion", occasion != null ? Arrays.asList(occasion) : List.of()
         );
-        return aiFeedbackService.listAiFeedbacks(tagFilters, liked, excludeUserId, feedbackIdForComparison, PageRequest.of(page, size));
+        return aiFeedbackService.listAiFeedbacks(tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot, PageRequest.of(page, size));
     }
 
     @GetMapping("/{id}")

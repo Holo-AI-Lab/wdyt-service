@@ -47,7 +47,7 @@ public class FallbackEventConsumer {
         this.eventDelayInMinutes = eventDelayInMinutes;
     }
 
-    @Scheduled(cron = "0 0/1 * * * *")
+    @Scheduled(cron = "0 0/15 * * * *")
     @SchedulerLock(name = "Scheduler_scheduledFallbackEventConsumer",
             lockAtLeastFor = "PT4M", lockAtMostFor = "PT10M")
     @Transactional
