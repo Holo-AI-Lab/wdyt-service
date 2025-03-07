@@ -1,18 +1,22 @@
 package ai.holo.wdyt.askai.service;
 
+import ai.holo.wdyt.askai.model.entity.AiComparisonFeedback;
 import ai.holo.wdyt.askai.model.entity.AiFeedback;
 import ai.holo.wdyt.user.model.entity.User;
+import jakarta.persistence.Entity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,15 +32,6 @@ public class AiFeedbackSearchService {
 
     public List<String> findDistinctTagsFromAiFeedbackByUserIdAndTag(Long userId, String tag) {
         return getTagsFromAiFeedback("ai_feedback", userId, tag);
-    }
-
-    public List<String> findTopThreeDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(Long userId, String tag) {
-        List<String> tagsFromAiFeedback = getTagsFromAiFeedback("ai_feedback", userId, tag);
-        List<String> tagsFromComparison = getTagsFromAiFeedback("ai_comparison_feedback", userId, tag);
-        List<String> tags = Stream.concat(tagsFromAiFeedback.stream(), tagsFromComparison.stream())
-                .distinct()
-                .collect(Collectors.toList());
-        return tags.subList(0, Math.min(3, tags.size()));
     }
 
     public List<String> findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(Long userId, String tag) {
@@ -74,18 +69,34 @@ public class AiFeedbackSearchService {
         return aiUser.getSelectedStyle() != null ? aiUser.getSelectedStyle().styles() : List.of();
     }
 
+
+    public Page<AiComparisonFeedback> findAiComparisonFeedbacksByTags(Long userId, Map<String, List<String>> tagFilters,
+                                                                      Boolean liked, PageRequest pageRequestWithSort) {
+        return findFeedbacksByTags(AiComparisonFeedback.class, userId,
+                tagFilters, liked, null, null, null, pageRequestWithSort);
+    }
+
     public Page<AiFeedback> findAiFeedbacksByTags(Long userId, Map<String, List<String>> tagFilters, Boolean liked,
                                                   Long excludeUserId, Long feedbackIdForComparison, List<Long> idsNot, Pageable pageable) {
-        // Build the base query strings
-        String baseQuery = "SELECT af.* FROM ai_feedback af";
+        return findFeedbacksByTags(AiFeedback.class, userId,
+                tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot, pageable);
+    }
+
+    private <T> Page<T> findFeedbacksByTags(Class<T> entityClass, Long userId, Map<String, List<String>> tagFilters,
+                                                  Boolean liked, Long excludeUserId, Long feedbackIdForComparison,
+                                                  List<Long> idsNot, Pageable pageable) {
+        String tableName = getTableName(entityClass);
+
+        // Build the base query string dynamically based on the table name
+        String baseQuery = "SELECT af.* FROM " + tableName + " af";
         String whereClause = buildWhereClause(tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot);
 
-        // Add sorting from the Pageable object
+        // Construct the full query
         StringBuilder queryString = new StringBuilder(baseQuery).append(whereClause);
         addSorting(pageable, queryString);
 
         // Create the main query
-        Query query = entityManager.createNativeQuery(queryString.toString(), AiFeedback.class);
+        Query query = entityManager.createNativeQuery(queryString.toString(), entityClass);
         setQueryParameters(query, userId, tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot);
 
         // Set pagination parameters
@@ -94,15 +105,23 @@ public class AiFeedbackSearchService {
         query.setMaxResults(pageable.getPageSize());
 
         // Execute the query and return the result
-        List<AiFeedback> results = query.getResultList();
+        List<T> results = query.getResultList();
 
         // Get total count for pagination
-        String countQueryString = "SELECT COUNT(*) FROM ai_feedback af" + whereClause;
+        String countQueryString = "SELECT COUNT(*) FROM " + tableName + " af" + whereClause;
         Query countQuery = entityManager.createNativeQuery(countQueryString);
         setQueryParameters(countQuery, userId, tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot);
 
         long totalCount = ((Number) countQuery.getSingleResult()).longValue();
         return new PageImpl<>(results, pageable, totalCount);
+    }
+
+    private <T> String getTableName(Class<T> entityClass) {
+        Entity entity = entityClass.getAnnotation(Entity.class);
+        if (entity != null && !entity.name().isEmpty()) {
+            return entity.name();
+        }
+        throw new IllegalArgumentException("Entity class does not have an @Entity name: " + entityClass.getSimpleName());
     }
 
     private String buildWhereClause(Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId, Long feedbackIdForComparison, List<Long> idsNot) {
@@ -119,13 +138,13 @@ public class AiFeedbackSearchService {
         if (feedbackIdForComparison != null) {
             whereClause.append("""
                  AND id NOT IN (
-                    SELECT ai_feedback_id1 FROM ai_comparison_feedback WHERE ai_feedback_id2 = :feedbackIdForComparison or  ai_feedback_id1 = :feedbackIdForComparison;
+                    SELECT ai_feedback_id1 FROM ai_comparison_feedback WHERE ai_feedback_id2 = :feedbackIdForComparison or  ai_feedback_id1 = :feedbackIdForComparison
                 )
-                """);
+                """.replaceAll("\\n", ""));
         }
 
         if (!CollectionUtils.isEmpty(idsNot)) {
-            whereClause.append(String.format(" AND id NOT IN (:idsNot)"));
+            whereClause.append(" AND id NOT IN (:idsNot)");
         }
 
         for (Map.Entry<String, List<String>> entry : tagFilters.entrySet()) {

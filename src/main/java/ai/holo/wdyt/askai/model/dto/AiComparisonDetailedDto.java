@@ -11,10 +11,12 @@ public record AiComparisonDetailedDto(Long id,
                                       String imagePath1,
                                       String imagePath2,
                                       UserDto userInfo,
+                                      int winner,
                                       List<FeedbackEntryDto> feedbackEntries) {
 
     public AiComparisonDetailedDto(AiComparisonFeedback comparisonFeedback, String imagePath1, String imagePath2,
                                    UserDto userInfo, List<FeedbackEntryDto> feedbackEntryDtos) {
-        this(comparisonFeedback.getId(), comparisonFeedback.getImageType(), imagePath1, imagePath2, userInfo, feedbackEntryDtos);
+        this(comparisonFeedback.getId(), comparisonFeedback.getImageType(), imagePath1, imagePath2,
+                userInfo, comparisonFeedback.getWinner(), feedbackEntryDtos);
     }
 }

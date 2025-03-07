@@ -19,14 +19,18 @@ public class ReportAiFeedback {
     private Long userId;
     @Column(name = "ai_feedback_id")
     private Long aiFeedbackId;
+    @Column(name = "ai_feedback_entry_id")
+    private String aiFeedbackEntryId;
     @Column(name = "feedback")
     private String feedback;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    public ReportAiFeedback(Long userId, Long aiFeedbackId, String feedback) {
+    public ReportAiFeedback(Long userId, Long aiFeedbackId,
+                            String aiFeedbackEntryId, String feedback) {
         this.userId = userId;
         this.aiFeedbackId = aiFeedbackId;
+        this.aiFeedbackEntryId = aiFeedbackEntryId;
         this.feedback = feedback;
         createdAt = LocalDateTime.now();
     }

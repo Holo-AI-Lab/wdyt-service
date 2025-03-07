@@ -25,4 +25,5 @@ public interface UserCreditRepository extends JpaRepository<UserCredit, Long> {
     List<UserCredit> findExpiredFreemiumCredits(@Param("creditType") CreditType creditType);
 
     boolean existsByUserIdAndCreditTypeAndExpiresAtGreaterThan(Long userId, CreditType creditType, LocalDateTime now);
+    void deleteAllByUserId(Long id);
 }

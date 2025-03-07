@@ -2,6 +2,7 @@ package ai.holo.wdyt.common.notification.service;
 
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.notification.model.NotificationType;
+import ai.holo.wdyt.common.notification.model.PushNotification;
 import ai.holo.wdyt.common.notification.repository.PushNotificationRepository;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserRepository;
@@ -53,7 +54,7 @@ public class PushNotificationService {
         String content = buildPushMessage(title, message);
         log.info("Push notification content: {}", content);
         sendNotification(content, snsEndpoint);
-        pushNotificationRepository.save(new ai.holo.wdyt.common.notification.model.PushNotification(notificationType, userId, content));
+        pushNotificationRepository.save(new PushNotification(notificationType, userId, content));
         log.info("Push notification sent to user {}", user.getId());
     }
 
@@ -90,8 +91,4 @@ public class PushNotificationService {
             throw new RuntimeException("Failed to build push message JSON", e);
         }
     }
-
-    private record Alert(String title, String body) {}
-    private record Aps(Alert alert, String sound) {}
-    private record PushNotification(Aps aps) {}
 }

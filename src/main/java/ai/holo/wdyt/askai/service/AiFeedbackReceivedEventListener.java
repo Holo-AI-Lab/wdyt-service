@@ -17,8 +17,6 @@ import org.springframework.transaction.event.TransactionalEventListener;
 public class AiFeedbackReceivedEventListener {
     UserCreditService userCreditService;
     AiFeedbackService aiFeedbackService;
-    private final int AI_FEEDBACK_COST = 1;
-
     public AiFeedbackReceivedEventListener(UserCreditService userCreditService, AiFeedbackService aiFeedbackService) {
         this.userCreditService = userCreditService;
         this.aiFeedbackService = aiFeedbackService;
@@ -27,7 +25,7 @@ public class AiFeedbackReceivedEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAiFeedbackReceivedEvent(AiFeedbackReceivedEvent event) {
         log.info("Handling AiFeedbackReceivedEvent: {}", event.getAiFeedbackId());
-        userCreditService.consumeNearestExpiringCredit(event.getUserId(), AI_FEEDBACK_COST);
-        log.info("AiFeedback {} consumed {} credit(s)", event.getAiFeedbackId(), AI_FEEDBACK_COST);
+        userCreditService.consumeNearestExpiringCredit(event.getUserId(), UserCreditService.AI_FEEDBACK_COST);
+        log.info("AiFeedback {} consumed {} credit(s)", event.getAiFeedbackId(), UserCreditService.AI_FEEDBACK_COST);
     }
 }

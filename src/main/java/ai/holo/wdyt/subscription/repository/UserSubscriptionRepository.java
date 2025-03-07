@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface UserSubscriptionRepository extends JpaRepository<UserSubscription, Long> {
     Optional<UserSubscription> findByUserId(Long userId);
     Optional<UserSubscription> findByAppAccountToken(String appAccountToken);
+    void deleteAllByUserId(Long id);
 }

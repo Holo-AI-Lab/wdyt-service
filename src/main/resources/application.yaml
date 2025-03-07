@@ -6,8 +6,6 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
-configuration:
-  topListCount: 3
 aws:
   region: us-east-1
   profile: wdyt-test

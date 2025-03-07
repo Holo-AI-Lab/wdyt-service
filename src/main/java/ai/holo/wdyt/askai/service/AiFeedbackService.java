@@ -3,7 +3,6 @@ package ai.holo.wdyt.askai.service;
 import ai.holo.wdyt.askai.model.dto.*;
 import ai.holo.wdyt.askai.model.entity.*;
 import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
-import ai.holo.wdyt.askai.repository.AiFeedbackOrderRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.OccasionRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
@@ -11,9 +10,11 @@ import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.exception.BadRequestException;
+import ai.holo.wdyt.common.exception.InsufficientCreditException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.json.JsonUtils;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
+import ai.holo.wdyt.subscription.service.UserCreditService;
 import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
@@ -24,7 +25,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -36,8 +36,8 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 @Service
@@ -49,13 +49,12 @@ public class AiFeedbackService {
     private final ImageClassificationService imageClassificationService;
     private final UserService userService;
     private final AiFeedbackRepository aiFeedbackRepository;
-    private final int topListCount;
     private final PromptService promptService;
-    private final AiFeedbackOrderRepository aiFeedbackOrderRepository;
     private final ReportAiFeedbackRepository reportAiFeedbackRepository;
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final OccasionRepository occasionRepository;
     private final CallSupplierWithRetryService callSupplierWithRetryService;
+    private final UserCreditService userCreditService;
     private final EventPublisher eventPublisher;
 
     public AiFeedbackService(ChatGptService chatGptService, S3Service s3Service,
@@ -63,13 +62,12 @@ public class AiFeedbackService {
                              ImageClassificationService imageClassificationService,
                              UserService userService,
                              AiFeedbackRepository aiFeedbackRepository,
-                             @Value("${configuration.topListCount}") int topListCount,
                              PromptService promptService,
-                             AiFeedbackOrderRepository aiFeedbackOrderRepository,
                              ReportAiFeedbackRepository reportAiFeedbackRepository,
                              AiFeedbackSearchService aiFeedbackSearchService,
                              OccasionRepository occasionRepository,
                              CallSupplierWithRetryService callSupplierWithRetryService,
+                             UserCreditService userCreditService,
                              EventPublisher eventPublisher) {
         this.chatGptService = chatGptService;
         this.s3Service = s3Service;
@@ -77,13 +75,12 @@ public class AiFeedbackService {
         this.imageClassificationService = imageClassificationService;
         this.userService = userService;
         this.aiFeedbackRepository = aiFeedbackRepository;
-        this.topListCount = topListCount;
         this.promptService = promptService;
-        this.aiFeedbackOrderRepository = aiFeedbackOrderRepository;
         this.reportAiFeedbackRepository = reportAiFeedbackRepository;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.occasionRepository = occasionRepository;
         this.callSupplierWithRetryService = callSupplierWithRetryService;
+        this.userCreditService = userCreditService;
         this.eventPublisher = eventPublisher;
     }
 
@@ -187,13 +184,12 @@ public class AiFeedbackService {
         if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
             feedback = aiFeedbackRepository.findById(aiFeedbackSubmissionDto.aiFeedbackId()).orElseThrow(NotFoundException::new);
         } else {
-            AiSubmissionOrder order = getOrder(currentUser);
             feedback = new AiFeedback(currentUser.getId(), aiSubmissionImage.rawImagePath(), aiSubmissionImage.imageType(),
-                    aiSubmissionImage.extractedImagePath(), order.topListOrder, order.order);
+                    aiSubmissionImage.extractedImagePath());
 
         }
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
-        feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), promptId, gptResponse, null, locationAndWeather, LocalDateTime.now()));
+        feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), promptId, gptResponse, locationAndWeather, LocalDateTime.now()));
 
         Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(gptResponse, aiSubmissionImage.imageType());
         Map<String, List<String>> tags = getTags(analysis);
@@ -206,26 +202,9 @@ public class AiFeedbackService {
         return generateAiFeedbackDto(savedAiFeedback);
     }
 
-
     private Map<String, List<String>> getTags(Pair<OutfitAnalysis, HeadStyleAnalysis> analysis) {
         Taggable taggable = analysis.getLeft() != null ? analysis.getLeft() : analysis.getRight();
         return taggable.getTags();
-    }
-
-    private AiSubmissionOrder getOrder(User user) {
-        Integer topListOrder = null;
-        Integer order = null;
-        int itemsInTopList = aiFeedbackRepository.countByUserIdAndTopListOrderIsNotNull(user.getId());
-        if (itemsInTopList < topListCount) {
-            topListOrder = itemsInTopList + 1;
-        }
-        // if item is not in top list, increment order
-        if (topListOrder == null) {
-            AiFeedbackOrder aiFeedbackOrder = aiFeedbackOrderRepository.findByUserId(user.getId()).orElse(new AiFeedbackOrder(user.getId()));
-            order = aiFeedbackOrder.incrementOrder();
-            aiFeedbackOrderRepository.save(aiFeedbackOrder);
-        }
-        return new AiSubmissionOrder(topListOrder, order);
     }
 
     private Pair<OutfitAnalysis, HeadStyleAnalysis> extractResponse(String response, ImageType imageType) {
@@ -263,8 +242,7 @@ public class AiFeedbackService {
     public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId,
                                                Long feedbackIdForComparison, List<Long> idsNot, PageRequest pageRequest) {
         Sort sortBy = Sort.by(
-                Sort.Order.by("top_list_order").with(Sort.Direction.DESC), // `topListOrder` prioritized
-                Sort.Order.by("standard_order").with(Sort.Direction.DESC)         // Then by `order`
+                Sort.Order.by("created_at").with(Sort.Direction.DESC)
         );
 
         PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
@@ -275,61 +253,11 @@ public class AiFeedbackService {
     }
 
     @Transactional
-    public void swapFeedbackOrders(SwapAiFeedbackDto swapAiFeedbackDto) {
-        User user = userService.getUser();
-        AiFeedback aiFeedback1 = aiFeedbackRepository.findByIdAndUserId(swapAiFeedbackDto.feedbackOneId(), user.getId())
-                .orElseThrow(NotFoundException::new);
-        AiFeedback aiFeedback2 = aiFeedbackRepository.findByIdAndUserId(swapAiFeedbackDto.feedbackTwoId(), user.getId())
-                .orElseThrow(NotFoundException::new);
-
-        Integer topListOrder1 = aiFeedback1.getTopListOrder();
-        Integer order1 = aiFeedback1.getOrder();
-
-        Integer topListOrder2 = aiFeedback2.getTopListOrder();
-        Integer order2 = aiFeedback2.getOrder();
-
-        aiFeedback1.setTopListOrder(topListOrder2);
-        aiFeedback1.setOrder(order2);
-
-        aiFeedback2.setTopListOrder(topListOrder1);
-        aiFeedback2.setOrder(order1);
-
-        aiFeedbackRepository.save(aiFeedback1);
-        aiFeedbackRepository.save(aiFeedback2);
-    }
-
-    @Transactional
     public AiFeedbackDto likeStyle(LikeStyleDto likeStyleDto) {
         AiFeedback aiFeedback = aiFeedbackRepository.findById(likeStyleDto.id()).orElseThrow(NotFoundException::new);
         aiFeedback.setLikeStyle(likeStyleDto.like());
         AiFeedback savedFeedback = aiFeedbackRepository.save(aiFeedback);
         return new AiFeedbackDto(savedFeedback, s3Service.getFileS3Url(savedFeedback.getExtractedImagePath()), userService.getUserInfo());
-    }
-
-    @Transactional
-    public AiFeedbackDto likeAiResponse(LikeAiResponseDto likeAiResponseDto) {
-        AiFeedback aiFeedback = aiFeedbackRepository.findById(likeAiResponseDto.id()).orElseThrow(NotFoundException::new);
-        checkFeedbackIsExistingAndNotLikedAlready(likeAiResponseDto, aiFeedback);
-        // Update feedback entry
-        List<FeedbackEntry> updatedFeedbackEntries = aiFeedback.getFeedbackEntries().stream().map(feedback -> {
-            if (feedback.id().equals(likeAiResponseDto.feedbackId())) {
-                return new FeedbackEntry(feedback.id(), feedback.userId(), feedback.promptId(), feedback.response(), true, feedback.locationAndWeather(), feedback.createdAt());
-            }
-            return feedback;
-        }).toList();
-        aiFeedback.setFeedbackEntries(updatedFeedbackEntries);
-        AiFeedback savedFeedback = aiFeedbackRepository.save(aiFeedback);
-        return new AiFeedbackDto(savedFeedback, s3Service.getFileS3Url(savedFeedback.getExtractedImagePath()), userService.getUserInfo());
-    }
-
-    private void checkFeedbackIsExistingAndNotLikedAlready(LikeAiResponseDto likeAiResponseDto, AiFeedback aiFeedback) {
-        FeedbackEntry feedbackEntry = aiFeedback.getFeedbackEntries().stream()
-                .filter(feedback -> feedback.id().equals(likeAiResponseDto.feedbackId()))
-                .findFirst()
-                .orElseThrow(NotFoundException::new);
-        if (feedbackEntry.likeAiResponse() != null) {
-            throw new BadRequestException("Feedback already liked");
-        }
     }
 
     @Transactional(readOnly = true)
@@ -353,52 +281,26 @@ public class AiFeedbackService {
     }
 
     @Transactional
-    public void pinOnTheTopList(PinAiFeedbackDto pinAiFeedbackDto) {
-        User user = userService.getUser();
-        AiFeedback aiFeedback = aiFeedbackRepository.findByIdAndUserId(pinAiFeedbackDto.aiFeedbackId(), user.getId())
-                .orElseThrow(NotFoundException::new);
-
-        if (pinAiFeedbackDto.pin()) {
-            pin(aiFeedback, user);
-        } else {
-            unpin(aiFeedback, user);
-        }
-    }
-
-    private void pin(AiFeedback aiFeedback, User user) {
-        List<AiFeedback> itemsInTopList = aiFeedbackRepository.findByUserIdAndTopListOrderIsNotNullOrderByTopListOrderAsc(user.getId());
-        // Remove items from top list if it exceeds the limit
-        while (itemsInTopList.size() > topListCount - 1) {
-            AiFeedback lastItem = itemsInTopList.get(itemsInTopList.size() - 1);
-            unpin(lastItem, user);
-            itemsInTopList.remove(lastItem);
-        }
-        AtomicInteger topListIndex = new AtomicInteger(2);
-        itemsInTopList.forEach(item -> item.setTopListOrder(topListIndex.getAndIncrement()));
-        aiFeedback.setTopListOrder(1);
-        aiFeedback.setOrder(null);
-        itemsInTopList.add(aiFeedback);
-        aiFeedbackRepository.saveAll(itemsInTopList);
-    }
-
-    private void unpin(AiFeedback aiFeedback, User user) {
-        AiSubmissionOrder order = getOrder(user);
-
-        aiFeedback.setTopListOrder(null);
-        aiFeedback.setOrder(order.order());
-        aiFeedbackRepository.save(aiFeedback);
-    }
-
-    @Transactional
     public void deleteAiFeedback(Long id) {
-        aiFeedbackRepository.deleteById(id);
+        AiFeedback aiFeedback = checkFeedbackBelongsToLoggedInUserAndReturn(id);
+        aiFeedbackRepository.delete(aiFeedback);
+    }
+
+    private AiFeedback checkFeedbackBelongsToLoggedInUserAndReturn(Long id) {
+        User user = userService.getUser();
+        AiFeedback aiFeedback = aiFeedbackRepository.findById(id).orElseThrow(NotFoundException::new);
+        if (!Objects.equals(user.getId(), aiFeedback.getUserId())) {
+            throw new BadRequestException("User does not have permission to delete this feedback");
+        }
+        return aiFeedback;
     }
 
     @Transactional
     public void reportAiFeedback(Long id, ReportAiFeedbackDto reportAiFeedbackDto) {
         AiFeedback aiFeedback = aiFeedbackRepository.findById(id).orElseThrow(NotFoundException::new);
         Long userId = userService.getUser().getId();
-        ReportAiFeedback reportAiFeedback = new ReportAiFeedback(userId, aiFeedback.getId(), reportAiFeedbackDto.feedback());
+        ReportAiFeedback reportAiFeedback = new ReportAiFeedback(userId, aiFeedback.getId(),
+                reportAiFeedbackDto.feedbackEntryId(), reportAiFeedbackDto.feedback());
         reportAiFeedbackRepository.save(reportAiFeedback);
     }
 
@@ -412,16 +314,36 @@ public class AiFeedbackService {
         return occasionRepository.searchByFreeText(filter).stream().map(Occasion::getName).toList();
     }
 
+    @Transactional
+    public void deleteAiFeedbackEntry(Long id, String feedbackEntryId) {
+        AiFeedback aiFeedback = checkFeedbackBelongsToLoggedInUserAndReturn(id);
+        FeedbackEntry feedbackEntry = aiFeedback.getFeedbackEntries().stream()
+                .filter(entry -> entry.id().equals(feedbackEntryId))
+                .findFirst()
+                .orElseThrow(NotFoundException::new);
+        aiFeedback.removeFeedbackEntry(feedbackEntry);
+        aiFeedbackRepository.save(aiFeedback);
+    }
+
+    public void checkIfUserHasEnoughCredits() {
+        boolean userHasEnoughCredits = userCreditService.getCredit().totalCredit() >= UserCreditService.AI_FEEDBACK_COST;
+        if (!userHasEnoughCredits) {
+            throw new InsufficientCreditException(userService.getUser().getId());
+        }
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record AIResponsePayload (String id, List<AIResponseAssistantMessage> choices) {
+    public record AIResponsePayload(String id, List<AIResponseAssistantMessage> choices) {
     }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record AIResponseAssistantMessage (AIMessage message) {
+    public record AIResponseAssistantMessage(AIMessage message) {
     }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record AIMessage (String content) {
+    public record AIMessage(String content) {
     }
-    private record AiSubmissionOrder(Integer topListOrder, Integer order) {
+
+    public record AISubmissionImage(ImageType imageType, String rawImagePath, String extractedImagePath) {
     }
-    public record AISubmissionImage(ImageType imageType, String rawImagePath, String extractedImagePath) {}
 }

@@ -11,12 +11,9 @@ public record AiFeedbackDetailedDto(Long id,
                                     String extractedImagePath,
                                     UserDto userInfo,
                                     boolean styleLiked,
-                                    Integer topListOrder,
-                                    Integer order,
                                     List<FeedbackEntryDto> feedbackEntries) {
 
     public AiFeedbackDetailedDto(AiFeedback feedback, String extractedImagePath, UserDto userInfo, List<FeedbackEntryDto> feedbackEntries) {
-        this(feedback.getId(), feedback.getImageType(), extractedImagePath, userInfo, feedback.isLikeStyle(),
-                feedback.getTopListOrder(), feedback.getOrder(), feedbackEntries);
+        this(feedback.getId(), feedback.getImageType(), extractedImagePath, userInfo, feedback.isLikeStyle(), feedbackEntries);
     }
 }

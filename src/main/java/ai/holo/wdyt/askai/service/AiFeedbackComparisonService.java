@@ -9,21 +9,27 @@ import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.exception.BadRequestException;
+import ai.holo.wdyt.common.exception.InsufficientCreditException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.json.JsonUtils;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
+import ai.holo.wdyt.subscription.service.UserCreditService;
 import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -38,6 +44,7 @@ public class AiFeedbackComparisonService {
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final ChatGptService chatGptService;
     private final CallSupplierWithRetryService callSupplierWithRetryService;
+    private final UserCreditService userCreditService;
     private final EventPublisher eventPublisher;
 
     public AiFeedbackComparisonService(AiFeedbackRepository aiFeedbackRepository,
@@ -47,6 +54,7 @@ public class AiFeedbackComparisonService {
                                        AiFeedbackSearchService aiFeedbackSearchService,
                                        ChatGptService chatGptService,
                                        CallSupplierWithRetryService callSupplierWithRetryService,
+                                       UserCreditService userCreditService,
                                        EventPublisher eventPublisher) {
         this.aiFeedbackRepository = aiFeedbackRepository;
         this.userService = userService;
@@ -56,6 +64,7 @@ public class AiFeedbackComparisonService {
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.chatGptService = chatGptService;
         this.callSupplierWithRetryService = callSupplierWithRetryService;
+        this.userCreditService = userCreditService;
         this.eventPublisher = eventPublisher;
     }
 
@@ -67,14 +76,16 @@ public class AiFeedbackComparisonService {
         AiFeedback aiFeedback2 = aiFeedbackRepository.findById(comparisonSubmissionDto.feedback2()).orElseThrow(NotFoundException::new);
 
         User user = userService.getUser();
+        ComparisonAnalysis analysis = extractResponseForComparison(gptResponse);
+
         AiComparisonFeedback aiComparisonFeedback = new AiComparisonFeedback(user.getId(), aiFeedback1.getId(),
                 aiFeedback2.getId(), comparisonImages.image1().imageType(),
-                comparisonImages.image1().extractedImagePath(), comparisonImages.image2().extractedImagePath());
+                comparisonImages.image1().extractedImagePath(), comparisonImages.image2().extractedImagePath(),
+                analysis.winner());
 
         aiComparisonFeedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), user.getId(), prompt.prompt().getId(),
-                gptResponse, null, locationAndWeather, LocalDateTime.now()));
+                gptResponse, locationAndWeather, LocalDateTime.now()));
 
-        ComparisonAnalysis analysis = extractResponseForComparison(gptResponse);
         Map<String, List<String>> tags = analysis.getTags();
 
         aiComparisonFeedback.updateTags(tags);
@@ -104,6 +115,13 @@ public class AiFeedbackComparisonService {
         } catch (JsonProcessingException e) {
             log.error("Failed to extract response from AI response", e);
             throw new RuntimeException(e);
+        }
+    }
+
+    public void checkIfUserHasEnoughCredits() {
+        boolean userHasEnoughCredits = userCreditService.getCredit().totalCredit() >= UserCreditService.AI_FEEDBACK_COST;
+        if (!userHasEnoughCredits) {
+            throw new InsufficientCreditException(userService.getUser().getId());
         }
     }
 
@@ -152,7 +170,31 @@ public class AiFeedbackComparisonService {
 
     @Transactional
     public void deleteAiComparisonFeedback(Long id) {
-        aiFeedbackComparisonRepository.deleteById(id);
+        User user = userService.getUser();
+        AiComparisonFeedback aiComparisonFeedback = aiFeedbackComparisonRepository.findById(id).orElseThrow(NotFoundException::new);
+        if (!Objects.equals(user.getId(), aiComparisonFeedback.getUserId())) {
+            throw new BadRequestException("User does not have permission to delete this feedback");
+        }
+        aiFeedbackComparisonRepository.delete(aiComparisonFeedback);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AiComparisonDto> listAiComparisonFeedbacks(Map<String, List<String>> tagFilters, Boolean liked, PageRequest pageRequest) {
+        Sort sortBy = Sort.by(
+                Sort.Order.by("created_at").with(Sort.Direction.DESC)
+        );
+
+        PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
+        UserDto userInfo = userService.getUserInfo();
+        return aiFeedbackSearchService.findAiComparisonFeedbacksByTags(userInfo.id(), tagFilters, liked, pageRequestWithSort).map(comparisonFeedback ->
+                new AiComparisonDto(comparisonFeedback, s3Service.getFileS3Url(comparisonFeedback.getImage1Path()),
+                        s3Service.getFileS3Url(comparisonFeedback.getImage2Path()), userInfo));
+    }
+
+    @Transactional(readOnly = true)
+    public AiComparisonDetailedDto getAiComparisonFeedback(Long id) {
+        AiComparisonFeedback aiComparisonFeedback = aiFeedbackComparisonRepository.findById(id).orElseThrow(NotFoundException::new);
+        return generateComparisonAiFeedbackDto(aiComparisonFeedback);
     }
 
     public record AIComparisonSubmissionImage(ImageType imageType, String rawImagePath, String extractedImagePath) {}

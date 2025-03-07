@@ -2,8 +2,8 @@ package ai.holo.wdyt.user.service;
 
 import ai.holo.wdyt.common.exception.BadRequestException;
 import ai.holo.wdyt.common.exception.NotFoundException;
-import ai.holo.wdyt.common.notification.builder.PushNotificationBuilder;
 import ai.holo.wdyt.common.notification.model.NotificationType;
+import ai.holo.wdyt.common.notification.service.PushNotificationService;
 import ai.holo.wdyt.user.model.dto.FriendRequestDto;
 import ai.holo.wdyt.user.model.dto.RemoveFriendRequestDto;
 import ai.holo.wdyt.user.model.dto.UpdateFriendRequestDto;
@@ -31,11 +31,17 @@ public class FriendService {
     private final FriendRepository friendRepository;
     private final UserService userService;
     private final UserRepository userRepository;
-    public FriendService(FriendRepository friendRepository, FriendRequestRepository friendRequestRepository, UserService userService, UserRepository userRepository) {
+    private final PushNotificationService pushNotificationService;
+    public FriendService(FriendRepository friendRepository,
+                         FriendRequestRepository friendRequestRepository,
+                         UserService userService,
+                         UserRepository userRepository,
+                         PushNotificationService pushNotificationService) {
         this.friendRepository = friendRepository;
         this.friendRequestRepository = friendRequestRepository;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.pushNotificationService = pushNotificationService;
     }
 
     public void deleteUser(Long id) {
@@ -56,11 +62,8 @@ public class FriendService {
     }
 
     private void sendPushNotification(Long friendId, String userName){
-        PushNotificationBuilder.builder(NotificationType.FRIEND_REQUEST)
-                .userId(friendId)
-                .title("You’ve Got a Friend Request!")
-                .message(String.format("%s sent you a friend request.", userName))
-                .sendNotification();
+        pushNotificationService.sendPushNotification(friendId, "You’ve Got a Friend Request!",
+                String.format("%s sent you a friend request.", userName), NotificationType.FRIEND_REQUEST);
     }
 
     private void checkNotAlreadyFriend(Long friendId, User user) {

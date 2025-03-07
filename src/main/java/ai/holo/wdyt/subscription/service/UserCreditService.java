@@ -24,6 +24,7 @@ import java.util.List;
 public class UserCreditService {
     private final int FREEMIUM_CREDITS = 7;
     private final int FREEMIUM_DURATION_DAYS = 30;
+    public static final int AI_FEEDBACK_COST = 1;
     private static final String CRON_EXPRESSION = "0 0 0 * * ?";
 
     private final UserCreditRepository creditRepository;

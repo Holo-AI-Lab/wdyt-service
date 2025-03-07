@@ -27,8 +27,7 @@ public class AuthenticationContext implements SecurityContextAware {
         if (email == null) {
             return null;
         }
-        User user = userRepository.findByEmail(email).orElseThrow(() ->
-                new AuthenticationException(String.format("User with %s email is not found", email)));
+        User user = userRepository.findByEmail(email).orElse(null);
 
         return user == null ? null : user.getId();
     }

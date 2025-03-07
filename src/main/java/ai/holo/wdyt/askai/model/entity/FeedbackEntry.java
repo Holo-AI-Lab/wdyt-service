@@ -1,10 +1,11 @@
 package ai.holo.wdyt.askai.model.entity;
 
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.LocalDateTime;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record FeedbackEntry(String id, Long userId, Long promptId, String response,
-                            Boolean likeAiResponse,
                             LocationAndWeatherDto locationAndWeather, LocalDateTime createdAt) {
 }

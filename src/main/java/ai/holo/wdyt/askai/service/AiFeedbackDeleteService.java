@@ -1,6 +1,6 @@
 package ai.holo.wdyt.askai.service;
 
-import ai.holo.wdyt.askai.repository.AiFeedbackOrderRepository;
+import ai.holo.wdyt.askai.repository.AiFeedbackComparisonRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.common.S3Service;
 import lombok.extern.slf4j.Slf4j;
@@ -12,19 +12,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class AiFeedbackDeleteService {
     private final S3Service s3Service;
     private final AiFeedbackRepository aiFeedbackRepository;
-    private final AiFeedbackOrderRepository aiFeedbackOrderRepository;
+    private final AiFeedbackComparisonRepository aiFeedbackComparisonRepository;
 
     public AiFeedbackDeleteService(S3Service s3Service,
                                    AiFeedbackRepository aiFeedbackRepository,
-                                   AiFeedbackOrderRepository aiFeedbackOrderRepository) {
+                                   AiFeedbackComparisonRepository aiFeedbackComparisonRepository) {
         this.s3Service = s3Service;
         this.aiFeedbackRepository = aiFeedbackRepository;
-        this.aiFeedbackOrderRepository = aiFeedbackOrderRepository;
+        this.aiFeedbackComparisonRepository = aiFeedbackComparisonRepository;
     }
 
     @Transactional
     public void deleteAllByUserId(Long userId) {
-        aiFeedbackOrderRepository.deleteAllByUserId(userId);
+        aiFeedbackComparisonRepository.deleteAllByUserId(userId);
         aiFeedbackRepository.deleteAllByUserId(userId);
         deleteS3Directory(userId);
     }

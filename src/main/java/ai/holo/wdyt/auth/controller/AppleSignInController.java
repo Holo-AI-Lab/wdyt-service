@@ -38,10 +38,10 @@ public class AppleSignInController {
             // Authenticate with Apple
 //            Claims claims = appleSignInService.authenticateWithApple(authenticationDto.authorizationCode());
 
-            String email = "belis@mail.com";
-            String name = "beli";
+            String email = "delis@mail.com";
+            String name = "deli";
             Claims claims = Jwts.claims()
-                    .setSubject("dddddsdsdsds") // Subject is typically the user’s email or unique identifier
+                    .setSubject("sddsds") // Subject is typically the user’s email or unique identifier
                     .add("name", name) // Add custom claim for name
                     .add("email", email).build(); // Add custom claim for email
 

@@ -15,7 +15,7 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
-public class AiComparisonFeedback {
+public class AiComparisonFeedback implements TaggableEntity, FeedbackReceiverEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -26,6 +26,7 @@ public class AiComparisonFeedback {
     @Column(name = "ai_feedback_id2")
     private Long aiFeedbackId2;
     @Column(name = "image_type")
+    @Enumerated(EnumType.STRING)
     private ImageType imageType;
     @Column(name = "image1_path")
     private String image1Path;
@@ -35,6 +36,8 @@ public class AiComparisonFeedback {
     private LocalDateTime createdAt;
     @Column(name = "like_style")
     private boolean likeStyle;
+    @Column(name = "winner")
+    private int winner;
     @Convert(converter = TagConverter.class)
     @Column(columnDefinition = "JSON")
     private Map<String, List<String>> tags = new HashMap<>();
@@ -43,31 +46,15 @@ public class AiComparisonFeedback {
     private List<FeedbackEntry> feedbackEntries = new ArrayList<>();
 
     public AiComparisonFeedback(Long userId, Long feedback1, Long feedback2,
-                                 ImageType imageType, String image1Path, String image2Path) {
+                                ImageType imageType, String image1Path, String image2Path,
+                                int winner) {
         this.userId = userId;
         this.aiFeedbackId1 = feedback1;
         this.aiFeedbackId2 = feedback2;
         this.imageType = imageType;
         this.image1Path = image1Path;
         this.image2Path = image2Path;
+        this.winner = winner;
         this.createdAt = LocalDateTime.now();
-    }
-
-    public void addFeedbackEntry(FeedbackEntry feedbackEntry) {
-        feedbackEntries.add(feedbackEntry);
-    }
-
-    public void updateTags(Map<String, List<String>> newTags) {
-        newTags.keySet().forEach(key -> {
-            if (tags.containsKey(key)) {
-                newTags.get(key).forEach(value -> {
-                    if (!tags.get(key).contains(value)) {
-                        tags.get(key).add(value);
-                    }
-                });
-            } else {
-                tags.put(key, newTags.get(key));
-            }
-        });
     }
 }

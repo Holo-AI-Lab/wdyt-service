@@ -269,6 +269,7 @@ CREATE TABLE ai_comparison_feedback (
     image2_path VARCHAR(500) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     like_style BOOLEAN DEFAULT false,
+    int winner INT(1) NOT NULL,
     tags JSON NULL,
     feedback_entries JSON NULL,
     FOREIGN KEY (user_id) REFERENCES user(id),
@@ -277,7 +278,10 @@ CREATE TABLE ai_comparison_feedback (
     FOREIGN KEY (ai_feedback_id2) REFERENCES ai_feedback(id)
 );
 
+ALTER table `ai_feedback` drop column `top_list_order`;
+ALTER table `ai_feedback` drop column `standard_order`;
 
+DROP TABLE IF EXISTS `ai_feedback_order`;
 ```
 
 # Create Docker image and push to ECR

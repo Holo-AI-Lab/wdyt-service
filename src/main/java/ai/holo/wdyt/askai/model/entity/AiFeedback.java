@@ -15,7 +15,7 @@ import java.util.Map;
 @Getter
 @Setter
 @NoArgsConstructor
-public class AiFeedback {
+public class AiFeedback implements TaggableEntity, FeedbackReceiverEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -32,10 +32,6 @@ public class AiFeedback {
     private LocalDateTime createdAt;
     @Column(name = "like_style")
     private boolean likeStyle;
-    @Column(name = "top_list_order")
-    private Integer topListOrder;
-    @Column(name = "standard_order")
-    private Integer order;
     @Convert(converter = TagConverter.class)
     @Column(columnDefinition = "JSON")
     private Map<String, List<String>> tags = new HashMap<>();
@@ -44,32 +40,11 @@ public class AiFeedback {
     private List<FeedbackEntry> feedbackEntries = new ArrayList<>();
 
     public AiFeedback(Long userId, String rawImagePath,
-                      ImageType imageType, String extractedImagePath, Integer topListOrder,
-                      Integer order) {
+                      ImageType imageType, String extractedImagePath) {
         this.userId = userId;
         this.rawImagePath = rawImagePath;
         this.extractedImagePath = extractedImagePath;
         this.imageType = imageType;
         this.createdAt = LocalDateTime.now();
-        this.topListOrder = topListOrder;
-        this.order = order;
-    }
-
-    public void addFeedbackEntry(FeedbackEntry feedbackEntry) {
-        feedbackEntries.add(feedbackEntry);
-    }
-
-    public void updateTags(Map<String, List<String>> newTags) {
-        newTags.keySet().forEach(key -> {
-            if (tags.containsKey(key)) {
-                newTags.get(key).forEach(value -> {
-                    if (!tags.get(key).contains(value)) {
-                        tags.get(key).add(value);
-                    }
-                });
-            } else {
-                tags.put(key, newTags.get(key));
-            }
-        });
     }
 }
