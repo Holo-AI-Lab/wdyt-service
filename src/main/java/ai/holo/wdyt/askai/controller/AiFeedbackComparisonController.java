@@ -1,8 +1,6 @@
 package ai.holo.wdyt.askai.controller;
 
-import ai.holo.wdyt.askai.model.dto.AiComparisonDetailedDto;
-import ai.holo.wdyt.askai.model.dto.AiComparisonSubmissionDto;
-import ai.holo.wdyt.askai.model.dto.AiSubmissionPrompt;
+import ai.holo.wdyt.askai.model.dto.*;
 import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.askai.service.AiFeedbackComparisonService;
 import ai.holo.wdyt.askai.service.LocationAndWeatherService;
@@ -10,10 +8,7 @@ import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/ai-comparison-feedbacks")
@@ -46,5 +41,15 @@ public class AiFeedbackComparisonController {
 
         // Save AI response
         return aiFeedbackComparisonService.saveAiCompareResponse(comparisonSubmissionDto, prompt, gptResponse, comparisonImages,  locationAndWeather);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteAiComparisonFeedback(@PathVariable("id") Long id) {
+        aiFeedbackComparisonService.deleteAiComparisonFeedback(id);
+    }
+
+    @PostMapping("/like-style")
+    public AiComparisonDto likeStyle(@RequestBody LikeStyleDto likeStyleDto) {
+        return aiFeedbackComparisonService.likeStyle(likeStyleDto);
     }
 }

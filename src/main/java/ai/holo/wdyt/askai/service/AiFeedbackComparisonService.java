@@ -141,6 +141,20 @@ public class AiFeedbackComparisonService {
         return callSupplierWithRetryService.executeWithRetries(gptResponseSupplier);
     }
 
+    @Transactional
+    public AiComparisonDto likeStyle(LikeStyleDto likeStyleDto) {
+        AiComparisonFeedback aiFeedback = aiFeedbackComparisonRepository.findById(likeStyleDto.id()).orElseThrow(NotFoundException::new);
+        aiFeedback.setLikeStyle(likeStyleDto.like());
+        AiComparisonFeedback savedFeedback = aiFeedbackComparisonRepository.save(aiFeedback);
+        return new AiComparisonDto(savedFeedback, s3Service.getFileS3Url(savedFeedback.getImage1Path()),
+                s3Service.getFileS3Url(savedFeedback.getImage2Path()), userService.getUserInfo());
+    }
+
+    @Transactional
+    public void deleteAiComparisonFeedback(Long id) {
+        aiFeedbackComparisonRepository.deleteById(id);
+    }
+
     public record AIComparisonSubmissionImage(ImageType imageType, String rawImagePath, String extractedImagePath) {}
 
     public record AISubmissionImagesForComparison(AIComparisonSubmissionImage image1, AIComparisonSubmissionImage image2) {}

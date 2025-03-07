@@ -2,7 +2,6 @@ package ai.holo.wdyt.askai.model.dto;
 
 import ai.holo.wdyt.askai.model.entity.AiFeedback;
 import ai.holo.wdyt.askai.model.entity.ImageType;
-import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import ai.holo.wdyt.user.model.dto.UserDto;
 
 import java.util.List;
