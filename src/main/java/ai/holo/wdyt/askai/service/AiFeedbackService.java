@@ -181,7 +181,7 @@ public class AiFeedbackService {
 
     @Transactional
     public AiFeedbackDetailedDto saveAiResponse(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, Long promptId,
-                                                String gptResponse, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather, SubmissionType submissionType) {
+                                                String gptResponse, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather) {
         User currentUser = userService.getUser();
         AiFeedback feedback;
         if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
@@ -189,7 +189,7 @@ public class AiFeedbackService {
         } else {
             AiSubmissionOrder order = getOrder(currentUser);
             feedback = new AiFeedback(currentUser.getId(), aiSubmissionImage.rawImagePath(), aiSubmissionImage.imageType(),
-                    aiSubmissionImage.extractedImagePath(), order.topListOrder, order.order, submissionType);
+                    aiSubmissionImage.extractedImagePath(), order.topListOrder, order.order);
 
         }
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;

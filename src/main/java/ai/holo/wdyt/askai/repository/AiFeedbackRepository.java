@@ -1,8 +1,6 @@
 package ai.holo.wdyt.askai.repository;
 
 import ai.holo.wdyt.askai.model.entity.AiFeedback;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -15,4 +13,6 @@ public interface AiFeedbackRepository extends JpaRepository<AiFeedback, Long> {
     List<AiFeedback> findByUserIdAndTopListOrderIsNotNullOrderByTopListOrderAsc(Long userId);
 
     void deleteAllByUserId(Long id);
+
+    int countByUserId(Long userId);
 }

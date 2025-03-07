@@ -29,6 +29,11 @@ public class UserController {
         return userService.getUserInfo();
     }
 
+    @GetMapping("/profile")
+    public UserProfileDto getUserProfile(@RequestParam(value = "userId") Long userId){
+        return userService.getUserProfile(userId);
+    }
+
     @GetMapping("/search-users")
     public Page<UserSearchDto> searchUsers(@RequestParam(value = "userName") String userName,
                                      @RequestParam(defaultValue = "100") Integer size,

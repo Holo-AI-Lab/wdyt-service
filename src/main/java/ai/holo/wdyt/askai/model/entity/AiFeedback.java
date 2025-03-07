@@ -1,6 +1,5 @@
 package ai.holo.wdyt.askai.model.entity;
 
-import ai.holo.wdyt.askai.model.dto.Color;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,9 +28,6 @@ public class AiFeedback {
     @Column(name = "image_type")
     @Enumerated(EnumType.STRING)
     private ImageType imageType;
-    @Column(name = "submission_type")
-    @Enumerated(EnumType.STRING)
-    private SubmissionType submissionType;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     @Column(name = "like_style")
@@ -49,12 +45,11 @@ public class AiFeedback {
 
     public AiFeedback(Long userId, String rawImagePath,
                       ImageType imageType, String extractedImagePath, Integer topListOrder,
-                      Integer order, SubmissionType submissionType) {
+                      Integer order) {
         this.userId = userId;
         this.rawImagePath = rawImagePath;
         this.extractedImagePath = extractedImagePath;
         this.imageType = imageType;
-        this.submissionType = submissionType;
         this.createdAt = LocalDateTime.now();
         this.topListOrder = topListOrder;
         this.order = order;

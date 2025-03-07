@@ -1,5 +1,8 @@
 package ai.holo.wdyt.user.service;
 
+import ai.holo.wdyt.askai.repository.AiFeedbackComparisonRepository;
+import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
+import ai.holo.wdyt.askai.service.AiFeedbackSearchService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.exception.AuthenticationException;
@@ -37,13 +40,16 @@ public class UserService {
     private final FriendRepository friendRepository;
     private final EventPublisher eventPublisher;
     private final PushNotificationService pushNotificationService;
+    private final AiFeedbackSearchService aiFeedbackSearchService;
+    private final AiFeedbackRepository aiFeedbackRepository;
+    private final AiFeedbackComparisonRepository aiFeedbackComparisonRepository;
 
     public UserService(UserRepository userRepository,
                        RobotService robotService,
                        @Value("${aws.s3.endpoint}") String s3Endpoint,
                        UserFeedbackRepository userFeedbackRepository,
                        S3Service s3Service,
-                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository, EventPublisher eventPublisher, PushNotificationService pushNotificationService) {
+                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository, EventPublisher eventPublisher, PushNotificationService pushNotificationService, AiFeedbackSearchService aiFeedbackSearchService, AiFeedbackRepository aiFeedbackRepository, AiFeedbackComparisonRepository aiFeedbackComparisonRepository) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
@@ -54,6 +60,9 @@ public class UserService {
         this.friendRepository = friendRepository;
         this.eventPublisher = eventPublisher;
         this.pushNotificationService = pushNotificationService;
+        this.aiFeedbackSearchService = aiFeedbackSearchService;
+        this.aiFeedbackRepository = aiFeedbackRepository;
+        this.aiFeedbackComparisonRepository = aiFeedbackComparisonRepository;
     }
 
     public User createOrRetrieveUser(String email, String name, String appleId) {
@@ -142,6 +151,17 @@ public class UserService {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email).orElseThrow(() ->
                 new AuthenticationException(String.format("User with %s email is not found", email)));
+    }
+
+    public UserProfileDto getUserProfile(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
+        List<String> mostPreferredColors = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(userId, "colorCode");
+        List<String> mostPreferredOccasions = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(userId, "occasion");
+        List<String> mostPreferredStyles = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(userId, "style");
+        int received =aiFeedbackComparisonRepository.countByUserId(userId) + aiFeedbackRepository.countByUserId(userId);
+        int feedbackGiven = 0; //todo
+        int friends = friendRepository.countByUserId(userId);
+        return new UserProfileDto(user, mostPreferredOccasions, mostPreferredStyles, mostPreferredColors, received, feedbackGiven ,friends);
     }
 
     @Transactional

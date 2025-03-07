@@ -1,7 +1,6 @@
 package ai.holo.wdyt.askai.controller;
 
 import ai.holo.wdyt.askai.model.dto.*;
-import ai.holo.wdyt.askai.model.entity.SubmissionType;
 import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.askai.service.LocationAndWeatherService;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
@@ -50,7 +49,7 @@ public class AiFeedbackController {
         String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage.extractedImagePath(), prompt.promptText(), aiSubmissionImage.imageType());
 
         // Save AI response
-        return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto, prompt.prompt().getId(), gptResponse, aiSubmissionImage, locationAndWeather, SubmissionType.SINGLE);
+        return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto, prompt.prompt().getId(), gptResponse, aiSubmissionImage, locationAndWeather);
     }
 
     @GetMapping("/")
