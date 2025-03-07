@@ -15,6 +15,7 @@ import ai.holo.wdyt.user.model.dto.*;
 import ai.holo.wdyt.user.model.entity.*;
 import ai.holo.wdyt.user.model.event.NewUserRegisteredEvent;
 import ai.holo.wdyt.user.repository.*;
+import jakarta.validation.constraints.NotEmpty;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -268,13 +269,16 @@ public class UserService {
 
     @Transactional
     public void logout() {
-        updateDeviceToken(null);
+        User user = getUser();
+        user.setDeviceToken(null);
+        userRepository.save(user);
     }
 
     @Transactional
-    public void updateDeviceToken(String deviceToken) {
+    public void updateDeviceTokenAndTimezone(String deviceToken, @NotEmpty String timezone) {
         User user = getUser();
         user.setDeviceToken(deviceToken);
+        user.setTimezone(timezone);
         userRepository.save(user);
     }
 

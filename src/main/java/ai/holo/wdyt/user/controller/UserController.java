@@ -82,7 +82,7 @@ public class UserController {
     }
 
     @PostMapping("/send-hello-world-push-notification")
-    public void sendHellowWorldPushNotification() {
+    public void sendHelloWorldPushNotification() {
         userService.sendHelloWorldPushNotification();
     }
 }

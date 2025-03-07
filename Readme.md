@@ -241,7 +241,6 @@ CREATE TABLE `push_notification` (
 );
 
 ALTER TABLE `gpt_prompt` ADD COLUMN `submission_type` VARCHAR(255) NOT NULL DEFAULT 'SINGLE';
-ALTER TABLE `ai_feedback` ADD COLUMN `submission_type` VARCHAR(255) NOT NULL DEFAULT 'SINGLE';
 
 INSERT INTO gpt_prompt (prompt, submission_type, image_type, active) VALUES (
     'Please analyze the two attached images of individuals wearing different outfits. Provide honest, constructive, side-by-side feedback that highlights strengths and areas for improvement for each ensemble. Imagine you are a professional stylist known for realistic, practical advice. Use a friendly yet straightforward tone. Strictly adhere to the word limits for each section; if any section does not meet the requirements, rephrase and retry until it does.” Outfit Styles: For each ensemble, describe its style using three neutral words. Present your answer as a unified statement referencing each option by its distinctive elements. Example: “The white shirt with skirt is classic, clean, minimal; the brown cropped blazer paired with a pleated skirt is modern, edgy, bold.” Style Match: Analyze how each outfit aligns with my style preferences (${style1}, ${style2}, ${style3}). Provide a unified response with clearly separated segments for each option (using descriptive references), each segment containing exactly 14-18 words. Example: “While the white shirt and skirt reflects ${style1}, the brown blazer with skirt resonates with ${style2} and ${style3}; the latter is closer to your style.” Occasion Fit: Evaluate the practicality of each ensemble for the ${occasion}. Provide a single unified statement with clearly separated segments for each outfit, each segment containing exactly 14-18 words, explaining why it works or suggesting alternatives if necessary. Trend Alert: Assess the trendiness of each outfit by considering ${date}, ${location}, ${weather} (and any additional style cues). Offer one unified response that includes clearly separated segments for each ensemble, each in exactly 14-18 words, noting any outdated elements or seasonal mismatches. Color Preference: For each outfit, list the primary and secondary colors and comment on any clashes with my preferences. Provide one unified statement with clearly separated segments for each option, each segment exactly 8-10 words. Enhancement Recommendations: Offer realistic tips for improvement (e.g., weather adjustments, better accessories) for each ensemble. Provide a unified statement with clearly separated suggestions for each outfit, with each tip in exactly 2-3 words. Example: “White set: Add scarf; Brown ensemble: Try hat.” Hair Advice: Suggest a hairstyle tweak for each outfit if needed. In one unified response, offer clearly separated suggestions that complement each ensemble’s features, each suggestion in exactly 2-3 words. Example: “White set: Soft waves; Brown ensemble: Sleek bun.” Winner Determination: Based on your evaluations, decide which outfit wins. Provide a unified explanation that focuses solely on the winning outfit—addressing its style, occasion fit, trends, and overall practicality—in exactly 14-18 words. Example: “The brown cropped blazer with pleated skirt wins due to its trend alignment, occasion suitability, and overall style.” Summary: Provide a brief overall comparison of the two ensembles in a single unified statement. Balance praise with constructive tips and clearly emphasize the strengths of the winning outfit while referencing distinctive elements from both. Final Compliment: End with a final compliment directed only to the winning outfit, in exactly 2-3 words. Example: “Absolutely stunning!', 
@@ -269,7 +268,7 @@ CREATE TABLE ai_comparison_feedback (
     image2_path VARCHAR(500) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     like_style BOOLEAN DEFAULT false,
-    int winner INT(1) NOT NULL,
+    winner INT(1) NOT NULL,
     tags JSON NULL,
     feedback_entries JSON NULL,
     FOREIGN KEY (user_id) REFERENCES user(id),
@@ -282,6 +281,8 @@ ALTER table `ai_feedback` drop column `top_list_order`;
 ALTER table `ai_feedback` drop column `standard_order`;
 
 DROP TABLE IF EXISTS `ai_feedback_order`;
+
+alter table `user` add column timezone VARCHAR(255) NULL; 
 ```
 
 # Create Docker image and push to ECR

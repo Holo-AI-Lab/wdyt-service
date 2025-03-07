@@ -34,6 +34,8 @@ public class User {
     // Used for push notifications
     @Column(name = "device_token")
     private String deviceToken;
+    @Column(name = "timezone")
+    private String timezone;
     @Convert(converter = UserSelectedStyleConverter.class)
     @Column(name = "user_selected_style")
     private UserSelectedStyle selectedStyle;
