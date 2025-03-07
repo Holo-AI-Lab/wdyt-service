@@ -9,6 +9,7 @@ import ai.holo.wdyt.common.exception.AuthenticationException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.exception.ParameterValidationException;
 import ai.holo.wdyt.common.exception.UsernameAlreadyExistingException;
+import ai.holo.wdyt.common.notification.model.NotificationType;
 import ai.holo.wdyt.common.notification.service.PushNotificationService;
 import ai.holo.wdyt.user.model.dto.*;
 import ai.holo.wdyt.user.model.entity.*;
@@ -278,6 +279,6 @@ public class UserService {
     }
 
     public void sendHelloWorldPushNotification() {
-        pushNotificationService.sendPushNotification(getUser().getId(), "Hello, World!");
+        pushNotificationService.sendPushNotification(getUser().getId(), "Hello World!", "Hello, World!", NotificationType.OTHER);
     }
 }

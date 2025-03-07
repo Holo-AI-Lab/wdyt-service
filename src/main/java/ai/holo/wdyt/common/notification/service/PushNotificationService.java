@@ -5,7 +5,6 @@ import ai.holo.wdyt.common.notification.model.NotificationType;
 import ai.holo.wdyt.common.notification.repository.PushNotificationRepository;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,7 +42,7 @@ public class PushNotificationService {
     }
 
     @Transactional
-    public void sendPushNotification(Long userId, String message) {
+    public void sendPushNotification(Long userId, String title, String message, NotificationType notificationType) {
         User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
         String deviceToken = user.getDeviceToken();
         if (StringUtils.isEmpty(deviceToken)) {
@@ -51,10 +50,10 @@ public class PushNotificationService {
             return;
         }
         String snsEndpoint = createSnsEndpoint(deviceToken);
-        String content = buildPushMessage(String.format("Hey %s", user.getName()), message);
+        String content = buildPushMessage(title, message);
         log.info("Push notification content: {}", content);
         sendNotification(content, snsEndpoint);
-        pushNotificationRepository.save(new ai.holo.wdyt.common.notification.model.PushNotification(NotificationType.OTHER, userId, content));
+        pushNotificationRepository.save(new ai.holo.wdyt.common.notification.model.PushNotification(notificationType, userId, content));
         log.info("Push notification sent to user {}", user.getId());
     }
 

@@ -2,6 +2,8 @@ package ai.holo.wdyt.user.service;
 
 import ai.holo.wdyt.common.exception.BadRequestException;
 import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.common.notification.builder.PushNotificationBuilder;
+import ai.holo.wdyt.common.notification.model.NotificationType;
 import ai.holo.wdyt.user.model.dto.FriendRequestDto;
 import ai.holo.wdyt.user.model.dto.RemoveFriendRequestDto;
 import ai.holo.wdyt.user.model.dto.UpdateFriendRequestDto;
@@ -29,7 +31,6 @@ public class FriendService {
     private final FriendRepository friendRepository;
     private final UserService userService;
     private final UserRepository userRepository;
-
     public FriendService(FriendRepository friendRepository, FriendRequestRepository friendRequestRepository, UserService userService, UserRepository userRepository) {
         this.friendRepository = friendRepository;
         this.friendRequestRepository = friendRequestRepository;
@@ -50,7 +51,16 @@ public class FriendService {
         checkSameFriendRequestNotExisting(friendId, user);
         checkNotAlreadyFriend(friendId, user);
         FriendRequest friendRequest = new FriendRequest(user.getId(), friendId);
+        sendPushNotification(friendId, user.getName());
         friendRequestRepository.save(friendRequest);
+    }
+
+    private void sendPushNotification(Long friendId, String userName){
+        PushNotificationBuilder.builder(NotificationType.FRIEND_REQUEST)
+                .userId(friendId)
+                .title("You’ve Got a Friend Request!")
+                .message(String.format("%s sent you a friend request.", userName))
+                .sendNotification();
     }
 
     private void checkNotAlreadyFriend(Long friendId, User user) {
