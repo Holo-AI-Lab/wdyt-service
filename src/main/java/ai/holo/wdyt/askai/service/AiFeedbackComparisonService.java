@@ -91,7 +91,7 @@ public class AiFeedbackComparisonService {
         aiComparisonFeedback.updateTags(tags);
         AiComparisonFeedback savedAiFeedback = aiFeedbackComparisonRepository.save(aiComparisonFeedback);
 
-        eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId(), user.getId()));
+        eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId(), user.getId(), user.getId()));
 
         return generateComparisonAiFeedbackDto(savedAiFeedback);
     }

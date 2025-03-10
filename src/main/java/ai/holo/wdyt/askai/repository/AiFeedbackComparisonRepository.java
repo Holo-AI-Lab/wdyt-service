@@ -4,7 +4,6 @@ import ai.holo.wdyt.askai.model.entity.AiComparisonFeedback;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AiFeedbackComparisonRepository extends JpaRepository<AiComparisonFeedback, Long> {
-    int countByUserId(Long userId);
 
     void deleteAllByUserId(Long userId);
 }

@@ -283,6 +283,9 @@ ALTER table `ai_feedback` drop column `standard_order`;
 DROP TABLE IF EXISTS `ai_feedback_order`;
 
 alter table `user` add column timezone VARCHAR(255) NULL; 
+
+alter table `user` add column received_feedbacks int NOT NULL DEFAULT '0'; 
+alter table `user` add column given_feedbacks int NOT NULL DEFAULT '0'; 
 ```
 
 # Create Docker image and push to ECR

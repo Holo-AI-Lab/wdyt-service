@@ -197,7 +197,7 @@ public class AiFeedbackService {
         feedback.updateTags(tags);
         AiFeedback savedAiFeedback = aiFeedbackRepository.save(feedback);
 
-        eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId(), currentUser.getId()));
+        eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId(), currentUser.getId(), aiUser.getId()));
 
         return generateAiFeedbackDto(savedAiFeedback);
     }

@@ -10,11 +10,14 @@ import java.util.List;
 @Getter
 public class AiFeedbackReceivedEvent extends Event {
     private final Long aiFeedbackId;
-    private final Long userId;
+    private final Long feedbackReceiverUserId;
+    private final Long feedbackGiverUserId;
 
-    public AiFeedbackReceivedEvent(Long aiFeedbackId, Long userId) {
+
+    public AiFeedbackReceivedEvent(Long aiFeedbackId, Long feedbackReceiverUserId, Long feedbackGiverUserId) {
         this.aiFeedbackId = aiFeedbackId;
-        this.userId = userId;
+        this.feedbackReceiverUserId = feedbackReceiverUserId;
+        this.feedbackGiverUserId = feedbackGiverUserId;
     }
 
     @Override

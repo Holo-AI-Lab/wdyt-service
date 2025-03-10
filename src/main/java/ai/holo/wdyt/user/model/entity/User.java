@@ -41,6 +41,10 @@ public class User {
     private UserSelectedStyle selectedStyle;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+    @Column(name = "received_feedbacks")
+    private int receivedFeedbacks;
+    @Column(name = "given_feedbacks")
+    private int givenFeedbacks;
 
     public User(String email, String name, String appleId) {
         this.email = email;
