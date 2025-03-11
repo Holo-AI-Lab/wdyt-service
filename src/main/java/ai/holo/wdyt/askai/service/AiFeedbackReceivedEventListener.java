@@ -37,13 +37,13 @@ public class AiFeedbackReceivedEventListener {
 
     private void increaseReceivedFeedbackCountForTheUser(Long receiverFeedbackUserId) {
         User user = userRepository.findById(receiverFeedbackUserId).orElseThrow(NotFoundException::new);
-        user.increaseReceivedFeedbacks();
+        user.increaseReceivedFeedbackCount();
         userRepository.save(user);
     }
 
     private void increaseGivenFeedbackCountForTheUser(Long giverFeedbackUserId) {
         User user = userRepository.findById(giverFeedbackUserId).orElseThrow(NotFoundException::new);
-        user.increaseGivenFeedbacks();
+        user.increaseGivenFeedbackCount();
         userRepository.save(user);
     }
 }

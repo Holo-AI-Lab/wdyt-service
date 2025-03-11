@@ -41,10 +41,10 @@ public class User {
     private UserSelectedStyle selectedStyle;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-    @Column(name = "received_feedbacks")
-    private int receivedFeedbacks;
-    @Column(name = "given_feedbacks")
-    private int givenFeedbacks;
+    @Column(name = "received_feedback_count")
+    private int receivedFeedbackCount;
+    @Column(name = "given_feedback_count")
+    private int givenFeedbackCount;
 
     public User(String email, String name, String appleId) {
         this.email = email;
@@ -54,11 +54,11 @@ public class User {
         createdAt = LocalDateTime.now();
     }
 
-    public void increaseReceivedFeedbacks() {
-        receivedFeedbacks++;
+    public void increaseReceivedFeedbackCount() {
+        receivedFeedbackCount++;
     }
 
-    public void increaseGivenFeedbacks() {
-        givenFeedbacks++;
+    public void increaseGivenFeedbackCount() {
+        givenFeedbackCount++;
     }
 }
