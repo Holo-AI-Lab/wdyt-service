@@ -77,6 +77,11 @@ public class AiFeedbackController {
         return aiFeedbackService.getAiFeedback(id);
     }
 
+    @GetMapping("/latest")
+    public AiFeedbackDetailedDto getLatestAiFeedback() {
+        return aiFeedbackService.getLatestAiFeedback();
+    }
+
     @DeleteMapping("/{id}")
     public void deleteAiFeedback(@PathVariable("id") Long id) {
         aiFeedbackService.deleteAiFeedback(id);

@@ -270,6 +270,13 @@ public class AiFeedbackService {
         return generateAiFeedbackDto(aiFeedback);
     }
 
+    @Transactional(readOnly = true)
+    public AiFeedbackDetailedDto getLatestAiFeedback() {
+        User user = userService.getUser();
+        AiFeedback aiFeedback = aiFeedbackRepository.findFirstByUserIdOrderByCreatedAtDesc(user.getId()).orElseThrow(NotFoundException::new);
+        return generateAiFeedbackDto(aiFeedback);
+    }
+
     private AiFeedbackDetailedDto generateAiFeedbackDto(AiFeedback aiFeedback) {
         List<FeedbackEntryDto> feedbackEntryDtos = aiFeedback.getFeedbackEntries().stream().map(feedback -> {
             Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(feedback.response(), aiFeedback.getImageType());
