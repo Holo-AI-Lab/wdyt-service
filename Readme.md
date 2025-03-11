@@ -286,6 +286,25 @@ alter table `user` add column timezone VARCHAR(255) NULL;
 
 alter table `user` add column received_feedback_count int(5) NOT NULL DEFAULT '0'; 
 alter table `user` add column given_feedback_count int(5) NOT NULL DEFAULT '0'; 
+
+UPDATE `user` u
+SET received_feedback_count = (
+    SELECT COUNT(*)
+    FROM ai_feedback a
+    WHERE a.user_id = u.id
+);
+
+UPDATE `user` u
+SET given_feedback_count = (
+    SELECT COUNT(*)
+    FROM ai_feedback a,
+         JSON_TABLE(
+             a.feedback_entries, 
+             '$[*]' COLUMNS (user_id BIGINT PATH '$.userId')
+         ) AS fb
+    WHERE fb.user_id = u.id
+);
+
 ```
 
 # Create Docker image and push to ECR
