@@ -25,7 +25,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/health", "/api/v1/contact-us/post", "/swagger-ui/**",
                         "/v3/api-docs/**", "/api/v1/auth/apple/login", "/api/v1/subscription/notification",
-                        "/api/v1/referral/record/**", ".well-known/apple-app-site-association", "/api/v1/referral/use/**").permitAll()
+                        "/api/v1/image-classification", "/api/v1/referral/record/**",
+                        ".well-known/apple-app-site-association", "/api/v1/referral/use/**").permitAll()
                 .anyRequest().authenticated()
         );
         return http.build();

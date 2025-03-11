@@ -44,12 +44,11 @@ public class ImageClassificationService {
 
     private ImageType getImageType(ImageClassificationResponse response) {
         return switch (response.res()) {
-            case "body" -> ImageType.BODY;
-            case "headshot" -> ImageType.HEAD_SHOT;
+            case 1 -> ImageType.BODY;
             default -> ImageType.OTHER;
         };
     }
 
-    public record ImageClassificationResponse(String res) {
+    public record ImageClassificationResponse(int res) {
     }
 }
