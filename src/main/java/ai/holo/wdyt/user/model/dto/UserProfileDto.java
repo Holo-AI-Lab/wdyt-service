@@ -18,15 +18,15 @@ public record UserProfileDto(Long id,
                              List<String> mostPreferredStyles,
                              List<String> mostPreferredColors,
                              int feedbacksReceived,
-                             int feebacksGiven,
+                             int feedbacksGiven,
                              int numberOfFriend
                              ) {
 
     public UserProfileDto(User user, List<String> occasions, List<String> styles, List<String> colors,
-                          int feedbacksReceived, int feebacksGiven, int numberOfFriend) {
+                          int feedbacksReceived, int feedbacksGiven, int numberOfFriend) {
         this(user.getId(), user.getEmail(), user.getName(), user.getUsername(),
                 user.getProfilePicture(), user.getRobot().getId(), user.getRobot().getName(),
                 user.getRobot().getGender(), user.getRobot().getAvatarUrl(), occasions, styles,
-                colors, feedbacksReceived, feebacksGiven, numberOfFriend);
+                colors, feedbacksReceived, feedbacksGiven, numberOfFriend);
     }
 }
