@@ -125,19 +125,6 @@ public class AiFeedbackSearchService {
     }
 
     private String buildWhereClause(Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId, Long feedbackIdForComparison, List<Long> idsNot) {
-    public int countReceivedFeedbacksByUserId(Long userId) {
-        String queryString = "SELECT " +
-                "(SELECT COUNT(*) FROM ai_feedback WHERE user_id = :userId) + " +
-                "(SELECT COUNT(*) FROM ai_comparison_feedback WHERE user_id = :userId) AS total_count";
-
-        Query query = entityManager.createNativeQuery(queryString);
-        query.setParameter("userId", userId);
-
-        Number count = (Number) query.getSingleResult();
-        return count.intValue();
-    }
-
-    private String buildWhereClause(Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId) {
         StringBuilder whereClause = new StringBuilder(" WHERE af.user_id = :userId");
 
         if (liked != null) {

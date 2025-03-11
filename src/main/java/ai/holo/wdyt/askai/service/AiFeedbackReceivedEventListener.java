@@ -31,19 +31,19 @@ public class AiFeedbackReceivedEventListener {
         log.info("Handling AiFeedbackReceivedEvent: {}", event.getAiFeedbackId());
         userCreditService.consumeNearestExpiringCredit(event.getFeedbackReceiverUserId(), UserCreditService.AI_FEEDBACK_COST);
         log.info("AiFeedback {} consumed {} credit(s)", event.getAiFeedbackId(), UserCreditService.AI_FEEDBACK_COST);
-        receivedFeedbackCounter(event.getFeedbackReceiverUserId());
-        givenFeebackCounter(event.getFeedbackGiverUserId());
+        increaseReceivedFeedbackCountForTheUser(event.getFeedbackReceiverUserId());
+        increaseGivenFeedbackCountForTheUser(event.getFeedbackGiverUserId());
     }
 
-    private void receivedFeedbackCounter(Long receiverFeedbackUserId) {
+    private void increaseReceivedFeedbackCountForTheUser(Long receiverFeedbackUserId) {
         User user = userRepository.findById(receiverFeedbackUserId).orElseThrow(NotFoundException::new);
-        user.setReceivedFeedbacks(user.getReceivedFeedbacks() + 1);
+        user.increaseReceivedFeedbacks();
         userRepository.save(user);
     }
 
-    private void givenFeebackCounter(Long giverFeedbackUserId) {
+    private void increaseGivenFeedbackCountForTheUser(Long giverFeedbackUserId) {
         User user = userRepository.findById(giverFeedbackUserId).orElseThrow(NotFoundException::new);
-        user.setGivenFeedbacks(user.getGivenFeedbacks() + 1);
+        user.increaseGivenFeedbacks();
         userRepository.save(user);
     }
 }

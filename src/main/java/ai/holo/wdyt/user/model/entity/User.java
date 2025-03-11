@@ -53,4 +53,12 @@ public class User {
         isStyleAdapted = true;
         createdAt = LocalDateTime.now();
     }
+
+    public void increaseReceivedFeedbacks() {
+        receivedFeedbacks++;
+    }
+
+    public void increaseGivenFeedbacks() {
+        givenFeedbacks++;
+    }
 }
