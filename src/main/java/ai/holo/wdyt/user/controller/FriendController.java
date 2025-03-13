@@ -1,5 +1,6 @@
 package ai.holo.wdyt.user.controller;
 
+import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.user.model.dto.*;
 import ai.holo.wdyt.user.service.FriendService;
 import jakarta.validation.Valid;
@@ -43,12 +44,13 @@ public class FriendController {
     @GetMapping("/get-friends")
     public Page<UserDto> getFriends(@RequestParam(defaultValue = "100") Integer size,
                                     @RequestParam(defaultValue = "0") Integer page,
+                                    @RequestParam(value = "notGivenFeedbackTo", required = false) Long notGivenFeedbackTo,
                                     @RequestParam(defaultValue = "friend.name") String orderBy,
                                     @RequestParam(defaultValue = "ASC") String order) {
         Sort.Direction sortDirection = Sort.Direction.fromOptionalString(order.toUpperCase())
                 .orElse(Sort.Direction.DESC);
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(sortDirection, orderBy));
-        return friendService.getFriends(pageRequest);
+        return friendService.getFriends(notGivenFeedbackTo, pageRequest);
     }
 
     @PostMapping("/remove-friend")

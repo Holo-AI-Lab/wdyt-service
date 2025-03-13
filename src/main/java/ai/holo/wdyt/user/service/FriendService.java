@@ -1,5 +1,8 @@
 package ai.holo.wdyt.user.service;
 
+import ai.holo.wdyt.askai.model.entity.AiFeedback;
+import ai.holo.wdyt.askai.model.entity.FeedbackEntry;
+import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.common.exception.BadRequestException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.common.notification.model.NotificationType;
@@ -22,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,16 +35,19 @@ public class FriendService {
     private final FriendRepository friendRepository;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final AiFeedbackRepository aiFeedbackRepository;
     private final PushNotificationService pushNotificationService;
     public FriendService(FriendRepository friendRepository,
                          FriendRequestRepository friendRequestRepository,
                          UserService userService,
                          UserRepository userRepository,
+                         AiFeedbackRepository aiFeedbackRepository,
                          PushNotificationService pushNotificationService) {
         this.friendRepository = friendRepository;
         this.friendRequestRepository = friendRequestRepository;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.aiFeedbackRepository = aiFeedbackRepository;
         this.pushNotificationService = pushNotificationService;
     }
 
@@ -141,8 +148,14 @@ public class FriendService {
     }
 
     @Transactional(readOnly = true)
-    public Page<UserDto> getFriends(PageRequest pageRequest) {
+    public Page<UserDto> getFriends(Long notGivenFeedbackTo, PageRequest pageRequest) {
         User user = userService.getUser();
+        if (notGivenFeedbackTo != null) {
+            AiFeedback aiFeedback = aiFeedbackRepository.findById(notGivenFeedbackTo).orElseThrow(NotFoundException::new);
+            Set<Long> notIds = aiFeedback.getFeedbackEntries().stream().map(FeedbackEntry::userId).collect(Collectors.toSet());
+            return friendRepository.findAllByUserIdAndIdNotIn(user.getId(), notIds, pageRequest).map(it -> new UserDto(it.getFriend()));
+
+        }
         return friendRepository.findAllByUserId(user.getId(), pageRequest).map(it -> new UserDto(it.getFriend()));
     }
 

@@ -29,7 +29,7 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
         ComparisonAnalysis.StyleMatch styleMatch = getStyleMatch(rootNode);
         ComparisonAnalysis.OccasionFit occasionFit = getOccasionFit(rootNode);
         ComparisonAnalysis.TrendAlert trendAlert = getTrendAlert(rootNode);
-        ComparisonAnalysis.ColorPreference colorPreference = getColorPreference(rootNode);
+        ComparisonAnalysis.ComparisonColorPreference colorPreference = getColorPreference(rootNode);
         ComparisonAnalysis.EnhancementRecommendations enhancementRecommendations = getEnhancementRecommendations(rootNode);
         ComparisonAnalysis.HairAdvice hairAdvice = getHairAdvice(rootNode);
         String winnerDetermination = getText(rootNode, "winnerDetermination");
@@ -99,10 +99,10 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
         return null;
     }
 
-    private ComparisonAnalysis.ColorPreference getColorPreference(JsonNode rootNode) {
+    private ComparisonAnalysis.ComparisonColorPreference getColorPreference(JsonNode rootNode) {
         try {
             JsonNode colorPreferenceNode = rootNode.get("colorPreference");
-            return new ComparisonAnalysis.ColorPreference(
+            return new ComparisonAnalysis.ComparisonColorPreference(
                     colorPreferenceNode.get("outfit1").asText(),
                     colorPreferenceNode.get("outfit2").asText()
             );

@@ -1,6 +1,7 @@
 package ai.holo.wdyt.askai.controller;
 
 import ai.holo.wdyt.askai.model.dto.*;
+import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.askai.service.LocationAndWeatherService;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
@@ -58,8 +59,8 @@ public class AiFeedbackController {
                                                @RequestParam(value = "color", required = false) String[] color,
                                                @RequestParam(value = "style", required = false) String[] style,
                                                @RequestParam(value = "occasion", required = false) String[] occasion,
-                                               @RequestParam(value = "excludeFeedbacksWithUserId", required = false) Long excludeUserId,
                                                @RequestParam(value = "feedbackIdForComparison", required = false) Long feedbackIdForComparison,
+                                               @RequestParam(value = "imageType", required = false) ImageType imageType,
                                                @RequestParam(value = "idsNot", required = false) List<Long> idsNot,
                                                @RequestParam(defaultValue = "100") Integer size,
                                                @RequestParam(defaultValue = "0") Integer page) {
@@ -69,7 +70,7 @@ public class AiFeedbackController {
                 "style", style != null ? Arrays.asList(style) : List.of(),
                 "occasion", occasion != null ? Arrays.asList(occasion) : List.of()
         );
-        return aiFeedbackService.listAiFeedbacks(tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot, PageRequest.of(page, size));
+        return aiFeedbackService.listAiFeedbacks(tagFilters, liked, feedbackIdForComparison, idsNot, imageType, PageRequest.of(page, size));
     }
 
     @GetMapping("/{id}")

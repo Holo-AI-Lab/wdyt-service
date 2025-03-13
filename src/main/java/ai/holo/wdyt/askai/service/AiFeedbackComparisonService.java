@@ -131,8 +131,9 @@ public class AiFeedbackComparisonService {
 
         AiFeedback aiFeedback2 = aiFeedbackRepository.findById(comparisonSubmissionDto.feedback2()).orElseThrow(NotFoundException::new);
         AIComparisonSubmissionImage image2 = new AIComparisonSubmissionImage(aiFeedback2.getImageType(), aiFeedback2.getRawImagePath(), aiFeedback2.getExtractedImagePath());
-        if (image1.imageType() != image2.imageType()) {
-            throw new BadRequestException("Provided images are not same image type.");
+
+        if (!ImageType.BODY.equals(image1.imageType()) || !ImageType.BODY.equals(image2.imageType())) {
+            throw new BadRequestException("AI comparison is only supported for body images.");
         }
         return new AISubmissionImagesForComparison(image1, image2);
     }

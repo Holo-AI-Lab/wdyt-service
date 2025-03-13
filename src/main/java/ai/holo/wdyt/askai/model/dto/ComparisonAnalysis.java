@@ -9,7 +9,7 @@ public record ComparisonAnalysis(
         StyleMatch styleMatch,
         OccasionFit occasionFit,
         TrendAlert trendAlert,
-        ColorPreference colorPreference,
+        ComparisonColorPreference colorPreference,
         EnhancementRecommendations enhancementRecommendations,
         HairAdvice hairAdvice,
         String winnerDetermination,
@@ -39,7 +39,7 @@ public record ComparisonAnalysis(
             String outfit2
     ) {}
 
-    public record ColorPreference(
+    public record ComparisonColorPreference(
             String outfit1,
             String outfit2
     ) {}

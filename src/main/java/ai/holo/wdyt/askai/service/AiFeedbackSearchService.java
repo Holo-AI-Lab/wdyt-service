@@ -2,6 +2,7 @@ package ai.holo.wdyt.askai.service;
 
 import ai.holo.wdyt.askai.model.entity.AiComparisonFeedback;
 import ai.holo.wdyt.askai.model.entity.AiFeedback;
+import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.user.model.entity.User;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityManager;
@@ -16,7 +17,6 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -77,19 +77,20 @@ public class AiFeedbackSearchService {
     }
 
     public Page<AiFeedback> findAiFeedbacksByTags(Long userId, Map<String, List<String>> tagFilters, Boolean liked,
-                                                  Long excludeUserId, Long feedbackIdForComparison, List<Long> idsNot, Pageable pageable) {
+                                                  Long feedbackIdForComparison, List<Long> idsNot, ImageType imageType,
+                                                  Pageable pageable) {
         return findFeedbacksByTags(AiFeedback.class, userId,
-                tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot, pageable);
+                tagFilters, liked, feedbackIdForComparison, idsNot, imageType, pageable);
     }
 
     private <T> Page<T> findFeedbacksByTags(Class<T> entityClass, Long userId, Map<String, List<String>> tagFilters,
-                                                  Boolean liked, Long excludeUserId, Long feedbackIdForComparison,
-                                                  List<Long> idsNot, Pageable pageable) {
+                                                  Boolean liked, Long feedbackIdForComparison,
+                                                  List<Long> idsNot, ImageType imageType, Pageable pageable) {
         String tableName = getTableName(entityClass);
 
         // Build the base query string dynamically based on the table name
         String baseQuery = "SELECT af.* FROM " + tableName + " af";
-        String whereClause = buildWhereClause(tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot);
+        String whereClause = buildWhereClause(tagFilters, liked, feedbackIdForComparison, idsNot, imageType);
 
         // Construct the full query
         StringBuilder queryString = new StringBuilder(baseQuery).append(whereClause);
@@ -97,7 +98,7 @@ public class AiFeedbackSearchService {
 
         // Create the main query
         Query query = entityManager.createNativeQuery(queryString.toString(), entityClass);
-        setQueryParameters(query, userId, tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot);
+        setQueryParameters(query, userId, tagFilters, liked, feedbackIdForComparison, idsNot, imageType);
 
         // Set pagination parameters
         int firstResult = pageable.getPageNumber() * pageable.getPageSize();
@@ -110,7 +111,7 @@ public class AiFeedbackSearchService {
         // Get total count for pagination
         String countQueryString = "SELECT COUNT(*) FROM " + tableName + " af" + whereClause;
         Query countQuery = entityManager.createNativeQuery(countQueryString);
-        setQueryParameters(countQuery, userId, tagFilters, liked, excludeUserId, feedbackIdForComparison, idsNot);
+        setQueryParameters(countQuery, userId, tagFilters, liked, feedbackIdForComparison, idsNot, imageType);
 
         long totalCount = ((Number) countQuery.getSingleResult()).longValue();
         return new PageImpl<>(results, pageable, totalCount);
@@ -124,15 +125,11 @@ public class AiFeedbackSearchService {
         throw new IllegalArgumentException("Entity class does not have an @Entity name: " + entityClass.getSimpleName());
     }
 
-    private String buildWhereClause(Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId, Long feedbackIdForComparison, List<Long> idsNot) {
+    private String buildWhereClause(Map<String, List<String>> tagFilters, Boolean liked, Long feedbackIdForComparison, List<Long> idsNot, ImageType imageType) {
         StringBuilder whereClause = new StringBuilder(" WHERE af.user_id = :userId");
 
         if (liked != null) {
             whereClause.append(" AND af.like_style = :liked");
-        }
-
-        if (excludeUserId != null) {
-            whereClause.append(" AND (af.feedback_entries IS NULL OR NOT JSON_CONTAINS(af.feedback_entries, JSON_OBJECT('userId', :excludeUserId), '$'))");
         }
 
         if (feedbackIdForComparison != null) {
@@ -145,6 +142,10 @@ public class AiFeedbackSearchService {
 
         if (!CollectionUtils.isEmpty(idsNot)) {
             whereClause.append(" AND id NOT IN (:idsNot)");
+        }
+
+        if (imageType != null) {
+            whereClause.append(" AND af.image_type = :imageType");
         }
 
         for (Map.Entry<String, List<String>> entry : tagFilters.entrySet()) {
@@ -164,15 +165,11 @@ public class AiFeedbackSearchService {
     }
 
     private void setQueryParameters(Query query, Long userId, Map<String, List<String>> tagFilters, Boolean liked,
-                                    Long excludeUserId, Long feedbackIdForComparison, List<Long> idsNot) {
+                                    Long feedbackIdForComparison, List<Long> idsNot, ImageType imageType) {
         query.setParameter("userId", userId);
 
         if (liked != null) {
             query.setParameter("liked", liked);
-        }
-
-        if (excludeUserId != null) {
-            query.setParameter("excludeUserId", excludeUserId);
         }
 
         if (feedbackIdForComparison != null) {
@@ -182,6 +179,10 @@ public class AiFeedbackSearchService {
         if (!CollectionUtils.isEmpty(idsNot)) {
             String idsNotParameter = idsNot.stream().map(String::valueOf).collect(Collectors.joining(","));
             query.setParameter("idsNot", idsNotParameter);
+        }
+
+        if (imageType != null) {
+            query.setParameter("imageType", imageType.name());
         }
 
         for (Map.Entry<String, List<String>> entry : tagFilters.entrySet()) {

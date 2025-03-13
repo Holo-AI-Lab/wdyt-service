@@ -239,16 +239,17 @@ public class AiFeedbackService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, Boolean liked, Long excludeUserId,
-                                               Long feedbackIdForComparison, List<Long> idsNot, PageRequest pageRequest) {
+    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, Boolean liked,
+                                               Long feedbackIdForComparison, List<Long> idsNot, ImageType imageType,
+                                               PageRequest pageRequest) {
         Sort sortBy = Sort.by(
                 Sort.Order.by("created_at").with(Sort.Direction.DESC)
         );
 
         PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
         UserDto userInfo = userService.getUserInfo();
-        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked, excludeUserId,
-                feedbackIdForComparison, idsNot, pageRequestWithSort).map(aiFeedback ->
+        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked,
+                feedbackIdForComparison, idsNot, imageType, pageRequestWithSort).map(aiFeedback ->
                 new AiFeedbackDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
     }
 
