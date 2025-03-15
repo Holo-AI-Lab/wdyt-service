@@ -24,7 +24,7 @@ public interface Taggable {
             tags.put("color", getTag().color().stream().map(Color::name).toList());
         }
         if (!CollectionUtils.isEmpty(getTag().color())) {
-            tags.put("colorCodes", getTag().color().stream().map(Color::code).toList());
+            tags.put("colorCode", getTag().color().stream().map(Color::code).toList());
         }
         return tags;
     }

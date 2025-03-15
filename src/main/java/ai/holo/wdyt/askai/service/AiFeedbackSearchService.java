@@ -39,6 +39,7 @@ public class AiFeedbackSearchService {
         List<String> tagsFromComparison = getTagsFromAiFeedback("ai_comparison_feedback", userId, tag);
         return Stream.concat(tagsFromAiFeedback.stream(), tagsFromComparison.stream())
                 .distinct()
+                .limit(3)
                 .collect(Collectors.toList());
     }
 
