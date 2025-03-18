@@ -1,6 +1,5 @@
 package ai.holo.wdyt.subscription.service;
 
-import ai.holo.wdyt.subscription.repository.UserCreditRepository;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,8 +21,8 @@ public class UserCreditUpdaterScheduledJob {
     @Transactional
     public void updateUserCredits() {
         log.info("Starting update user credits job at {}", System.currentTimeMillis());
-        userCreditService.setInvalidExpiredCredits();
-        userCreditService.setInvalidUsedCredits();
+        userCreditService.markExpiredCreditsAsInvalid();
+        userCreditService.markConsumedCreditsToInvalid();
         userCreditService.renewFreemiumCredits();
         log.info("Finished update user credits job at {}", System.currentTimeMillis());
     }

@@ -1,25 +1,22 @@
 <configuration>
-    <!-- CloudWatch Appender for test environment -->
-    <appender name="CLOUDWATCH_TEST" class="com.j256.cloudwatchlogbackappender.CloudWatchAppender">
-        <region>us-east-1</region>
-        <logStream>wdyt-log-stream</logStream>
-        <logGroup>wdyt-logs-test</logGroup>
-        <layout>
+    <!-- Load AWS properties from application.properties -->
+    <springProperty name="awsRegion" source="aws.region" defaultValue="eu-east-1"/>
+    <springProperty name="awsProfile" source="aws.profile" defaultValue="default"/>
+    <springProperty name="cloudwatchLogGroup" source="aws.cloudwatch.log-group" defaultValue="wdyt-test"/>
+    <springProperty name="cloudwatchLogStream" source="aws.cloudwatch.log-stream" defaultValue="wdyt-test"/>
+
+    <!-- CloudWatch Appender -->
+    <appender name="CLOUDWATCH" class="ai.holo.wdyt.config.logging.CloudWatchLogAppender">
+        <region>${awsRegion}</region>
+        <awsProfile>${awsProfile}</awsProfile>
+        <logGroupName>${cloudwatchLogGroup}</logGroupName>
+        <logStreamName>${cloudwatchLogStream}</logStreamName>
+        <layout class="ch.qos.logback.classic.PatternLayout">
             <pattern>%d{HH:mm:ss.SSS} %level %logger - %msg%n</pattern>
         </layout>
     </appender>
 
-    <!-- CloudWatch Appender for prod environment -->
-    <appender name="CLOUDWATCH_PROD" class="com.j256.cloudwatchlogbackappender.CloudWatchAppender">
-        <region>us-east-1</region>
-        <logStream>wdyt-log-stream</logStream>
-        <logGroup>wdyt-logs-prod</logGroup>
-        <layout>
-            <pattern>%d{HH:mm:ss.SSS} %level %logger - %msg%n</pattern>
-        </layout>
-    </appender>
-
-    <!-- Console Appender for dev environment -->
+    <!-- Console Appender -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
@@ -27,21 +24,16 @@
     </appender>
 
     <!-- Profile-specific configuration -->
-    <springProfile name="dev">
-        <root level="debug">
+    <springProfile name="dev,default">
+        <root level="info">
             <appender-ref ref="CONSOLE"/>
         </root>
     </springProfile>
 
-    <springProfile name="test">
+    <springProfile name="test,prod">
         <root level="info">
-            <appender-ref ref="CLOUDWATCH_TEST"/>
-        </root>
-    </springProfile>
-
-    <springProfile name="prod">
-        <root level="info">
-            <appender-ref ref="CLOUDWATCH_PROD"/>
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="CLOUDWATCH"/>
         </root>
     </springProfile>
 </configuration>

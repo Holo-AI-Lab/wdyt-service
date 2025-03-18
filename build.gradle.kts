@@ -2,6 +2,7 @@ plugins {
 	java
 	id("org.springframework.boot") version "3.4.0"
 	id("io.spring.dependency-management") version "1.1.6"
+	kotlin("jvm") version "1.8.21"  // Use your Kotlin version here
 }
 
 group = "com.wdyt"
@@ -18,31 +19,48 @@ repositories {
 }
 
 dependencies {
-	// Add Lombok dependency
+	// Lombok
 	compileOnly("org.projectlombok:lombok:1.18.30")
 	annotationProcessor("org.projectlombok:lombok:1.18.30")
-	runtimeOnly ("com.mysql:mysql-connector-j")
+
+	// Database
+	runtimeOnly("com.mysql:mysql-connector-j")
+
+	// Apple StoreKit
 	implementation("com.apple.itunes.storekit:app-store-server-library:3.3.0")
+
+	// API Documentation
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
-	implementation("software.amazon.awssdk:secretsmanager:2.29.29")
-	implementation("software.amazon.awssdk:auth:2.29.29")
-	implementation("software.amazon.awssdk:sns:2.29.29")
-	implementation("software.amazon.awssdk:cloudwatchlogs:2.30.38")
+
+	// AWS SDK with BOM for version consistency
+	implementation(platform("software.amazon.awssdk:bom:2.30.38"))
+	implementation("software.amazon.awssdk:secretsmanager")
+	implementation("software.amazon.awssdk:auth")
+	implementation("software.amazon.awssdk:sns")
+	implementation("software.amazon.awssdk:cloudwatchlogs")
+	implementation("software.amazon.awssdk:s3")
+
+	// Spring Boot starters
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 	implementation("org.springframework.boot:spring-boot-starter-webflux")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
-	implementation("software.amazon.awssdk:s3:2.29.26")
-	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
-	implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.2.0")
-	implementation("net.javacrumbs.shedlock:shedlock-spring:6.2.0")
-	implementation("ch.qos.logback:logback-classic:1.4.12")
-	implementation("ch.qos.logback:logback-core:1.5.6")
+	implementation("org.springframework.boot:spring-boot-starter-logging")
+	implementation("org.springframework.boot:spring-boot-starter-web")
+
+	// Janino for Logback's conditional expressions (if required)
 	implementation("org.codehaus.janino:janino:3.1.6")
-	implementation("com.j256.cloudwatchlogbackappender:cloudwatchlogbackappender:1.11")
+
+	// JSON Web Tokens
+	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
 	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
-	implementation("org.springframework.boot:spring-boot-starter-web")
+
+	// ShedLock for distributed task scheduling
+	implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:6.2.0")
+	implementation("net.javacrumbs.shedlock:shedlock-spring:6.2.0")
+
+	// Testing
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

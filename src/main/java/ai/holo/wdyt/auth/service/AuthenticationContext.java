@@ -1,7 +1,6 @@
 package ai.holo.wdyt.auth.service;
 
 import ai.holo.wdyt.common.event.service.SecurityContextAware;
-import ai.holo.wdyt.common.exception.AuthenticationException;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserRepository;
 import org.springframework.security.core.Authentication;

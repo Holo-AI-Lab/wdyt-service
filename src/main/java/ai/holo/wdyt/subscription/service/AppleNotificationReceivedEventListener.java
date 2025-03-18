@@ -2,7 +2,6 @@ package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.common.event.service.EventConsumer;
 import ai.holo.wdyt.common.exception.NotFoundException;
-import ai.holo.wdyt.subscription.model.dto.TransactionPendingDTO;
 import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
 import ai.holo.wdyt.subscription.model.entity.AppleNotification;
 import ai.holo.wdyt.subscription.model.event.AppleNotificationReceivedEvent;

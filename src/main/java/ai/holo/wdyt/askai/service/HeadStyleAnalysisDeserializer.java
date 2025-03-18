@@ -2,7 +2,6 @@ package ai.holo.wdyt.askai.service;
 
 import ai.holo.wdyt.askai.model.dto.Color;
 import ai.holo.wdyt.askai.model.dto.HeadStyleAnalysis;
-import ai.holo.wdyt.askai.model.dto.OutfitAnalysis;
 import ai.holo.wdyt.askai.model.dto.Tag;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;

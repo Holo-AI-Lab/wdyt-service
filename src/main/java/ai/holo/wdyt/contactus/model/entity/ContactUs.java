@@ -1,6 +1,5 @@
 package ai.holo.wdyt.contactus.model.entity;
 
-import ai.holo.wdyt.user.model.dto.UserSelectedStyle;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

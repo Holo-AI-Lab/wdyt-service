@@ -11,7 +11,6 @@ import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserRepository;
 import ai.holo.wdyt.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,16 +64,22 @@ public class UserCreditService {
         }
     }
 
-    protected void setInvalidExpiredCredits() {
+    @Transactional
+    public void markExpiredCreditsAsInvalid() {
         creditRepository.findExpiredCredits().forEach(userCredit -> {
             userCredit.setValid(false);
-            userService.getUserById(userCredit.getUserId()).decreaseCreditBalance(userCredit.getCredit());
+            creditRepository.save(userCredit);
+            User user = userService.getUserById(userCredit.getUserId());
+            user.decreaseCreditBalance(userCredit.getCredit());
+            userRepository.save(user);
         });
     }
 
-    protected void setInvalidUsedCredits() {
-        creditRepository.findUsedCredits().forEach(userCredit -> {
+    @Transactional
+    public void markConsumedCreditsToInvalid() {
+        creditRepository.findConsumedCredits().forEach(userCredit -> {
             userCredit.setValid(false);
+            creditRepository.save(userCredit);
         });
     }
 
@@ -111,7 +116,7 @@ public class UserCreditService {
             if (remainingToConsume.get() > 0) {
                 int available = c.getCredit();
                 int consumeAmount = Math.min(available, remainingToConsume.get());
-                c.setCredit(available - consumeAmount);
+                c.decreaseCredit(consumeAmount);
                 remainingToConsume.addAndGet(-consumeAmount);
             }
         });
@@ -121,13 +126,13 @@ public class UserCreditService {
 
     private void increaseUserCredit(Long userId ,UserCredit newCredit) {
         creditRepository.save(newCredit);
-        User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
+        User user = userService.getUserById(userId);
         user.increaseCreditBalance(newCredit.getCredit());
         userRepository.save(user);
     }
 
     private void decreaseUserCredit(Long userId, int creditToSubtract) {
-        User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
+        User user = userService.getUserById(userId);
         user.decreaseCreditBalance(creditToSubtract);
         userRepository.save(user);
     }

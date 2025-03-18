@@ -9,6 +9,9 @@ aws:
   region: ${AWS_REGION}
   profile: ${AWS_PROFILE}
   secret-name: ${AWS_SECRET_NAME}
+  cloudwatch:
+    log-group: ${AWS_CLOUD_WATCH_LOG_GROUP}
+    log-stream: ${AWS_CLOUD_WATCH_LOG_STREAM}
   s3:
     bucket: ${S3_BUCKET_NAME}
     endpoint: ${S3_ENDPOINT}

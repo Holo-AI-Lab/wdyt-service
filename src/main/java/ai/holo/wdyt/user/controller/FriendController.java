@@ -1,6 +1,5 @@
 package ai.holo.wdyt.user.controller;
 
-import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.user.model.dto.*;
 import ai.holo.wdyt.user.service.FriendService;
 import jakarta.validation.Valid;

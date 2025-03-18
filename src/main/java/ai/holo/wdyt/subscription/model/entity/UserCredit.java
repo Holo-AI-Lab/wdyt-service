@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 @Entity(name = "user_credit")
@@ -52,5 +53,9 @@ public class UserCredit {
         this.valid = true;
         this.creditType = creditType;
         this.transactionId = transactionId;
+    }
+
+    public void decreaseCredit(int amount) {
+        this.credit -= amount;
     }
 }

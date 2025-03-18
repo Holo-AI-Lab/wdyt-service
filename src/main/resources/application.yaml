@@ -10,6 +10,9 @@ aws:
   region: us-east-1
   profile: wdyt-test
   secret-name: wdyt-test-environment
+  cloudwatch:
+    log-group: /wdyt/wdyt-test
+    log-stream: wdyt-test
   s3:
     bucket: wdyt-test-bucket
     endpoint: https://duoymrhqgte1g.cloudfront.net
