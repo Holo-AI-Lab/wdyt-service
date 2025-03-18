@@ -2,7 +2,6 @@ plugins {
 	java
 	id("org.springframework.boot") version "3.4.0"
 	id("io.spring.dependency-management") version "1.1.6"
-	kotlin("jvm") version "1.8.21"  // Use your Kotlin version here
 }
 
 group = "com.wdyt"
