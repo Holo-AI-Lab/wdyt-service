@@ -14,9 +14,10 @@ import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 @Component
 @Slf4j
@@ -39,14 +40,17 @@ public class LowCreditPushNotificationScheduledJob {
     public void sendLowCreditNotifications() {
         log.info("Starting low credit notification job at {}", LocalDateTime.now());
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
-        List<User> lowCreditUsers = userRepository.findAllByCreditBalanceLessThanEqualAndDeviceTokenIsNotNull(LOW_CREDIT_THRESHOLD);
-        log.info("Found {} users with credit_balance <= {} and non-null deviceToken", lowCreditUsers.size(), LOW_CREDIT_THRESHOLD);
+        Stream<User> lowCreditUsers = userRepository.findAllByCreditBalanceLessThanEqualAndDeviceTokenIsNotNull(LOW_CREDIT_THRESHOLD);
 
-        lowCreditUsers.stream()
-                .filter(isUserLocalTimeBetween8And20())
+        AtomicInteger pushNotificationSentCount = new AtomicInteger();
+        lowCreditUsers.filter(isUserLocalTimeBetween8And20())
                 .filter(hasNotReceivedRecentLowCreditNotification(oneWeekAgo))
-                .forEach(this::sendPushNotification);
-        log.info("Finished low credit notification job at {}", LocalDateTime.now());
+                .forEach(user -> {
+                        sendPushNotification(user);
+                        pushNotificationSentCount.getAndIncrement();
+                });
+
+        log.info("Finished low credit notification job at {}. Sent {} push notifications", LocalDateTime.now(), pushNotificationSentCount.get());
     }
 
     private Predicate<User> hasNotReceivedRecentLowCreditNotification(LocalDateTime oneWeekAgo) {

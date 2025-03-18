@@ -306,6 +306,9 @@ SET given_feedback_count = (
 );
 
 alter table `user` add column credit_balance int(5) NOT NULL DEFAULT 0;
+CREATE INDEX idx_user_credit_valid ON user_credit(valid);
+
+
 ```
 
 # Create Docker image and push to ECR
