@@ -1,0 +1,47 @@
+<configuration>
+    <!-- CloudWatch Appender for test environment -->
+    <appender name="CLOUDWATCH_TEST" class="com.j256.cloudwatchlogbackappender.CloudWatchAppender">
+        <region>us-east-1</region>
+        <logStream>wdyt-log-stream</logStream>
+        <logGroup>wdyt-logs-test</logGroup>
+        <layout>
+            <pattern>%d{HH:mm:ss.SSS} %level %logger - %msg%n</pattern>
+        </layout>
+    </appender>
+
+    <!-- CloudWatch Appender for prod environment -->
+    <appender name="CLOUDWATCH_PROD" class="com.j256.cloudwatchlogbackappender.CloudWatchAppender">
+        <region>us-east-1</region>
+        <logStream>wdyt-log-stream</logStream>
+        <logGroup>wdyt-logs-prod</logGroup>
+        <layout>
+            <pattern>%d{HH:mm:ss.SSS} %level %logger - %msg%n</pattern>
+        </layout>
+    </appender>
+
+    <!-- Console Appender for dev environment -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Profile-specific configuration -->
+    <springProfile name="dev">
+        <root level="debug">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="test">
+        <root level="info">
+            <appender-ref ref="CLOUDWATCH_TEST"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <root level="info">
+            <appender-ref ref="CLOUDWATCH_PROD"/>
+        </root>
+    </springProfile>
+</configuration>
