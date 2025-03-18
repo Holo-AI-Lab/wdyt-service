@@ -20,9 +20,6 @@ public interface UserCreditRepository extends JpaRepository<UserCredit, Long> {
     @Query("SELECT c FROM user_credit c WHERE c.valid = true AND c.expiresAt < CURRENT_TIMESTAMP")
     List<UserCredit> findExpiredCredits();
 
-    @Query("SELECT c FROM user_credit c WHERE c.creditType = :creditType AND c.expiresAt <= CURRENT_TIMESTAMP")
-    List<UserCredit> findExpiredFreemiumCredits(@Param("creditType") CreditType creditType);
-
     boolean existsByUserIdAndCreditTypeAndExpiresAtGreaterThan(Long userId, CreditType creditType, LocalDateTime now);
     void deleteAllByUserId(Long id);
 }

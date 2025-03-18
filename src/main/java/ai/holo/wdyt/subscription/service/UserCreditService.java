@@ -1,6 +1,5 @@
 package ai.holo.wdyt.subscription.service;
 
-import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.subscription.model.dto.UserValidCreditsDTO;
 import ai.holo.wdyt.subscription.model.entity.CreditType;
 import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
@@ -48,31 +47,44 @@ public class UserCreditService {
         log.info("Added freemium credits for user {} with expiration {}", userId, expirationDate);
     }
 
-    protected void renewFreemiumCredits() {
-        List<UserCredit> expiredFreemiumCredits = creditRepository.findExpiredFreemiumCredits(CreditType.FREEMIUM);
+    @Transactional
+    public void renewFreemiumAndMarkExpiredCreditsToInvalid() {
         LocalDateTime now = LocalDateTime.now();
-        log.info("Processing {} expired freemium credit records at {}", expiredFreemiumCredits.size(), now);
-        for (UserCredit expiredCredit : expiredFreemiumCredits) {
-            Long userId = expiredCredit.getUserId();
-            boolean hasActiveSubscription = creditRepository.existsByUserIdAndCreditTypeAndExpiresAtGreaterThan(userId, CreditType.SUBSCRIPTION, now);
-            if (!hasActiveSubscription) {
-                addFreemiumCredits(userId);
-                log.info("User {} does not have an active subscription. Freemium credits renewed.", userId);
-            } else {
-                log.info("User {} has an active subscription. No freemium renewal performed.", userId);
-            }
+        List<UserCredit> expiredCredits = creditRepository.findExpiredCredits();
+        log.info("Processing {} expired credits at {}", expiredCredits.size(), now);
+        expiredCredits.forEach(this::processExpiredCredit);
+    }
+
+    private void processExpiredCredit(UserCredit expiredCredit) {
+        Long userId = expiredCredit.getUserId();
+        if (expiredCredit.getCreditType() == CreditType.FREEMIUM) {
+            processFreemiumCreditForUser(userId);
+        }
+        markExpiredCreditsAsInvalid(expiredCredit);
+        updateUserCreditBalance(userId, expiredCredit.getCredit());
+    }
+
+    private void processFreemiumCreditForUser(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        boolean hasActiveSubscription = creditRepository.existsByUserIdAndCreditTypeAndExpiresAtGreaterThan(
+                userId, CreditType.SUBSCRIPTION, now);
+        if (!hasActiveSubscription) {
+            addFreemiumCredits(userId);
+            log.info("User {} does not have an active subscription. Freemium credits renewed.", userId);
+        } else {
+            log.info("User {} has an active subscription. No freemium renewal performed.", userId);
         }
     }
 
-    @Transactional
-    public void markExpiredCreditsAsInvalid() {
-        creditRepository.findExpiredCredits().forEach(userCredit -> {
-            userCredit.setValid(false);
-            creditRepository.save(userCredit);
-            User user = userService.getUserById(userCredit.getUserId());
-            user.decreaseCreditBalance(userCredit.getCredit());
-            userRepository.save(user);
-        });
+    private void markExpiredCreditsAsInvalid(UserCredit expiredCredit) {
+        expiredCredit.setValid(false);
+        creditRepository.save(expiredCredit);
+    }
+
+    private void updateUserCreditBalance(Long userId, int creditAmount) {
+        User user = userService.getUserById(userId);
+        user.decreaseCreditBalance(creditAmount);
+        userRepository.save(user);
     }
 
     @Transactional

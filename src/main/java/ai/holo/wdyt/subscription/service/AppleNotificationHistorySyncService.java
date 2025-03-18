@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -48,7 +49,8 @@ public class AppleNotificationHistorySyncService {
     /**
      * Runs every day at midnight. Fetches and processes Apple's notification history for the last 3 day
      */
-    @Scheduled(cron = "0 0 0 * * ?")
+    @Scheduled(cron = "0 0 3 * * ?")
+    @SchedulerLock(name = "Scheduler_AppleNotificationHistorySyncLock", lockAtLeastFor = "PT5M", lockAtMostFor = "PT55M")
     @Transactional
     public void syncNotificationHistory() throws Exception {
         long startDate = Instant.now().minus(DAYS_BACK, ChronoUnit.DAYS).toEpochMilli();

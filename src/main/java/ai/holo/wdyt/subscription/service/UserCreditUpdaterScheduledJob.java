@@ -21,9 +21,8 @@ public class UserCreditUpdaterScheduledJob {
     @Transactional
     public void updateUserCredits() {
         log.info("Starting update user credits job at {}", System.currentTimeMillis());
-        userCreditService.markExpiredCreditsAsInvalid();
+        userCreditService.renewFreemiumAndMarkExpiredCreditsToInvalid();
         userCreditService.markConsumedCreditsToInvalid();
-        userCreditService.renewFreemiumCredits();
         log.info("Finished update user credits job at {}", System.currentTimeMillis());
     }
 }
