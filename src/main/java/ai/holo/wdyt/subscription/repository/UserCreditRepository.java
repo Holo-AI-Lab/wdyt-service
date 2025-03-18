@@ -14,12 +14,13 @@ import java.util.List;
 public interface UserCreditRepository extends JpaRepository<UserCredit, Long> {
 
     @Query("SELECT c FROM user_credit c WHERE c.userId = :userId AND c.valid= true AND c.expiresAt > CURRENT_TIMESTAMP AND c.credit > 0 ORDER BY c.expiresAt ASC")
-    List<UserCredit> findValidCreditsByUserId(@Param("userId") Long userId);
+    List<UserCredit> findValidCreditsByUserIdSortedByExpiresAt(@Param("userId") Long userId);
 
-    @Modifying
-    @Transactional
-    @Query("UPDATE user_credit c SET c.valid = false WHERE c.valid = true and (c.expiresAt < CURRENT_TIMESTAMP OR c.credit <= 0)")
-    void setInvalidExpiredOrUsedCredits();
+    @Query("SELECT c FROM user_credit c WHERE c.valid = true AND c.credit <= 0)")
+    List<UserCredit> findUsedCredits();
+
+    @Query("SELECT c FROM user_credit c WHERE c.valid = true AND c.expiresAt < CURRENT_TIMESTAMP)")
+    List<UserCredit> findExpiredCredits();
 
     @Query("SELECT c FROM user_credit c WHERE c.creditType = :creditType AND c.expiresAt <= CURRENT_TIMESTAMP")
     List<UserCredit> findExpiredFreemiumCredits(@Param("creditType") CreditType creditType);

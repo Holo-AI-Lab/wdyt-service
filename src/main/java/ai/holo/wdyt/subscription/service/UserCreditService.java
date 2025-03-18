@@ -1,5 +1,6 @@
 package ai.holo.wdyt.subscription.service;
 
+import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.subscription.model.dto.UserValidCreditsDTO;
 import ai.holo.wdyt.subscription.model.entity.CreditType;
 import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
@@ -7,6 +8,7 @@ import ai.holo.wdyt.subscription.model.entity.UserCredit;
 import ai.holo.wdyt.subscription.repository.AppleTransactionRepository;
 import ai.holo.wdyt.subscription.repository.UserCreditRepository;
 import ai.holo.wdyt.user.model.entity.User;
+import ai.holo.wdyt.user.repository.UserRepository;
 import ai.holo.wdyt.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,6 +20,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Slf4j
@@ -25,37 +28,28 @@ public class UserCreditService {
     private final int FREEMIUM_CREDITS = 7;
     private final int FREEMIUM_DURATION_DAYS = 30;
     public static final int AI_FEEDBACK_COST = 1;
-    private static final String CRON_EXPRESSION = "0 0 0 * * ?";
 
     private final UserCreditRepository creditRepository;
     private final AppleTransactionRepository appleTransactionRepository;
     private final UserService userService;
+    private final UserRepository userRepository;
 
     public UserCreditService(UserCreditRepository creditRepository, AppleTransactionRepository appleTransactionRepository,
-                             UserService userService) {
+                             UserService userService, UserRepository userRepository) {
         this.creditRepository = creditRepository;
         this.appleTransactionRepository = appleTransactionRepository;
         this.userService = userService;
+        this.userRepository = userRepository;
     }
 
-    // Schedule for every day at midnight
-    @Scheduled(cron = CRON_EXPRESSION)
-    @Transactional
-    public void DailyJobs() {
-        creditRepository.setInvalidExpiredOrUsedCredits();
-        renewFreemiumCredits();
-    }
-
-    @Transactional
     public void addFreemiumCredits(Long userId) {
         LocalDateTime expirationDate = LocalDateTime.now().plusDays(FREEMIUM_DURATION_DAYS);
         UserCredit newCredit = new UserCredit(userId, FREEMIUM_CREDITS, expirationDate, CreditType.FREEMIUM);
-        creditRepository.save(newCredit);
+        increaseUserCredit(userId, newCredit);
         log.info("Added freemium credits for user {} with expiration {}", userId, expirationDate);
     }
 
-    @Transactional
-    public void renewFreemiumCredits() {
+    protected void renewFreemiumCredits() {
         List<UserCredit> expiredFreemiumCredits = creditRepository.findExpiredFreemiumCredits(CreditType.FREEMIUM);
         LocalDateTime now = LocalDateTime.now();
         log.info("Processing {} expired freemium credit records at {}", expiredFreemiumCredits.size(), now);
@@ -71,18 +65,31 @@ public class UserCreditService {
         }
     }
 
+    protected void setInvalidExpiredCredits() {
+        creditRepository.findExpiredCredits().forEach(userCredit -> {
+            userCredit.setValid(false);
+            userService.getUserById(userCredit.getUserId()).decreaseCreditBalance(userCredit.getCredit());
+        });
+    }
+
+    protected void setInvalidUsedCredits() {
+        creditRepository.findUsedCredits().forEach(userCredit -> {
+            userCredit.setValid(false);
+        });
+    }
+
     @Transactional
     public void addCredits(Long userId, Long transactionId, SubscriptionPlan subscriptionPlan, CreditType creditType) {
         LocalDateTime expirationDate = LocalDateTime.now().plusDays(subscriptionPlan.getDurationDays());
         UserCredit newCredit = new UserCredit(userId, subscriptionPlan.getCredit(), expirationDate, transactionId, creditType);
-        creditRepository.save(newCredit);
+        increaseUserCredit(userId, newCredit);
     }
 
     @Transactional(readOnly = true)
     public UserValidCreditsDTO getCredit() {
         User user = userService.getUser();
 
-        List<UserCredit> validCredits = creditRepository.findValidCreditsByUserId(user.getId());
+        List<UserCredit> validCredits = creditRepository.findValidCreditsByUserIdSortedByExpiresAt(user.getId());
         UserCredit activeSubscriptionCredit = validCredits.stream()
                 .filter(c -> CreditType.SUBSCRIPTION.equals(c.getCreditType()))
                 .max(Comparator.comparing(UserCredit::getExpiresAt))
@@ -97,21 +104,31 @@ public class UserCreditService {
 
     @Transactional
     public void consumeNearestExpiringCredit(Long userId, int credit) {
-        List<UserCredit> credits = creditRepository.findValidCreditsByUserId(userId);
-        int remainingToConsume = credit;
-        for (UserCredit c : credits) {
-            if (remainingToConsume <= 0) {
-                break;
+        List<UserCredit> credits = creditRepository.findValidCreditsByUserIdSortedByExpiresAt(userId);
+        AtomicInteger remainingToConsume = new AtomicInteger(credit);
+
+        credits.forEach(c -> {
+            if (remainingToConsume.get() > 0) {
+                int available = c.getCredit();
+                int consumeAmount = Math.min(available, remainingToConsume.get());
+                c.setCredit(available - consumeAmount);
+                remainingToConsume.addAndGet(-consumeAmount);
             }
-            int available = c.getCredit();
-            if (available >= remainingToConsume) {
-                c.setCredit(available - remainingToConsume);
-                remainingToConsume = 0;
-            } else {
-                c.setCredit(0);
-                remainingToConsume -= available;
-            }
-            creditRepository.save(c);
-        }
+        });
+        creditRepository.saveAll(credits);
+        decreaseUserCredit(userId, credit);
+    }
+
+    private void increaseUserCredit(Long userId ,UserCredit newCredit) {
+        creditRepository.save(newCredit);
+        User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
+        user.increaseCreditBalance(newCredit.getCredit());
+        userRepository.save(user);
+    }
+
+    private void decreaseUserCredit(Long userId, int creditToSubtract) {
+        User user = userRepository.findById(userId).orElseThrow(NotFoundException::new);
+        user.decreaseCreditBalance(creditToSubtract);
+        userRepository.save(user);
     }
 }

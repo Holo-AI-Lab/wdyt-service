@@ -305,6 +305,7 @@ SET given_feedback_count = (
     WHERE fb.user_id = u.id
 );
 
+alter table `user` add column credit_balance int(5) NOT NULL DEFAULT 0;
 ```
 
 # Create Docker image and push to ECR

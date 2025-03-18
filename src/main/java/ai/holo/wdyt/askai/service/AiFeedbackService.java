@@ -334,7 +334,7 @@ public class AiFeedbackService {
     }
 
     public void checkIfUserHasEnoughCredits() {
-        boolean userHasEnoughCredits = userCreditService.getCredit().totalCredit() >= UserCreditService.AI_FEEDBACK_COST;
+        boolean userHasEnoughCredits = userService.getUser().getCreditBalance() >= UserCreditService.AI_FEEDBACK_COST;
         if (!userHasEnoughCredits) {
             throw new InsufficientCreditException(userService.getUser().getId());
         }

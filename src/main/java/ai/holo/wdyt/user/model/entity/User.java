@@ -45,6 +45,8 @@ public class User {
     private int receivedFeedbackCount;
     @Column(name = "given_feedback_count")
     private int givenFeedbackCount;
+    @Column(name = "credit_balance")
+    private int creditBalance;
 
     public User(String email, String name, String appleId) {
         this.email = email;
@@ -52,6 +54,14 @@ public class User {
         this.appleId = appleId;
         isStyleAdapted = true;
         createdAt = LocalDateTime.now();
+    }
+
+    public void increaseCreditBalance(int amount) {
+        creditBalance += amount;
+    }
+
+    public void decreaseCreditBalance(int amount) {
+        creditBalance -= amount;
     }
 
     public void increaseReceivedFeedbackCount() {
