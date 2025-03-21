@@ -23,15 +23,18 @@ public class AppleClientSecretGenerator {
     private final String keyId;
     private final String privateKey;
     private final String clientId;
+    private final String bundleId;
 
     public AppleClientSecretGenerator(String teamId,
                                       String keyId,
                                       String privateKey,
-                                      String clientId) {
+                                      String clientId,
+                                      String bundleId) {
         this.teamId = teamId;
         this.keyId = keyId;
         this.privateKey = privateKey;
         this.clientId = clientId;
+        this.bundleId = bundleId;
     }
 
     public String generateClientSecret() {
@@ -82,7 +85,13 @@ public class AppleClientSecretGenerator {
         Date issuedAt = new Date(nowInSeconds * 1000);
         Date expiration = new Date((nowInSeconds + (20 * 60)) * 1000); // 20 minutes later
 
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder().issuer(teamId).issueTime(issuedAt).expirationTime(expiration).build();
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .issuer(teamId)
+                .issueTime(issuedAt)
+                .expirationTime(expiration)
+                .audience("appstoreconnect-v1")
+                .claim("bid", bundleId)
+                .build();
         SignedJWT signedJWT = new SignedJWT(header, claimsSet);
         JWSSigner signer = new ECDSASigner(ecPrivateKey);
         signedJWT.sign(signer);
