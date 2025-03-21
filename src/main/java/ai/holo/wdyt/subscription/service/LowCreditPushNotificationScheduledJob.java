@@ -7,6 +7,7 @@ import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -70,6 +71,11 @@ public class LowCreditPushNotificationScheduledJob {
     }
 
     private Optional<Integer> getUsersLocalHour(User user) {
+        String timezone = user.getTimezone();
+        if (StringUtils.isEmpty(timezone)) {
+            log.error("Timezone is null or empty for user {}", user.getId());
+            return Optional.empty();
+        }
         try {
             ZoneId userZone = ZoneId.of(user.getTimezone());
             int hour = ZonedDateTime.now(userZone).getHour();
