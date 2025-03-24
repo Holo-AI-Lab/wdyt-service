@@ -11,7 +11,7 @@ public record ComparisonAnalysis(
         int winner,
         List<String> winnerCriteria,
         String summary,
-        EnhancementRecommendations enhancementRecommendations,
+        List<String> enhancementRecommendations,
         String areasForImprovement,
         String finalCompliment,
         Tag tag
@@ -21,9 +21,4 @@ public record ComparisonAnalysis(
     public Tag getTag() {
         return tag;
     }
-
-    public record EnhancementRecommendations(
-            String outfit1,
-            String outfit2
-    ) {}
 }

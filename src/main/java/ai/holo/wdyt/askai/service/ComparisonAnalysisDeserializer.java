@@ -31,7 +31,7 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
         String summary = getText(rootNode, "summary");
         String areasForImprovement = getText(rootNode, "areasForImprovement");
         String finalCompliment = getText(rootNode, "finalCompliment");
-        ComparisonAnalysis.EnhancementRecommendations enhancementRecommendations = getEnhancementRecommendations(rootNode);
+        List<String> enhancementRecommendations = getListText(rootNode, "enhancementRecommendations");
         Tag tags = getTag(rootNode);
 
         // Return final object
@@ -65,18 +65,6 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
                 }
                 return list;
             }
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    private ComparisonAnalysis.EnhancementRecommendations getEnhancementRecommendations(JsonNode rootNode) {
-        try {
-            JsonNode enhancementRecommendationsNode = rootNode.get("enhancementRecommendations");
-            return new ComparisonAnalysis.EnhancementRecommendations(
-                    enhancementRecommendationsNode.get("outfit1").asText(),
-                    enhancementRecommendationsNode.get("outfit2").asText()
-            );
         } catch (Exception ignored) {
         }
         return null;
