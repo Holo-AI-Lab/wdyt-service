@@ -9,9 +9,10 @@ public record AiComparisonDto(Long id,
                               String extractedImagePath2,
                               UserDto userInfo,
                               boolean styleLiked,
+                              int winner,
                               ImageType imageType
                              ) {
     public AiComparisonDto(AiComparisonFeedback feedback, String fileS3Url1, String fileS3Url2, UserDto userInfo) {
-        this(feedback.getId(), fileS3Url1, fileS3Url2 ,userInfo, feedback.isLikeStyle(), feedback.getImageType());
+        this(feedback.getId(), fileS3Url1, fileS3Url2 ,userInfo, feedback.isLikeStyle(), feedback.getWinner(), feedback.getImageType());
     }
 }
