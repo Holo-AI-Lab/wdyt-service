@@ -44,7 +44,6 @@ public class AiFeedbackComparisonService {
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final ChatGptService chatGptService;
     private final CallSupplierWithRetryService callSupplierWithRetryService;
-    private final UserCreditService userCreditService;
     private final EventPublisher eventPublisher;
 
     public AiFeedbackComparisonService(AiFeedbackRepository aiFeedbackRepository,
@@ -54,7 +53,6 @@ public class AiFeedbackComparisonService {
                                        AiFeedbackSearchService aiFeedbackSearchService,
                                        ChatGptService chatGptService,
                                        CallSupplierWithRetryService callSupplierWithRetryService,
-                                       UserCreditService userCreditService,
                                        EventPublisher eventPublisher) {
         this.aiFeedbackRepository = aiFeedbackRepository;
         this.userService = userService;
@@ -64,7 +62,6 @@ public class AiFeedbackComparisonService {
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.chatGptService = chatGptService;
         this.callSupplierWithRetryService = callSupplierWithRetryService;
-        this.userCreditService = userCreditService;
         this.eventPublisher = eventPublisher;
     }
 

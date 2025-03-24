@@ -308,6 +308,14 @@ SET given_feedback_count = (
 alter table `user` add column credit_balance int(5) NOT NULL DEFAULT 0;
 CREATE INDEX idx_user_credit_valid ON user_credit(valid);
 
+UPDATE `gpt_prompt` SET active = 0 WHERE submission_type = 'COMPARE' AND image_type = 'BODY' AND active = 1;
+
+INSERT INTO gpt_prompt (prompt, submission_type, image_type, active) VALUES (
+'Analyze the two attached images and determine the "winner outfit" (Outfit 1 or Outfit 2); always refer to it as "winner outfit" after selection. Provide concise, constructive feedback highlighting strengths and areas for improvement, using a friendly yet straightforward tone. Ensure each section meets strict word limits; rephrase if necessary. **Winner Determination:** State the winner as "Outfit 1" or "Outfit 2," then refer to it as "winner outfit." **Winner Criteria:** List 3-4 word suggestions on how the winner outfit fits the {occasion} (if any) and its trendiness, formatted as: a-) b-) c-) d-). **Summary:** Provide a 16-20 word summary focusing only on the winner outfit’s style, suitability for {occasion} (if given), trends, and practicality (including {weather} considerations if given and if relevant). **Enhancement Recommendations:** Suggest improvements for the winner outfit in 2-3 words per tip, formatted as: a-) b-) c-) d-). **Constructive Feedback:** Offer a 16-20 word critique highlighting improvement areas for the winner outfit. **Final Compliment:** End with a 2-3 word compliment for the winner outfit.',
+'COMPARE',
+'BODY',
+true
+);
 
 ```
 

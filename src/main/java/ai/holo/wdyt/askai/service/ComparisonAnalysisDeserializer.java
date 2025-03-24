@@ -25,32 +25,24 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
         JsonNode rootNode = parser.getCodec().readTree(parser);
 
         // Deserialize fields
-        String outfitStyles = getText(rootNode, "outfitStyles");
-        ComparisonAnalysis.StyleMatch styleMatch = getStyleMatch(rootNode);
-        ComparisonAnalysis.OccasionFit occasionFit = getOccasionFit(rootNode);
-        ComparisonAnalysis.TrendAlert trendAlert = getTrendAlert(rootNode);
-        ComparisonAnalysis.ComparisonColorPreference colorPreference = getColorPreference(rootNode);
-        ComparisonAnalysis.EnhancementRecommendations enhancementRecommendations = getEnhancementRecommendations(rootNode);
-        ComparisonAnalysis.HairAdvice hairAdvice = getHairAdvice(rootNode);
         String winnerDetermination = getText(rootNode, "winnerDetermination");
-        String summary = getText(rootNode, "summary");
-        String finalCompliment = getText(rootNode, "finalCompliment");
         int winner = rootNode.get("winner").asInt();
-        Tag tags = getTags(rootNode);
+        List<String> winnerCriteria = getListText(rootNode, "winnerCriteria");
+        String summary = getText(rootNode, "summary");
+        String areasForImprovement = getText(rootNode, "areasForImprovement");
+        String finalCompliment = getText(rootNode, "finalCompliment");
+        ComparisonAnalysis.EnhancementRecommendations enhancementRecommendations = getEnhancementRecommendations(rootNode);
+        Tag tags = getTag(rootNode);
 
         // Return final object
         return new ComparisonAnalysis(
-                outfitStyles,
-                styleMatch,
-                occasionFit,
-                trendAlert,
-                colorPreference,
-                enhancementRecommendations,
-                hairAdvice,
                 winnerDetermination,
-                summary,
-                finalCompliment,
                 winner,
+                winnerCriteria,
+                summary,
+                enhancementRecommendations,
+                areasForImprovement,
+                finalCompliment,
                 tags
         );
     }
@@ -63,49 +55,16 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
         return null;
     }
 
-    private ComparisonAnalysis.StyleMatch getStyleMatch(JsonNode rootNode) {
+    private List<String> getListText(JsonNode rootNode, String fieldName) {
         try {
-            JsonNode styleMatchNode = rootNode.get("styleMatch");
-            return new ComparisonAnalysis.StyleMatch(
-                    styleMatchNode.get("outfit1").asText(),
-                    styleMatchNode.get("outfit2").asText()
-            );
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    private ComparisonAnalysis.OccasionFit getOccasionFit(JsonNode rootNode) {
-        try {
-            JsonNode occasionFitNode = rootNode.get("occasionFit");
-            return new ComparisonAnalysis.OccasionFit(
-                    occasionFitNode.get("outfit1").asText(),
-                    occasionFitNode.get("outfit2").asText()
-            );
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    private ComparisonAnalysis.TrendAlert getTrendAlert(JsonNode rootNode) {
-        try {
-            JsonNode trendAlertNode = rootNode.get("trendAlert");
-            return new ComparisonAnalysis.TrendAlert(
-                    trendAlertNode.get("outfit1").asText(),
-                    trendAlertNode.get("outfit2").asText()
-            );
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    private ComparisonAnalysis.ComparisonColorPreference getColorPreference(JsonNode rootNode) {
-        try {
-            JsonNode colorPreferenceNode = rootNode.get("colorPreference");
-            return new ComparisonAnalysis.ComparisonColorPreference(
-                    colorPreferenceNode.get("outfit1").asText(),
-                    colorPreferenceNode.get("outfit2").asText()
-            );
+            JsonNode listNode = rootNode.get(fieldName);
+            if (listNode != null && listNode.isArray()) {
+                List<String> list = new ArrayList<>();
+                for (JsonNode node : listNode) {
+                    list.add(node.asText());
+                }
+                return list;
+            }
         } catch (Exception ignored) {
         }
         return null;
@@ -123,40 +82,13 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
         return null;
     }
 
-    private ComparisonAnalysis.HairAdvice getHairAdvice(JsonNode rootNode) {
+    private Tag getTag(JsonNode rootNode) {
         try {
-            JsonNode hairAdviceNode = rootNode.get("hairAdvice");
-            return new ComparisonAnalysis.HairAdvice(
-                    hairAdviceNode.get("outfit1").asText(),
-                    hairAdviceNode.get("outfit2").asText()
-            );
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    private Tag getTags(JsonNode rootNode) {
-        try {
-            JsonNode tagsNode = rootNode.get("tags");
-            List<String> style = getListText(tagsNode, "style");
-            List<String> occasion = getListText(tagsNode, "occasion");
-            List<Color> color = getColor(tagsNode);
-            return new Tag(style, occasion, color);
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    private List<String> getListText(JsonNode rootNode, String fieldName) {
-        try {
-            JsonNode listNode = rootNode.get(fieldName);
-            if (listNode.isArray()) {
-                List<String> list = new ArrayList<>();
-                for (JsonNode node : listNode) {
-                    list.add(node.asText());
-                }
-                return list;
-            }
+            JsonNode tagNode = rootNode.get("tags");
+            List<String> styles = getListText(tagNode, "style");
+            List<String> occasions = getListText(tagNode, "occasion");
+            List<Color> color = getColor(tagNode);
+            return new Tag(styles, occasions, color);
         } catch (Exception ignored) {
         }
         return null;
@@ -179,6 +111,4 @@ public class ComparisonAnalysisDeserializer extends StdDeserializer<ComparisonAn
         }
         return null;
     }
-
-
 }

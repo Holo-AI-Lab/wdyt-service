@@ -54,7 +54,6 @@ public class AiFeedbackService {
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final OccasionRepository occasionRepository;
     private final CallSupplierWithRetryService callSupplierWithRetryService;
-    private final UserCreditService userCreditService;
     private final EventPublisher eventPublisher;
 
     public AiFeedbackService(ChatGptService chatGptService, S3Service s3Service,
@@ -67,7 +66,6 @@ public class AiFeedbackService {
                              AiFeedbackSearchService aiFeedbackSearchService,
                              OccasionRepository occasionRepository,
                              CallSupplierWithRetryService callSupplierWithRetryService,
-                             UserCreditService userCreditService,
                              EventPublisher eventPublisher) {
         this.chatGptService = chatGptService;
         this.s3Service = s3Service;
@@ -80,7 +78,6 @@ public class AiFeedbackService {
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.occasionRepository = occasionRepository;
         this.callSupplierWithRetryService = callSupplierWithRetryService;
-        this.userCreditService = userCreditService;
         this.eventPublisher = eventPublisher;
     }
 

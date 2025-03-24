@@ -46,7 +46,9 @@ public class ChatGptService {
     public String sendPromptWith2Images(String imageUrl1, String imageUrl2, String promptText) {
         List<Message> messages = List.of(new Message("user", List.of(
                 new MessageContent("text", promptText, null),
+                new MessageContent("text", "Image URL for outfit 1 as follows:", null),
                 new MessageContent("image_url", null, new ImageAttachment(imageUrl1)),
+                new MessageContent("text", "Image URL for outfit 2 as follows:", null),
                 new MessageContent("image_url", null, new ImageAttachment(imageUrl2))
         )));
 
