@@ -321,10 +321,8 @@ ALTER TABLE report_ai_feedback ADD COLUMN ai_feedback_entry_id VARCHAR(255);
 
 ALTER TABLE report_ai_feedback DROP FOREIGN KEY report_ai_feedback_ibfk_2;
 
-ALTER TABLE report_ai_feedback 
-ADD CONSTRAINT report_ai_feedback_ibfk_2 
-FOREIGN KEY (ai_feedback_id) REFERENCES ai_feedback(id) ON DELETE CASCADE;
-
+ALTER TABLE report_ai_feedback ADD COLUMN ai_comparison_feedback_id INT(11) DEFAULT NULL;
+ALTER TABLE report_ai_feedback MODIFY COLUMN ai_feedback_id INT(11) DEFAULT NULL;
 ```
 
 # Create Docker image and push to ECR

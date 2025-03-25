@@ -5,6 +5,7 @@ import ai.holo.wdyt.askai.model.entity.*;
 import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
 import ai.holo.wdyt.askai.repository.AiFeedbackComparisonRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
+import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
@@ -45,6 +46,7 @@ public class AiFeedbackComparisonService {
     private final ChatGptService chatGptService;
     private final CallSupplierWithRetryService callSupplierWithRetryService;
     private final EventPublisher eventPublisher;
+    private final ReportAiFeedbackRepository reportAiFeedbackRepository;
 
     public AiFeedbackComparisonService(AiFeedbackRepository aiFeedbackRepository,
                                        UserService userService,
@@ -53,7 +55,7 @@ public class AiFeedbackComparisonService {
                                        AiFeedbackSearchService aiFeedbackSearchService,
                                        ChatGptService chatGptService,
                                        CallSupplierWithRetryService callSupplierWithRetryService,
-                                       EventPublisher eventPublisher) {
+                                       EventPublisher eventPublisher, ReportAiFeedbackRepository reportAiFeedbackRepository) {
         this.aiFeedbackRepository = aiFeedbackRepository;
         this.userService = userService;
         this.aiFeedbackComparisonRepository = aiFeedbackComparisonRepository;
@@ -63,6 +65,7 @@ public class AiFeedbackComparisonService {
         this.chatGptService = chatGptService;
         this.callSupplierWithRetryService = callSupplierWithRetryService;
         this.eventPublisher = eventPublisher;
+        this.reportAiFeedbackRepository = reportAiFeedbackRepository;
     }
 
     @Transactional
@@ -200,6 +203,15 @@ public class AiFeedbackComparisonService {
     public AiComparisonDetailedDto getAiComparisonFeedback(Long id) {
         AiComparisonFeedback aiComparisonFeedback = aiFeedbackComparisonRepository.findById(id).orElseThrow(NotFoundException::new);
         return generateComparisonAiFeedbackDto(aiComparisonFeedback);
+    }
+
+    @Transactional
+    public void reportAiComparisonFeedback(Long id, ReportAiFeedbackDto reportAiFeedbackDto) {
+        AiComparisonFeedback aiComparisonFeedback = aiFeedbackComparisonRepository.findById(id).orElseThrow(NotFoundException::new);
+        Long userId = userService.getUser().getId();
+        ReportAiFeedback reportAiFeedback = ReportAiFeedback.fromAiComparisonFeedback(userId, aiComparisonFeedback.getId(),
+                reportAiFeedbackDto.feedbackEntryId(), reportAiFeedbackDto.feedback());
+        reportAiFeedbackRepository.save(reportAiFeedback);
     }
 
     public record AIComparisonSubmissionImage(ImageType imageType, String rawImagePath, String extractedImagePath) {}

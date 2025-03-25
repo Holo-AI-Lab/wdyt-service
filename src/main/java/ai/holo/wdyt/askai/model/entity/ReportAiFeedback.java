@@ -19,6 +19,8 @@ public class ReportAiFeedback {
     private Long userId;
     @Column(name = "ai_feedback_id")
     private Long aiFeedbackId;
+    @Column(name = "ai_comparison_feedback_id")
+    private Long aiComparisonFeedbackId;
     @Column(name = "ai_feedback_entry_id")
     private String aiFeedbackEntryId;
     @Column(name = "feedback")
@@ -26,12 +28,22 @@ public class ReportAiFeedback {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    public ReportAiFeedback(Long userId, Long aiFeedbackId,
-                            String aiFeedbackEntryId, String feedback) {
+    private ReportAiFeedback(Long userId, String aiFeedbackEntryId, String feedback) {
         this.userId = userId;
-        this.aiFeedbackId = aiFeedbackId;
         this.aiFeedbackEntryId = aiFeedbackEntryId;
         this.feedback = feedback;
-        createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
+    }
+
+    public static ReportAiFeedback fromAiFeedback(Long userId, Long aiFeedbackId, String aiFeedbackEntryId, String feedback) {
+        ReportAiFeedback report = new ReportAiFeedback(userId, aiFeedbackEntryId, feedback);
+        report.setAiFeedbackId(aiFeedbackId);
+        return report;
+    }
+
+    public static ReportAiFeedback fromAiComparisonFeedback(Long userId, Long aiComparisonFeedbackId, String aiFeedbackEntryId, String feedback) {
+        ReportAiFeedback report = new ReportAiFeedback(userId, aiFeedbackEntryId, feedback);
+        report.setAiComparisonFeedbackId(aiComparisonFeedbackId);
+        return report;
     }
 }

@@ -81,6 +81,12 @@ public class AiFeedbackComparisonController {
         return aiFeedbackComparisonService.likeStyle(likeStyleDto);
     }
 
+    @PostMapping("/{id}/report")
+    public void reportAiComparisonFeedback(@PathVariable("id") Long id,
+                                 @RequestBody ReportAiFeedbackDto reportAiFeedbackDto) {
+        aiFeedbackComparisonService.reportAiComparisonFeedback(id, reportAiFeedbackDto);
+    }
+
     @GetMapping("/latest")
     public AiComparisonDetailedDto getLatestAiFeedback() {
         return aiFeedbackComparisonService.getLatestAiFeedback();

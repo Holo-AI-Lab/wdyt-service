@@ -304,7 +304,7 @@ public class AiFeedbackService {
     public void reportAiFeedback(Long id, ReportAiFeedbackDto reportAiFeedbackDto) {
         AiFeedback aiFeedback = aiFeedbackRepository.findById(id).orElseThrow(NotFoundException::new);
         Long userId = userService.getUser().getId();
-        ReportAiFeedback reportAiFeedback = new ReportAiFeedback(userId, aiFeedback.getId(),
+        ReportAiFeedback reportAiFeedback = ReportAiFeedback.fromAiFeedback(userId, aiFeedback.getId(),
                 reportAiFeedbackDto.feedbackEntryId(), reportAiFeedbackDto.feedback());
         reportAiFeedbackRepository.save(reportAiFeedback);
     }
