@@ -13,7 +13,8 @@ import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -32,7 +33,6 @@ public class AppleNotificationHistorySyncService {
     // private static final String APPLE_API_URL = "https://api.storekit.itunes.apple.com/inApps/v1/notifications/history";
 
     private static final int DAYS_BACK = 3;
-    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final AppleClientSecretGenerator appleClientSecretGenerator;
     private final AppleSubscriptionService appleSubscriptionService;
@@ -40,7 +40,6 @@ public class AppleNotificationHistorySyncService {
     public AppleNotificationHistorySyncService(ObjectMapper objectMapper,
                                                AppleClientSecretGenerator appleClientSecretGenerator,
                                                AppleSubscriptionService appleSubscriptionService) {
-        this.restTemplate = new RestTemplate();
         this.objectMapper = objectMapper;
         this.appleClientSecretGenerator = appleClientSecretGenerator;
         this.appleSubscriptionService = appleSubscriptionService;
@@ -53,6 +52,7 @@ public class AppleNotificationHistorySyncService {
     @SchedulerLock(name = "Scheduler_AppleNotificationHistorySyncLock", lockAtLeastFor = "PT5M", lockAtMostFor = "PT55M")
     @Transactional
     public void syncNotificationHistory() throws Exception {
+        log.info("Starting Apple notification history sync...");
         long startDate = Instant.now().minus(DAYS_BACK, ChronoUnit.DAYS).toEpochMilli();
         long endDate = Instant.now().toEpochMilli();
         boolean onlyFailures = true;
@@ -60,14 +60,16 @@ public class AppleNotificationHistorySyncService {
         boolean hasMore;
 
         do {
-                String requestUrl = buildRequestUrl(paginationToken);
-                Map<String, Object> requestBody = buildRequestBody(paginationToken, startDate, endDate, onlyFailures);
-                ResponseEntity<String> response = callAppleApi(requestUrl, requestBody);
-                AppleNotificationHistoryResponse parsedModel = objectMapper.readValue(response.getBody(), AppleNotificationHistoryResponse.class);
-                processNotifications(parsedModel.notificationHistory());
-                hasMore = parsedModel.hasMore();
-                paginationToken = hasMore ? parsedModel.paginationToken() : null;
+            String requestUrl = buildRequestUrl(paginationToken);
+            Map<String, Object> requestBody = buildRequestBody(paginationToken, startDate, endDate, onlyFailures);
+            String response = callAppleApi(requestUrl, requestBody).block();
+            System.out.println("Response: " + response);
+            AppleNotificationHistoryResponse parsedModel = objectMapper.readValue(response, AppleNotificationHistoryResponse.class);
+            processNotifications(parsedModel.notificationHistory());
+            hasMore = parsedModel.hasMore();
+            paginationToken = hasMore ? parsedModel.paginationToken() : null;
         } while (hasMore);
+        log.info("Apple notification history sync completed.");
     }
 
     private String buildRequestUrl(String paginationToken) {
@@ -85,17 +87,27 @@ public class AppleNotificationHistorySyncService {
         );
     }
 
-    private ResponseEntity<String> callAppleApi(String requestUrl, Map<String, Object> requestBody) throws Exception {
+    private Mono<String> callAppleApi(String requestUrl, Map<String, Object> requestBody) throws Exception {
         String jwtToken = appleClientSecretGenerator.generateAppleJwtFromKeyString();
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(jwtToken);
-        return restTemplate.exchange(
-                requestUrl, HttpMethod.POST,
-                new HttpEntity<>(requestBody, headers),
-                String.class
-        );
+        System.out.println("JWT Token: " + jwtToken);
+        return WebClient.builder()
+                .baseUrl(requestUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + jwtToken)
+                .build()
+                .post()
+                .bodyValue(requestBody)
+                .exchangeToMono(response -> {
+                    if (response.statusCode().is2xxSuccessful()) {
+                        return response.bodyToMono(String.class);
+                    } else {
+                        log.error("Apple API returned status: {}", response.statusCode());
+                        return response.bodyToMono(String.class)
+                                .flatMap(body -> Mono.error(new RuntimeException("Error from Apple API: " + body)));
+                    }
+                });
     }
+
 
     private void processNotifications(List<AppleNotificationHistoryResponse.AppleNotificationItem> notifications) {
         if (notifications == null || notifications.isEmpty()) {

@@ -14,7 +14,6 @@ public class AppleOAuthConfig {
                 secretProperties.get("appleTeamId"),
                 secretProperties.get("appleKeyId"),
                 secretProperties.get("applePrivateKey"),
-                secretProperties.get("appleClientId"),
-                secretProperties.get("appleBundleId"));
+                secretProperties.get("appleClientId"));
     }
 }

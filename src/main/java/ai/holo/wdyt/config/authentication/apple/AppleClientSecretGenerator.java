@@ -23,18 +23,15 @@ public class AppleClientSecretGenerator {
     private final String keyId;
     private final String privateKey;
     private final String clientId;
-    private final String bundleId;
 
     public AppleClientSecretGenerator(String teamId,
                                       String keyId,
                                       String privateKey,
-                                      String clientId,
-                                      String bundleId) {
+                                      String clientId) {
         this.teamId = teamId;
         this.keyId = keyId;
         this.privateKey = privateKey;
         this.clientId = clientId;
-        this.bundleId = bundleId;
     }
 
     public String generateClientSecret() {
@@ -90,7 +87,7 @@ public class AppleClientSecretGenerator {
                 .issueTime(issuedAt)
                 .expirationTime(expiration)
                 .audience("appstoreconnect-v1")
-                .claim("bid", bundleId)
+                .claim("bid", clientId)
                 .build();
         SignedJWT signedJWT = new SignedJWT(header, claimsSet);
         JWSSigner signer = new ECDSASigner(ecPrivateKey);
