@@ -327,7 +327,15 @@ public class AiFeedbackService {
                 .findFirst()
                 .orElseThrow(NotFoundException::new);
         aiFeedback.removeFeedbackEntry(feedbackEntry);
-        aiFeedbackRepository.save(aiFeedback);
+        saveOrDeleteAiFeedbackBasedOnEntries(aiFeedback);
+    }
+
+    private void saveOrDeleteAiFeedbackBasedOnEntries(AiFeedback aiFeedback) {
+        if (aiFeedback.getFeedbackEntries().isEmpty()) {
+            aiFeedbackRepository.delete(aiFeedback);
+        } else {
+            aiFeedbackRepository.save(aiFeedback);
+        }
     }
 
     public void checkIfUserHasEnoughCredits() {
