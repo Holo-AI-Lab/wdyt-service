@@ -151,29 +151,30 @@ public class FriendService {
     @Transactional(readOnly = true)
     public Page<UserDto> getFriends(Long notGivenFeedbackTo, String search, PageRequest pageRequest) {
         User user = userService.getUser();
+        Page<Friend> friends = getFriendResults(user, notGivenFeedbackTo, search, pageRequest);
+        return friends.map(friend -> new UserDto(friend.getFriend()));
+    }
+
+    private Page<Friend> getFriendResults(User user, Long notGivenFeedbackTo, String search, PageRequest pageRequest) {
         if (notGivenFeedbackTo != null) {
             AiFeedback aiFeedback = aiFeedbackRepository.findById(notGivenFeedbackTo).orElseThrow(NotFoundException::new);
             Set<Long> notIds = aiFeedback.getFeedbackEntries().stream().map(FeedbackEntry::userId).collect(Collectors.toSet());
             if (StringUtils.isEmpty(search)) {
                 return friendRepository
-                        .findAllByUserIdAndIdNotInWithSearch(user.getId(), notIds, search, pageRequest)
-                        .map(friend -> new UserDto(friend.getFriend()));
+                        .findAllByUserIdAndIdNotInWithSearch(user.getId(), notIds, search, pageRequest);
             } else {
                 return friendRepository
-                        .findAllByUserIdAndIdNotIn(user.getId(), notIds, pageRequest)
-                        .map(friend -> new UserDto(friend.getFriend()));
+                        .findAllByUserIdAndIdNotIn(user.getId(), notIds, pageRequest);
             }
         } else {
             if (StringUtils.isEmpty(search)) {
                 return friendRepository
-                        .findAllByUserIdWithSearch(user.getId(), search, pageRequest)
-                        .map(friend -> new UserDto(friend.getFriend()));
+                        .findAllByUserIdWithSearch(user.getId(), search, pageRequest);
             } else {
-                return friendRepository
-                        .findAllByUserId(user.getId(), pageRequest)
-                        .map(friend -> new UserDto(friend.getFriend()));
+                return friendRepository.findAllByUserId(user.getId(), pageRequest);
             }
         }
+
     }
 
     public void removeFriend(RemoveFriendRequestDto removeFriendRequestDto) {
