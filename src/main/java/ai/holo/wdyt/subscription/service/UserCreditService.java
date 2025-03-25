@@ -89,10 +89,13 @@ public class UserCreditService {
 
     @Transactional
     public void markConsumedCreditsToInvalid() {
+        AtomicInteger counter = new AtomicInteger();
         creditRepository.findConsumedCredits().forEach(userCredit -> {
             userCredit.setValid(false);
             creditRepository.save(userCredit);
+            counter.getAndIncrement();
         });
+        log.info("Marked {} consumed credits as invalid", counter.get());
     }
 
     @Transactional

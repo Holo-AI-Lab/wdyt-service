@@ -10,6 +10,7 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
@@ -38,8 +39,9 @@ public class LowCreditPushNotificationScheduledJob {
     // Run every 2 hours
     @Scheduled(cron = "0 0 */2 * * ?")
     @SchedulerLock(name = "Scheduler_sendLowCreditNotificationsLock", lockAtLeastFor = "PT5M", lockAtMostFor = "PT55M")
+    @Transactional
     public void sendLowCreditNotifications() {
-        log.info("Starting low credit notification job at {}", LocalDateTime.now());
+        log.info("Starting low credit notification job...");
         LocalDateTime oneWeekAgo = LocalDateTime.now().minusWeeks(1);
         Stream<User> lowCreditUsers = userRepository.findAllByCreditBalanceLessThanEqualAndDeviceTokenIsNotNull(LOW_CREDIT_THRESHOLD);
 
@@ -50,8 +52,7 @@ public class LowCreditPushNotificationScheduledJob {
                         sendPushNotification(user);
                         pushNotificationSentCount.getAndIncrement();
                 });
-
-        log.info("Finished low credit notification job at {}. Sent {} push notifications", LocalDateTime.now(), pushNotificationSentCount.get());
+        log.info("Finished low credit notification job. Sent {} push notifications", pushNotificationSentCount.get());
     }
 
     private Predicate<User> hasNotReceivedRecentLowCreditNotification(LocalDateTime oneWeekAgo) {

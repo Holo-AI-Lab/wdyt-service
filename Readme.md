@@ -317,6 +317,14 @@ INSERT INTO gpt_prompt (prompt, submission_type, image_type, active) VALUES (
 true
 );
 
+ALTER TABLE report_ai_feedback ADD COLUMN ai_feedback_entry_id VARCHAR(255);
+
+ALTER TABLE report_ai_feedback DROP FOREIGN KEY report_ai_feedback_ibfk_2;
+
+ALTER TABLE report_ai_feedback 
+ADD CONSTRAINT report_ai_feedback_ibfk_2 
+FOREIGN KEY (ai_feedback_id) REFERENCES ai_feedback(id) ON DELETE CASCADE;
+
 ```
 
 # Create Docker image and push to ECR
