@@ -157,6 +157,13 @@ public class AiFeedbackComparisonService {
         return callSupplierWithRetryService.executeWithRetries(gptResponseSupplier);
     }
 
+    @Transactional(readOnly = true)
+    public AiComparisonDetailedDto getLatestAiFeedback() {
+        User user = userService.getUser();
+        AiComparisonFeedback aiComparisonFeedback = aiFeedbackComparisonRepository.findFirstByUserIdOrderByCreatedAtDesc(user.getId()).orElseThrow(NotFoundException::new);
+        return generateComparisonAiFeedbackDto(aiComparisonFeedback);
+    }
+
     @Transactional
     public AiComparisonDto likeStyle(LikeStyleDto likeStyleDto) {
         AiComparisonFeedback aiFeedback = aiFeedbackComparisonRepository.findById(likeStyleDto.id()).orElseThrow(NotFoundException::new);

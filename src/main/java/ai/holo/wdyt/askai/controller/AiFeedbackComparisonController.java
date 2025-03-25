@@ -80,4 +80,9 @@ public class AiFeedbackComparisonController {
     public AiComparisonDto likeStyle(@RequestBody LikeStyleDto likeStyleDto) {
         return aiFeedbackComparisonService.likeStyle(likeStyleDto);
     }
+
+    @GetMapping("/latest")
+    public AiComparisonDetailedDto getLatestAiFeedback() {
+        return aiFeedbackComparisonService.getLatestAiFeedback();
+    }
 }
