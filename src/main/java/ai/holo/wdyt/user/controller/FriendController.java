@@ -42,14 +42,15 @@ public class FriendController {
 
     @GetMapping("/get-friends")
     public Page<UserDto> getFriends(@RequestParam(defaultValue = "100") Integer size,
-                                    @RequestParam(defaultValue = "0") Integer page,
-                                    @RequestParam(value = "notGivenFeedbackTo", required = false) Long notGivenFeedbackTo,
-                                    @RequestParam(defaultValue = "friend.name") String orderBy,
-                                    @RequestParam(defaultValue = "ASC") String order) {
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(value = "notGivenFeedbackTo", required = false) Long notGivenFeedbackTo,
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(defaultValue = "friend.name") String orderBy,
+            @RequestParam(defaultValue = "ASC") String order) {
         Sort.Direction sortDirection = Sort.Direction.fromOptionalString(order.toUpperCase())
                 .orElse(Sort.Direction.DESC);
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by(sortDirection, orderBy));
-        return friendService.getFriends(notGivenFeedbackTo, pageRequest);
+        return friendService.getFriends(notGivenFeedbackTo, search, pageRequest);
     }
 
     @PostMapping("/remove-friend")

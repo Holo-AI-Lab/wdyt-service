@@ -17,6 +17,7 @@ import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.FriendRepository;
 import ai.holo.wdyt.user.repository.FriendRequestRepository;
 import ai.holo.wdyt.user.repository.UserRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -68,7 +69,7 @@ public class FriendService {
         friendRequestRepository.save(friendRequest);
     }
 
-    private void sendPushNotification(Long friendId, String userName){
+    private void sendPushNotification(Long friendId, String userName) {
         pushNotificationService.sendPushNotification(friendId, "You’ve Got a Friend Request!",
                 String.format("%s sent you a friend request.", userName), NotificationType.FRIEND_REQUEST);
     }
@@ -148,15 +149,31 @@ public class FriendService {
     }
 
     @Transactional(readOnly = true)
-    public Page<UserDto> getFriends(Long notGivenFeedbackTo, PageRequest pageRequest) {
+    public Page<UserDto> getFriends(Long notGivenFeedbackTo, String search, PageRequest pageRequest) {
         User user = userService.getUser();
         if (notGivenFeedbackTo != null) {
             AiFeedback aiFeedback = aiFeedbackRepository.findById(notGivenFeedbackTo).orElseThrow(NotFoundException::new);
             Set<Long> notIds = aiFeedback.getFeedbackEntries().stream().map(FeedbackEntry::userId).collect(Collectors.toSet());
-            return friendRepository.findAllByUserIdAndIdNotIn(user.getId(), notIds, pageRequest).map(it -> new UserDto(it.getFriend()));
-
+            if (StringUtils.isEmpty(search)) {
+                return friendRepository
+                        .findAllByUserIdAndIdNotInWithSearch(user.getId(), notIds, search, pageRequest)
+                        .map(friend -> new UserDto(friend.getFriend()));
+            } else {
+                return friendRepository
+                        .findAllByUserIdAndIdNotIn(user.getId(), notIds, pageRequest)
+                        .map(friend -> new UserDto(friend.getFriend()));
+            }
+        } else {
+            if (StringUtils.isEmpty(search)) {
+                return friendRepository
+                        .findAllByUserIdWithSearch(user.getId(), search, pageRequest)
+                        .map(friend -> new UserDto(friend.getFriend()));
+            } else {
+                return friendRepository
+                        .findAllByUserId(user.getId(), pageRequest)
+                        .map(friend -> new UserDto(friend.getFriend()));
+            }
         }
-        return friendRepository.findAllByUserId(user.getId(), pageRequest).map(it -> new UserDto(it.getFriend()));
     }
 
     public void removeFriend(RemoveFriendRequestDto removeFriendRequestDto) {
