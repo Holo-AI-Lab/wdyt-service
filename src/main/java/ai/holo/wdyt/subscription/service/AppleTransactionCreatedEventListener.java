@@ -51,7 +51,10 @@ public class AppleTransactionCreatedEventListener {
             log.error("User subscription not found for userId: {}", appleTransaction.getUserId());
             throw new RuntimeException("User subscription not found for userId: " + appleTransaction.getUserId());
         }
-        if (appleTransaction.getSubscriptionPlan() == SubscriptionPlan.ONE_TIME_PURCHASE) return;
+        if (appleTransaction.getSubscriptionPlan() == SubscriptionPlan.ONE_TIME_PURCHASE) {
+            log.info("User with ID {} made a one-time purchase.", appleTransaction.getUserId());
+            return;
+        }
 
         UserSubscription userSubscriptionSave = userSubscription.get();
         userSubscriptionSave.setIsActive(true);
