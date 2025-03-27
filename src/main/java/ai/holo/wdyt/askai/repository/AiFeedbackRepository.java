@@ -9,5 +9,5 @@ public interface AiFeedbackRepository extends JpaRepository<AiFeedback, Long> {
 
     void deleteAllByUserId(Long id);
 
-    Optional<AiFeedback> findFirstByUserIdOrderByCreatedAtDesc(Long id);
+    Optional<AiFeedback> findFirstByUserIdOrderByLastFeedbackReceivedAtDesc(Long id);
 }

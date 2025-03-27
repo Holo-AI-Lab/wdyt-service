@@ -34,10 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Supplier;
 
 @Service
@@ -187,11 +184,11 @@ public class AiFeedbackService {
         }
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
         feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), promptId, gptResponse, locationAndWeather, LocalDateTime.now()));
-
         Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(gptResponse, aiSubmissionImage.imageType());
         Map<String, List<String>> tags = getTags(analysis);
 
         feedback.updateTags(tags);
+        updateLastSubmissionDate(feedback);
         AiFeedback savedAiFeedback = aiFeedbackRepository.save(feedback);
 
         eventPublisher.publishEvent(new AiFeedbackReceivedEvent(savedAiFeedback.getId(), currentUser.getId(), aiUser.getId()));
@@ -271,7 +268,7 @@ public class AiFeedbackService {
     @Transactional(readOnly = true)
     public AiFeedbackDetailedDto getLatestAiFeedback() {
         User user = userService.getUser();
-        AiFeedback aiFeedback = aiFeedbackRepository.findFirstByUserIdOrderByCreatedAtDesc(user.getId()).orElseThrow(NotFoundException::new);
+        AiFeedback aiFeedback = aiFeedbackRepository.findFirstByUserIdOrderByLastFeedbackReceivedAtDesc(user.getId()).orElseThrow(NotFoundException::new);
         return generateAiFeedbackDto(aiFeedback);
     }
 
@@ -327,6 +324,7 @@ public class AiFeedbackService {
                 .findFirst()
                 .orElseThrow(NotFoundException::new);
         aiFeedback.removeFeedbackEntry(feedbackEntry);
+        updateLastSubmissionDate(aiFeedback);
         saveOrDeleteAiFeedbackBasedOnEntries(aiFeedback);
     }
 
@@ -343,6 +341,14 @@ public class AiFeedbackService {
         if (!userHasEnoughCredits) {
             throw new InsufficientCreditException(userService.getUser().getId());
         }
+    }
+
+    private void updateLastSubmissionDate(AiFeedback aiFeedback) {
+        aiFeedback.getFeedbackEntries().stream()
+                .max(Comparator.comparing(FeedbackEntry::createdAt))
+                .ifPresentOrElse(feedbackEntry -> aiFeedback.setLastFeedbackReceivedAt(feedbackEntry.createdAt()),
+                        () -> aiFeedback.setLastFeedbackReceivedAt(null)
+                );
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

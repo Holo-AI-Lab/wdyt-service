@@ -30,6 +30,8 @@ public class AiFeedback implements TaggableEntity, FeedbackReceiverEntity {
     private ImageType imageType;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+    @Column(name = "last_feedback_received_at")
+    private LocalDateTime lastFeedbackReceivedAt;
     @Column(name = "like_style")
     private boolean likeStyle;
     @Convert(converter = TagConverter.class)

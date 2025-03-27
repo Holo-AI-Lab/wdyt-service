@@ -89,7 +89,6 @@ public class AppleNotificationHistorySyncService {
 
     private Mono<String> callAppleApi(String requestUrl, Map<String, Object> requestBody) throws Exception {
         String jwtToken = appleClientSecretGenerator.generateAppleJwtFromKeyString();
-        System.out.println("JWT Token: " + jwtToken);
         return WebClient.builder()
                 .baseUrl(requestUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
