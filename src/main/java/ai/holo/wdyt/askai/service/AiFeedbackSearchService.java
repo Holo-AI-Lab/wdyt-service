@@ -15,8 +15,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -91,6 +93,15 @@ public class AiFeedbackSearchService {
 
         // Build the base query string dynamically based on the table name
         String baseQuery = "SELECT af.* FROM " + tableName + " af";
+
+        if (feedbackIdForComparison != null) {
+            // feedbackIdForComparison is used to exclude feedbacks that have already been compared with the given feedback
+            // We'll add this id to notIds list to exclude the feedback itself from the results
+            idsNot = Stream.concat(
+                    Optional.ofNullable(idsNot).orElseGet(ArrayList::new).stream(),
+                    Stream.of(feedbackIdForComparison)
+            ).collect(Collectors.toList());
+        }
         String whereClause = buildWhereClause(tagFilters, liked, feedbackIdForComparison, idsNot, imageType);
 
         // Construct the full query
