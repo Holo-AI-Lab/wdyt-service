@@ -51,7 +51,7 @@ public class UserCreditService {
     public void renewFreemiumAndMarkExpiredCreditsToInvalid() {
         LocalDateTime now = LocalDateTime.now();
         List<UserCredit> expiredCredits = creditRepository.findExpiredCredits();
-        log.info("Processing {} expired credits at {}", expiredCredits.size(), now);
+        log.info("Processing {} expired credits ", expiredCredits.size());
         expiredCredits.forEach(this::processExpiredCredit);
     }
 

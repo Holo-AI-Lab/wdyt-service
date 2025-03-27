@@ -20,9 +20,9 @@ public class UserCreditUpdaterScheduledJob {
     @SchedulerLock(name = "Scheduler_scheduledUpdateUserCreditsLock", lockAtLeastFor = "PT5M", lockAtMostFor = "PT55M")
     @Transactional
     public void updateUserCredits() {
-        log.info("Starting update user credits job at {}", System.currentTimeMillis());
+        log.info("Starting update user credits job...");
         userCreditService.renewFreemiumAndMarkExpiredCreditsToInvalid();
         userCreditService.markConsumedCreditsToInvalid();
-        log.info("Finished update user credits job at {}", System.currentTimeMillis());
+        log.info("Finished update user credits job.");
     }
 }
