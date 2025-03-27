@@ -159,7 +159,7 @@ public class FriendService {
         if (notGivenFeedbackTo != null) {
             AiFeedback aiFeedback = aiFeedbackRepository.findById(notGivenFeedbackTo).orElseThrow(NotFoundException::new);
             Set<Long> notIds = aiFeedback.getFeedbackEntries().stream().map(FeedbackEntry::userId).collect(Collectors.toSet());
-            if (StringUtils.isEmpty(search)) {
+            if (!StringUtils.isEmpty(search)) {
                 return friendRepository
                         .findAllByUserIdAndIdNotInWithSearch(user.getId(), notIds, search, pageRequest);
             } else {
@@ -167,14 +167,13 @@ public class FriendService {
                         .findAllByUserIdAndIdNotIn(user.getId(), notIds, pageRequest);
             }
         } else {
-            if (StringUtils.isEmpty(search)) {
+            if (!StringUtils.isEmpty(search)) {
                 return friendRepository
                         .findAllByUserIdWithSearch(user.getId(), search, pageRequest);
             } else {
                 return friendRepository.findAllByUserId(user.getId(), pageRequest);
             }
         }
-
     }
 
     public void removeFriend(RemoveFriendRequestDto removeFriendRequestDto) {
