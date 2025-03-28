@@ -51,8 +51,8 @@ public class AppleTransactionCreatedEventListener {
             log.error("User subscription not found for userId: {}", appleTransaction.getUserId());
             throw new RuntimeException("User subscription not found for userId: " + appleTransaction.getUserId());
         }
-        if (appleTransaction.getSubscriptionPlan() == SubscriptionPlan.ONE_TIME_PURCHASE) {
-            log.info("User with ID {} made a one-time purchase.", appleTransaction.getUserId());
+        if (!appleTransaction.getSubscriptionPlan().isRecurring()) {
+            log.info("A non-recurring transaction has been made, no need to update subscription status for userId: {}", appleTransaction.getUserId());
             return;
         }
 
@@ -68,7 +68,8 @@ public class AppleTransactionCreatedEventListener {
     private void addCredits(AppleTransaction appleTransaction) {
         Long userId = appleTransaction.getUserId();
         SubscriptionPlan subscriptionPlan = appleTransaction.getSubscriptionPlan();
-        userCreditService.addCredits(userId, appleTransaction.getId(), subscriptionPlan, CreditType.SUBSCRIPTION);
-        log.info("Credits added for transactionId: {}", appleTransaction.getId());
+        CreditType creditType = SubscriptionPlan.ONE_TIME_PURCHASE.equals(subscriptionPlan) ? CreditType.ONE_TIME_PURCHASE : CreditType.RECURRING_PURCHASE;
+        userCreditService.addCredits(userId, appleTransaction.getId(), subscriptionPlan, creditType);
+        log.info("Credits added for transactionId: {}", appleTransaction.commigetId());
     }
 }

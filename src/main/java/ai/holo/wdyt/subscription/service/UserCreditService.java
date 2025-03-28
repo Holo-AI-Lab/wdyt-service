@@ -6,6 +6,7 @@ import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
 import ai.holo.wdyt.subscription.model.entity.UserCredit;
 import ai.holo.wdyt.subscription.repository.AppleTransactionRepository;
 import ai.holo.wdyt.subscription.repository.UserCreditRepository;
+import ai.holo.wdyt.subscription.repository.UserSubscriptionRepository;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserRepository;
 import ai.holo.wdyt.user.service.UserService;
@@ -31,13 +32,15 @@ public class UserCreditService {
     private final AppleTransactionRepository appleTransactionRepository;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final UserSubscriptionRepository userSubscriptionRepository;
 
     public UserCreditService(UserCreditRepository creditRepository, AppleTransactionRepository appleTransactionRepository,
-                             UserService userService, UserRepository userRepository) {
+                             UserService userService, UserRepository userRepository, UserSubscriptionRepository userSubscriptionRepository) {
         this.creditRepository = creditRepository;
         this.appleTransactionRepository = appleTransactionRepository;
         this.userService = userService;
         this.userRepository = userRepository;
+        this.userSubscriptionRepository = userSubscriptionRepository;
     }
 
     public void addFreemiumCredits(Long userId) {
@@ -67,7 +70,7 @@ public class UserCreditService {
     private void processFreemiumCreditForUser(Long userId) {
         LocalDateTime now = LocalDateTime.now();
         boolean hasActiveSubscription = creditRepository.existsByUserIdAndCreditTypeAndExpiresAtGreaterThan(
-                userId, CreditType.SUBSCRIPTION, now);
+                userId, CreditType.RECURRING_PURCHASE, now);
         if (!hasActiveSubscription) {
             addFreemiumCredits(userId);
             log.info("User {} does not have an active subscription. Freemium credits renewed.", userId);
@@ -111,7 +114,7 @@ public class UserCreditService {
 
         List<UserCredit> validCredits = creditRepository.findValidCreditsByUserIdSortedByExpiresAt(user.getId());
         UserCredit activeSubscriptionCredit = validCredits.stream()
-                .filter(c -> CreditType.SUBSCRIPTION.equals(c.getCreditType()))
+                .filter(c -> CreditType.RECURRING_PURCHASE.equals(c.getCreditType()))
                 .max(Comparator.comparing(UserCredit::getExpiresAt))
                 .orElse(null);
         SubscriptionPlan activeSubscriptionPlan = activeSubscriptionCredit != null ?

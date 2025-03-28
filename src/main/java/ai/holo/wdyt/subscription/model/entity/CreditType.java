@@ -2,5 +2,6 @@ package ai.holo.wdyt.subscription.model.entity;
 
 public enum CreditType {
     FREEMIUM,
-    SUBSCRIPTION
+    ONE_TIME_PURCHASE,
+    RECURRING_PURCHASE
 }
