@@ -70,6 +70,6 @@ public class AppleTransactionCreatedEventListener {
         SubscriptionPlan subscriptionPlan = appleTransaction.getSubscriptionPlan();
         CreditType creditType = SubscriptionPlan.ONE_TIME_PURCHASE.equals(subscriptionPlan) ? CreditType.ONE_TIME_PURCHASE : CreditType.RECURRING_PURCHASE;
         userCreditService.addCredits(userId, appleTransaction.getId(), subscriptionPlan, creditType);
-        log.info("Credits added for transactionId: {}", appleTransaction.commigetId());
+        log.info("Credits added for transactionId: {}", appleTransaction.getId());
     }
 }
