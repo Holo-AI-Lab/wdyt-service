@@ -8,7 +8,7 @@ import java.util.Optional;
 public enum SubscriptionPlan {
     WEEKLY("1001", 25, 7, true),
     MONTHLY("1002", 100, 30, true),
-    YEARLY("1003", 1200 , 365, true),
+    ANNUAL("1003", 1200 , 365, true),
     ONE_TIME_PURCHASE("1004", 10 , 7, false);
 
     private final String planId;
