@@ -187,8 +187,7 @@ public class UserService {
 
     private String saveProfileImageOnS3(InputStream image, User user, long currentTimeMillis) {
         String path = String.format("%d/profile_%d.png", user.getId(),currentTimeMillis);
-        s3Service.saveImage(image, path);
-        return path;
+        return s3Service.saveImage(image, path);
     }
 
     @Transactional

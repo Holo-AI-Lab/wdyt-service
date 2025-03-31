@@ -23,7 +23,7 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
     Page<Friend> findAllByUserId(Long id, PageRequest pageRequest);
 
     @EntityGraph(attributePaths = {"friend"})
-    Page<Friend> findAllByUserIdAndIdNotIn(Long id, Collection<Long> notIds, PageRequest pageRequest);
+    Page<Friend> findAllByUserIdAndFriendIdNotIn(Long id, Collection<Long> notIds, PageRequest pageRequest);
 
     @Query("SELECT f FROM user_friend f " +
             "JOIN f.friend fr " +
@@ -44,7 +44,7 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
             "LOWER(fr.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
             "LOWER(fr.username) LIKE LOWER(CONCAT('%', :search, '%')))")
     @EntityGraph(attributePaths = {"friend"})
-    Page<Friend> findAllByUserIdAndIdNotInWithSearch(@Param("userId") Long userId,
+    Page<Friend> findAllByUserIdAndFriendIdNotInWithSearch(@Param("userId") Long userId,
                                                      @Param("notIds") Collection<Long> notIds,
                                                      @Param("search") String search,
                                                      Pageable pageable);

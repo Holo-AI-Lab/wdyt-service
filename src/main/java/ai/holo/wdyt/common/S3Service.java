@@ -19,13 +19,15 @@ public class S3Service {
     private final String bucketName;
     private final String s3Endpoint;
     private final S3Client client;
+    private final EnvironmentUtil environmentUtil;
 
     public S3Service(@Value("${aws.region}") String region,
                      @Value("${aws.profile}") String awsProfile,
                      @Value("${aws.s3.bucket}") String bucketName,
-                     @Value("${aws.s3.endpoint}") String s3Endpoint) {
+                     @Value("${aws.s3.endpoint}") String s3Endpoint, EnvironmentUtil environmentUtil) {
         this.bucketName = bucketName;
         this.s3Endpoint = s3Endpoint;
+        this.environmentUtil = environmentUtil;
         this.client = S3Client.builder().region(Region.of(region)).
                 credentialsProvider(ProfileCredentialsProvider.create(awsProfile)).build();
     }
@@ -39,21 +41,31 @@ public class S3Service {
         return client.getObject(getObjectRequest);
     }
 
-    public void saveImage(InputStream image, String path) {
+    public String saveImage(InputStream image, String path) {
+        path = updatePathBasedOnEnvironment(path);
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(path)
                     .build();
             client.putObject(putObjectRequest, RequestBody.fromInputStream(image, image.available()));
+            return path;
         } catch (IOException e) {
             log.error("Failed to save image to S3", e);
             throw new RuntimeException(e);
         }
     }
 
+    private String updatePathBasedOnEnvironment(String path) {
+        if (environmentUtil.isDevelopment()) {
+            path = "dev/" + path;
+        }
+        return path;
+    }
+
 
     public void deleteDirectory(String directoryPrefix) {
+        directoryPrefix = updatePathBasedOnEnvironment(directoryPrefix);
         ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
                 .bucket(bucketName)
                 .prefix(directoryPrefix)

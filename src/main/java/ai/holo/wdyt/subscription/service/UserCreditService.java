@@ -115,7 +115,7 @@ public class UserCreditService {
         List<UserCredit> validCredits = creditRepository.findValidCreditsByUserIdSortedByExpiresAt(user.getId());
         UserCredit activeSubscriptionCredit = validCredits.stream()
                 .filter(c -> CreditType.RECURRING_PURCHASE.equals(c.getCreditType()))
-                .max(Comparator.comparing(UserCredit::getExpiresAt))
+                .max(Comparator.comparing(UserCredit::getCreatedAt))
                 .orElse(null);
         SubscriptionPlan activeSubscriptionPlan = activeSubscriptionCredit != null ?
                 appleTransactionRepository.findById(activeSubscriptionCredit.getTransactionId()).get().getSubscriptionPlan() : null;

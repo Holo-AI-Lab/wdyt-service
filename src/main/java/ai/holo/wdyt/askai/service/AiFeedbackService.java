@@ -222,14 +222,12 @@ public class AiFeedbackService {
 
     private String saveExtractedImageOnS3(User user, long currentTimeMillis, InputStream extractedImage) {
         String path = String.format("%d/%d/extracted_%d.png", user.getId(), currentTimeMillis, currentTimeMillis);
-        s3Service.saveImage(extractedImage, path);
-        return path;
+        return s3Service.saveImage(extractedImage, path);
     }
 
     private String saveRawImageOnS3(InputStream image, User user, long currentTimeMillis) {
         String path = String.format("%d/%d/raw_%d.png", user.getId(), currentTimeMillis, currentTimeMillis);
-        s3Service.saveImage(image, path);
-        return path;
+        return s3Service.saveImage(image, path);
     }
 
     @Transactional(readOnly = true)
