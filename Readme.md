@@ -261,8 +261,8 @@ INSERT INTO gpt_prompt (prompt, submission_type, image_type, active) VALUES (
 CREATE TABLE ai_comparison_feedback (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
     user_id INT(11) NOT NULL,
-    ai_feedback_id1 INT(11) NOT NULL,
-    ai_feedback_id2 INT(11) NOT NULL,
+    ai_feedback_id1 INT(11) NULL,
+    ai_feedback_id2 INT(11) NULL,
     image_type VARCHAR(255) NOT NULL DEFAULT 'OTHER',
     image1_path VARCHAR(500) NOT NULL,
     image2_path VARCHAR(500) NOT NULL,
@@ -272,9 +272,8 @@ CREATE TABLE ai_comparison_feedback (
     tags JSON NULL,
     feedback_entries JSON NULL,
     FOREIGN KEY (user_id) REFERENCES user(id),
-    FOREIGN KEY (user_id) REFERENCES user(id),
-    FOREIGN KEY (ai_feedback_id1) REFERENCES ai_feedback(id),
-    FOREIGN KEY (ai_feedback_id2) REFERENCES ai_feedback(id)
+    FOREIGN KEY (ai_feedback_id1) REFERENCES ai_feedback(id) ON DELETE SET NULL,
+    FOREIGN KEY (ai_feedback_id2) REFERENCES ai_feedback(id) ON DELETE SET NULL
 );
 
 ALTER table `ai_feedback` drop column `top_list_order`;
@@ -324,10 +323,29 @@ ALTER TABLE report_ai_feedback DROP FOREIGN KEY report_ai_feedback_ibfk_2;
 ALTER TABLE report_ai_feedback ADD COLUMN ai_comparison_feedback_id INT(11) DEFAULT NULL;
 ALTER TABLE report_ai_feedback MODIFY COLUMN ai_feedback_id INT(11) DEFAULT NULL;
 
-alter table ai_feedback add column last_feedback_received_at timestamp default current_timestamp null;
+alter table ai_feedback add column last_feedback_received_at timestamp default current_timestamp not null;
+
+UPDATE ai_feedback af
+JOIN (
+    SELECT
+        id,
+        MAX(
+            -- Remove 'Z' and truncate the microseconds part
+            STR_TO_DATE(
+                REPLACE(SUBSTRING_INDEX(JSON_UNQUOTE(JSON_EXTRACT(fe, '$.createdAt')), '.', 1), 'Z', ''),
+                '%Y-%m-%dT%H:%i:%s'
+            )
+        ) AS latest_created_at
+    FROM ai_feedback,
+    JSON_TABLE(feedback_entries, '$[*]' COLUMNS (fe JSON PATH '$')) AS jt
+    GROUP BY id
+) subquery ON af.id = subquery.id
+SET af.last_feedback_received_at = subquery.latest_created_at;
+
 ```
 
 # Create Docker image and push to ECR
+
 ```
 1-  ./gradlew build
 2-  docker build --platform linux/amd64 -t wdyt-service .
