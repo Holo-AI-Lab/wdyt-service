@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -27,19 +28,17 @@ import java.util.Map;
 @Service
 @Slf4j
 public class AppleNotificationHistorySyncService {
-
-    private static final String APPLE_API_URL = "https://api.storekit-sandbox.itunes.apple.com/inApps/v1/notifications/history";
-    // For Production:
-    // private static final String APPLE_API_URL = "https://api.storekit.itunes.apple.com/inApps/v1/notifications/history";
-
     private static final int DAYS_BACK = 3;
     private final ObjectMapper objectMapper;
     private final AppleClientSecretGenerator appleClientSecretGenerator;
     private final AppleSubscriptionService appleSubscriptionService;
+    private final String appleNotificationHistoryApiUrl;
 
-    public AppleNotificationHistorySyncService(ObjectMapper objectMapper,
+    public AppleNotificationHistorySyncService(@Value("${apple.storekit.url}") String appleNotificationHistoryApiUrl,
+                                               ObjectMapper objectMapper,
                                                AppleClientSecretGenerator appleClientSecretGenerator,
                                                AppleSubscriptionService appleSubscriptionService) {
+        this.appleNotificationHistoryApiUrl = appleNotificationHistoryApiUrl;
         this.objectMapper = objectMapper;
         this.appleClientSecretGenerator = appleClientSecretGenerator;
         this.appleSubscriptionService = appleSubscriptionService;
@@ -73,7 +72,7 @@ public class AppleNotificationHistorySyncService {
     }
 
     private String buildRequestUrl(String paginationToken) {
-        return (paginationToken == null) ? APPLE_API_URL : APPLE_API_URL + "?paginationToken=" + paginationToken;
+        return (paginationToken == null) ? appleNotificationHistoryApiUrl : appleNotificationHistoryApiUrl + "?paginationToken=" + paginationToken;
     }
 
     private Map<String, Object> buildRequestBody(String paginationToken, long startDate, long endDate, boolean onlyFailures) {
@@ -106,7 +105,6 @@ public class AppleNotificationHistorySyncService {
                     }
                 });
     }
-
 
     private void processNotifications(List<AppleNotificationHistoryResponse.AppleNotificationItem> notifications) {
         if (notifications == null || notifications.isEmpty()) {

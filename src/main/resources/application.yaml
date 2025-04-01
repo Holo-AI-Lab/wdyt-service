@@ -19,6 +19,9 @@ aws:
   sns:
     pushNotificationArn: arn:aws:sns:us-east-1:976193257823:app/APNS_SANDBOX/wdyt-test-push
     apnsIdentifier: APNS_SANDBOX
+apple:
+  storekit:
+    url: https://api.storekit-sandbox.itunes.apple.com/inApps/v1/notifications/history
 integrations:
   create-robot:
     url: https://test.the2nd.ai/aiCompanion/api/wdyt/robot/createRobot

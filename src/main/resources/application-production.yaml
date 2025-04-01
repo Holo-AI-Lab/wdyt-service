@@ -15,6 +15,9 @@ aws:
   s3:
     bucket: ${S3_BUCKET_NAME}
     endpoint: ${S3_ENDPOINT}
+apple:
+  storekit:
+    url: ${APPLE_STOREKIT_URL}
 integrations:
   create-robot:
     url: ${CREATE_ROBOT_URL}
