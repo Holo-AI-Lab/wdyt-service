@@ -1,6 +1,7 @@
 package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.common.event.service.EventConsumer;
+import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.subscription.model.entity.AppleTransaction;
 import ai.holo.wdyt.subscription.model.entity.CreditType;
 import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
@@ -71,18 +72,17 @@ public class AppleTransactionCreatedEventListener {
     }
 
     private void updateCreditsOnSubscriptionUpgrade(AppleTransaction appleTransaction) {
-        userSubscriptionRepository.findByUserId(appleTransaction.getUserId()).ifPresent(userSubscription -> {
+        UserSubscription userSubscription = userSubscriptionRepository
+                .findByUserId(appleTransaction.getUserId()).orElseThrow(NotFoundException::new);
             boolean isRecurring = appleTransaction.getSubscriptionPlan().isRecurring();
             
             if ((userSubscription.getSubscriptionPlan() == null) && isRecurring) {
                 refreshCreditExpireDates(appleTransaction);
-
             } else if (isRecurring && userSubscription.getSubscriptionPlan().isRecurring()) {
                 if (userSubscription.getSubscriptionPlan().getCredit() < appleTransaction.getSubscriptionPlan().getCredit()) {
                     refreshCreditExpireDates(appleTransaction);
                 }
             }
-        });
     }
 
     private void refreshCreditExpireDates(AppleTransaction appleTransaction) {
