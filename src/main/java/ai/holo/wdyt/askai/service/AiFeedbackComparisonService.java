@@ -26,6 +26,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -87,6 +88,10 @@ public class AiFeedbackComparisonService {
                 gptResponse, locationAndWeather, LocalDateTime.now()));
 
         Map<String, List<String>> tags = analysis.getTags();
+        // Override occasion tags with the ones coming from the user
+        if (!CollectionUtils.isEmpty(comparisonSubmissionDto.occasions())) {
+            tags.put("occasion", comparisonSubmissionDto.occasions());
+        }
 
         aiComparisonFeedback.updateTags(tags);
         AiComparisonFeedback savedAiFeedback = aiFeedbackComparisonRepository.save(aiComparisonFeedback);
