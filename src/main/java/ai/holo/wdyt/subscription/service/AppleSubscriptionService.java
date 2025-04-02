@@ -81,16 +81,16 @@ public class AppleSubscriptionService {
                 .atZone(ZoneId.systemDefault()) // Use system default time zone
                 .toLocalDateTime();
 
+        String callSource = callbackFromApple ? "Callback from Apple" : "Call from Ios App";
         if (appleTransactionRepository.existsByTransactionId(userTransactionDto.transactionId())) {
-            log.warn("Transaction already exists for transaction Id: {}", userTransactionDto.transactionId());
+            log.warn("Transaction already exists for transaction Id: {} , call-source is {} - more details : {}", userTransactionDto.transactionId(), callSource , userTransactionDto);
             return;
         }
         AppleTransaction appleTransaction = new AppleTransaction(userSubscription.getUserId(), subscriptionPlan, userTransactionDto.originalTransactionId(),
                 userTransactionDto.transactionId(), purchaseDate);
         appleTransactionRepository.save(appleTransaction);
         eventPublisher.publishEvent(new AppleTransactionCreatedEvent(appleTransaction.getId()));
-        String callSource = callbackFromApple ? "Callback from Apple" : "Call from Ios App";
-        log.info("Transaction created for transaction Id: {} and callbackFromApple is {}", userTransactionDto.transactionId(), callSource);
+        log.info("Transaction created for transaction Id: {} and call-source is {}", userTransactionDto.transactionId(), callSource);
     }
 
     private String generateUniqueAppAccountToken() {

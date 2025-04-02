@@ -43,7 +43,8 @@ public class AppleSubscriptionController {
     }
 
     @PostMapping("/notification")
-    public ResponseEntity<Void> handleAppleNotification(@RequestParam(name = "signedPayload") String signedPayload) {
+    public ResponseEntity<Void> handleAppleNotification(@RequestBody String signedPayload) {
+        log.info("Apple Notification received: {}", signedPayload);
         if (StringUtils.isEmpty(signedPayload)) {
             log.error("signedPayload is missing");
             return ResponseEntity.badRequest().build();
