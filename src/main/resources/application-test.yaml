@@ -17,7 +17,7 @@ aws:
     endpoint: ${S3_ENDPOINT}
 apple:
   storekit:
-    url: ${APPLE_STOREKIT_URL}
+    url: https://api.storekit-sandbox.itunes.apple.com/inApps/v1/notifications/history
 integrations:
   create-robot:
     url: ${CREATE_ROBOT_URL}

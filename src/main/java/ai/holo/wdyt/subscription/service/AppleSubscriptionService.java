@@ -69,7 +69,7 @@ public class AppleSubscriptionService {
     }
 
     @Transactional
-    public void createTransaction(UserTransactionDto userTransactionDto, boolean source) {
+    public void createTransaction(UserTransactionDto userTransactionDto, boolean callbackFromApple) {
         Optional<UserSubscription> subscription = userSubscriptionRepository.findByAppAccountToken(userTransactionDto.appAccountToken());
         if (subscription.isEmpty()) {
             throw new BadRequestException("Subscription not found for App Account Token: " + userTransactionDto.appAccountToken());
@@ -85,12 +85,12 @@ public class AppleSubscriptionService {
             log.warn("Transaction already exists for transaction Id: {}", userTransactionDto.transactionId());
             return;
         }
-        AppleTransaction appleTransaction = new AppleTransaction(userSubscription.getUserId(), subscriptionPlan, userTransactionDto.originalTransactionId(), userTransactionDto.transactionId(), purchaseDate);
+        AppleTransaction appleTransaction = new AppleTransaction(userSubscription.getUserId(), subscriptionPlan, userTransactionDto.originalTransactionId(),
+                userTransactionDto.transactionId(), purchaseDate);
         appleTransactionRepository.save(appleTransaction);
         eventPublisher.publishEvent(new AppleTransactionCreatedEvent(appleTransaction.getId()));
-        String src = source ? "Controller(App)" : "Event Listener(db)";
-        log.info("Transaction created for transaction Id: {} and source is {}", userTransactionDto.transactionId(), src);
-        log.warn("Transaction created for transaction Id: {} and source is {}. Transaction info: {}", userTransactionDto.transactionId(), src, userTransactionDto);
+        String callSource = callbackFromApple ? "Callback from Apple" : "Call from Ios App";
+        log.info("Transaction created for transaction Id: {} and callbackFromApple is {}", userTransactionDto.transactionId(), callSource);
     }
 
     private String generateUniqueAppAccountToken() {
@@ -111,8 +111,7 @@ public class AppleSubscriptionService {
 
         String notificationUUID = notification.notificationUUID();
         if(appleNotificationRepository.existsByNotificationId(notificationUUID)) {
-            log.warn("Notification already exists for notificationUUID: {}", notificationUUID);
-            log.warn("Detailed info -> Decoded Apple Notification Payload: {}", notification);
+            log.warn("Notification already exists for notificationUUID: {} - Notification Details: {}", notificationUUID, notification);
             return;
         }
         AppleNotification appleNotification = new AppleNotification(notificationUUID, notification.notificationType(),

@@ -8,7 +8,6 @@ import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
 import ai.holo.wdyt.subscription.model.entity.UserSubscription;
 import ai.holo.wdyt.subscription.model.event.AppleTransactionCreatedEvent;
 import ai.holo.wdyt.subscription.repository.AppleTransactionRepository;
-import ai.holo.wdyt.subscription.repository.UserCreditRepository;
 import ai.holo.wdyt.subscription.repository.UserSubscriptionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -28,13 +27,13 @@ public class AppleTransactionCreatedEventListener {
     private final AppleTransactionRepository appleTransactionRepository;
     private final UserSubscriptionRepository userSubscriptionRepository;
     private final UserCreditService userCreditService;
-    private final UserCreditRepository userCreditRepository;
 
-    public AppleTransactionCreatedEventListener(AppleTransactionRepository appleTransactionRepository, UserSubscriptionRepository userSubscriptionRepository, UserCreditService userCreditService, UserCreditRepository userCreditRepository) {
+    public AppleTransactionCreatedEventListener(AppleTransactionRepository appleTransactionRepository,
+                                                UserSubscriptionRepository userSubscriptionRepository,
+                                                UserCreditService userCreditService) {
         this.appleTransactionRepository = appleTransactionRepository;
         this.userSubscriptionRepository = userSubscriptionRepository;
         this.userCreditService = userCreditService;
-        this.userCreditRepository = userCreditRepository;
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -44,10 +43,12 @@ public class AppleTransactionCreatedEventListener {
         if (appleTransaction.isEmpty()) {
             log.error("Apple transaction not found for id: {}", event.getAppleTransactionId());
             throw new RuntimeException("Apple transaction not found for id: " + event.getAppleTransactionId());
-        }else {
-            updateSubscriptionStatus(appleTransaction.get());
-            addCredits(appleTransaction.get());
         }
+
+        AppleTransaction transaction = appleTransaction.get();
+        updateSubscriptionStatus(transaction);
+        addCredits(transaction);
+        updateCreditsOnSubscriptionUpgrade(transaction);
     }
 
     private void updateSubscriptionStatus(AppleTransaction appleTransaction) {
@@ -60,7 +61,6 @@ public class AppleTransactionCreatedEventListener {
             log.info("A non-recurring transaction has been made, no need to update subscription status for userId: {}", appleTransaction.getUserId());
             return;
         }
-        updateCreditsOnSubscriptionUpgrade(appleTransaction);
 
         UserSubscription userSubscriptionSave = userSubscription.get();
         userSubscriptionSave.setIsActive(true);
@@ -74,26 +74,13 @@ public class AppleTransactionCreatedEventListener {
     private void updateCreditsOnSubscriptionUpgrade(AppleTransaction appleTransaction) {
         UserSubscription userSubscription = userSubscriptionRepository
                 .findByUserId(appleTransaction.getUserId()).orElseThrow(NotFoundException::new);
-            boolean isRecurring = appleTransaction.getSubscriptionPlan().isRecurring();
-            
-            if ((userSubscription.getSubscriptionPlan() == null) && isRecurring) {
-                refreshCreditExpireDates(appleTransaction);
-            } else if (isRecurring && userSubscription.getSubscriptionPlan().isRecurring()) {
-                if (userSubscription.getSubscriptionPlan().getCredit() < appleTransaction.getSubscriptionPlan().getCredit()) {
-                    refreshCreditExpireDates(appleTransaction);
-                }
-            }
-    }
 
-    private void refreshCreditExpireDates(AppleTransaction appleTransaction) {
-        log.info("User subscription plan has been upgraded, updating credits for userId: {}", appleTransaction.getUserId());
-        userCreditRepository.findValidCreditsByUserIdSortedByExpiresAt(appleTransaction.getUserId())
-                .forEach(credit -> {
-                    LocalDateTime newExpireDate = LocalDateTime.now().plusDays(appleTransaction.getSubscriptionPlan().getDurationDays());
-                    credit.setExpiresAt(newExpireDate);
-                    userCreditRepository.save(credit);
-                    log.info("Updated credit expiration date for userId: {} to {}", appleTransaction.getUserId(), newExpireDate);
-                });
+            boolean isPlanUpgraded = appleTransaction.getSubscriptionPlan().isRecurring() && (userSubscription.getSubscriptionPlan() == null
+                    || userSubscription.getSubscriptionPlan().getCredit() < appleTransaction.getSubscriptionPlan().getCredit());
+
+            if (isPlanUpgraded) {
+                userCreditService.refreshCreditExpireDatesForActiveCredits(appleTransaction);
+            }
     }
 
     private void addCredits (AppleTransaction appleTransaction){

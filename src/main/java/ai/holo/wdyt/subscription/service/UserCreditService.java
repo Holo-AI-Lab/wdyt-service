@@ -1,6 +1,7 @@
 package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.subscription.model.dto.UserValidCreditsDTO;
+import ai.holo.wdyt.subscription.model.entity.AppleTransaction;
 import ai.holo.wdyt.subscription.model.entity.CreditType;
 import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
 import ai.holo.wdyt.subscription.model.entity.UserCredit;
@@ -32,15 +33,14 @@ public class UserCreditService {
     private final AppleTransactionRepository appleTransactionRepository;
     private final UserService userService;
     private final UserRepository userRepository;
-    private final UserSubscriptionRepository userSubscriptionRepository;
 
-    public UserCreditService(UserCreditRepository creditRepository, AppleTransactionRepository appleTransactionRepository,
-                             UserService userService, UserRepository userRepository, UserSubscriptionRepository userSubscriptionRepository) {
+    public UserCreditService(UserCreditRepository creditRepository,
+                             AppleTransactionRepository appleTransactionRepository,
+                             UserService userService, UserRepository userRepository) {
         this.creditRepository = creditRepository;
         this.appleTransactionRepository = appleTransactionRepository;
         this.userService = userService;
         this.userRepository = userRepository;
-        this.userSubscriptionRepository = userSubscriptionRepository;
     }
 
     public void addFreemiumCredits(Long userId) {
@@ -103,9 +103,25 @@ public class UserCreditService {
 
     @Transactional
     public void addCredits(Long userId, Long transactionId, SubscriptionPlan subscriptionPlan, CreditType creditType) {
-        LocalDateTime expirationDate = LocalDateTime.now().plusDays(subscriptionPlan.getDurationDays());
+        LocalDateTime expirationDate = calculateExpirationDate(subscriptionPlan);
         UserCredit newCredit = new UserCredit(userId, subscriptionPlan.getCredit(), expirationDate, transactionId, creditType);
         increaseUserCredit(userId, newCredit);
+    }
+
+    @Transactional
+    public void refreshCreditExpireDatesForActiveCredits(AppleTransaction appleTransaction) {
+        log.info("User subscription plan has been upgraded, updating credits for userId: {}", appleTransaction.getUserId());
+
+        LocalDateTime newExpireDate = LocalDateTime.now().plusDays(appleTransaction.getSubscriptionPlan().getDurationDays());
+        List<UserCredit> updatedCredits = creditRepository.findValidCreditsByUserIdSortedByExpiresAt(appleTransaction.getUserId())
+                .stream().peek(credit -> credit.setExpiresAt(newExpireDate)).toList();
+        creditRepository.saveAll(updatedCredits);
+
+        log.info("Updated credit expiration date for userId: {} to {}", appleTransaction.getUserId(), newExpireDate);
+    }
+
+    private LocalDateTime calculateExpirationDate(SubscriptionPlan subscriptionPlan) {
+        return LocalDateTime.now().plusDays(subscriptionPlan.getDurationDays());
     }
 
     @Transactional(readOnly = true)

@@ -38,6 +38,7 @@ public class AppleSubscriptionController {
 
     @PostMapping("/notify-transaction")
     public void notifyTransaction(@RequestBody UserTransactionDto userSubscriptionDto) {
+        // This endpoint is being called by Ios Mobile App
         appleSubscriptionService.createTransaction(userSubscriptionDto, true);
     }
 
