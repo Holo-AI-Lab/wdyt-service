@@ -90,6 +90,7 @@ public class AppleSubscriptionService {
         eventPublisher.publishEvent(new AppleTransactionCreatedEvent(appleTransaction.getId()));
         String src = source ? "Controller(App)" : "Event Listener(db)";
         log.info("Transaction created for transaction Id: {} and source is {}", userTransactionDto.transactionId(), src);
+        log.warn("Transaction created for transaction Id: {} and source is {}. Transaction info: {}", userTransactionDto.transactionId(), src, userTransactionDto);
     }
 
     private String generateUniqueAppAccountToken() {
@@ -111,6 +112,7 @@ public class AppleSubscriptionService {
         String notificationUUID = notification.notificationUUID();
         if(appleNotificationRepository.existsByNotificationId(notificationUUID)) {
             log.warn("Notification already exists for notificationUUID: {}", notificationUUID);
+            log.warn("Detailed info -> Decoded Apple Notification Payload: {}", notification);
             return;
         }
         AppleNotification appleNotification = new AppleNotification(notificationUUID, notification.notificationType(),

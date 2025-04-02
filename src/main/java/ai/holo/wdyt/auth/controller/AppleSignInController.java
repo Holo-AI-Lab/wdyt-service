@@ -9,6 +9,7 @@ import ai.holo.wdyt.common.exception.AuthenticationException;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -35,14 +36,14 @@ public class AppleSignInController {
     public JwtTokenDto signInWithApple(@RequestBody @Valid AppleAuthenticationDto authenticationDto) {
         try {
             // Authenticate with Apple
-            Claims claims = appleSignInService.authenticateWithApple(authenticationDto.authorizationCode());
+         //   Claims claims = appleSignInService.authenticateWithApple(authenticationDto.authorizationCode());
 
-//            String email = "delis@mail.com";
-//            String name = "deli";
-//            Claims claims = Jwts.claims()
-//                    .setSubject("sddsds") // Subject is typically the user’s email or unique identifier
-//                    .add("name", name) // Add custom claim for name
-//                    .add("email", email).build(); // Add custom claim for email
+            String email = "delis@mail.com";
+            String name = "deli";
+            Claims claims = Jwts.claims()
+                    .setSubject("sddsds") // Subject is typically the user’s email or unique identifier
+                    .add("name", name) // Add custom claim for name
+                    .add("email", email).build(); // Add custom claim for email
 
             User user = userService.createOrRetrieveUser(claims.get("email", String.class),
                     claims.get("name", String.class), claims.getSubject());

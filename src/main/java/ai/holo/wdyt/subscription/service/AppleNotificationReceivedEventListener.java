@@ -40,6 +40,7 @@ public class AppleNotificationReceivedEventListener {
             UserTransactionDto userTransactionDto = appleJwsVerificationService.verifyAndDecodeSignedTransaction(signedTransactionInfo);
             appleSubscriptionService.createTransaction(userTransactionDto, false);
             log.info("Received notification with Id {} and type {} processed successfully, transaction created.", appleNotification.getId(), notificationType);
+            log.warn("Received notification with Id {} and type {}. Signed Transaction info: {}", appleNotification.getId(), notificationType, userTransactionDto);
         }
 
         updateSubscriptionPendingStatus(appleNotification);
