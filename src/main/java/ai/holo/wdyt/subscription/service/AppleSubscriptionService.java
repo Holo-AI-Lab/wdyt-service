@@ -81,7 +81,7 @@ public class AppleSubscriptionService {
                 .atZone(ZoneId.systemDefault()) // Use system default time zone
                 .toLocalDateTime();
 
-        String callSource = callbackFromApple ? "Callback from Apple" : "Call from Ios App";
+        String callSource = callbackFromApple ? "Call from Ios App" : "Callback from Apple";
         if (appleTransactionRepository.existsByTransactionId(userTransactionDto.transactionId())) {
             log.warn("Transaction already exists for transaction Id: {} , call-source is {} - more details : {}", userTransactionDto.transactionId(), callSource , userTransactionDto);
             return;

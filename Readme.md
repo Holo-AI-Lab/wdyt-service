@@ -318,7 +318,7 @@ true
 
 ALTER TABLE report_ai_feedback ADD COLUMN ai_feedback_entry_id VARCHAR(255);
 
-ALTER TABLE report_ai_feedback DROP FOREIGN KEY report_ai_feedback_ibfk_2;
+ALTER TABLE report_ai_feedback DROP FOREIGN KEY report_ai_feedback_ibfk_1;
 
 ALTER TABLE report_ai_feedback ADD COLUMN ai_comparison_feedback_id INT(11) DEFAULT NULL;
 ALTER TABLE report_ai_feedback MODIFY COLUMN ai_feedback_id INT(11) DEFAULT NULL;
