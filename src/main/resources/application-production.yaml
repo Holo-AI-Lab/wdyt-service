@@ -15,6 +15,9 @@ aws:
   s3:
     bucket: ${S3_BUCKET_NAME}
     endpoint: ${S3_ENDPOINT}
+  sns:
+    pushNotificationArn: arn:aws:sns:us-east-1:976193257823:app/APNS/wdyt-production-push
+    apnsIdentifier: APNS
 apple:
   storekit:
     url: https://api.storekit.itunes.apple.com/inApps/v1/notifications/history
