@@ -1,6 +1,7 @@
 package ai.holo.wdyt.user.service;
 
 import ai.holo.wdyt.askai.service.AiFeedbackDeleteService;
+import ai.holo.wdyt.subscription.repository.AppleTransactionRepository;
 import ai.holo.wdyt.subscription.repository.UserCreditRepository;
 import ai.holo.wdyt.subscription.repository.UserSubscriptionRepository;
 import ai.holo.wdyt.user.model.entity.User;
@@ -21,6 +22,7 @@ public class UserDeleteAccountService {
     private final UserService userService;
     private final UserCreditRepository userCreditRepository;
     private final UserSubscriptionRepository userSubscriptionRepository;
+    private final AppleTransactionRepository appleTransactionRepository;
 
     public UserDeleteAccountService(UserRepository userRepository,
                                     RobotService robotService,
@@ -29,7 +31,7 @@ public class UserDeleteAccountService {
                                     FriendService friendService,
                                     UserService userService,
                                     UserCreditRepository userCreditRepository,
-                                    UserSubscriptionRepository userSubscriptionRepository) {
+                                    UserSubscriptionRepository userSubscriptionRepository, AppleTransactionRepository appleTransactionRepository) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
@@ -38,12 +40,14 @@ public class UserDeleteAccountService {
         this.userService = userService;
         this.userCreditRepository = userCreditRepository;
         this.userSubscriptionRepository = userSubscriptionRepository;
+        this.appleTransactionRepository = appleTransactionRepository;
     }
 
     public void deleteAccount() {
         User user = userService.getUser();
         robotService.deleteRobot(user.getRobot().getId());
         friendService.deleteUser(user.getId());
+        appleTransactionRepository.deleteAllByUserId(user.getId());
         userCreditRepository.deleteAllByUserId(user.getId());
         userSubscriptionRepository.deleteAllByUserId(user.getId());
         userFeedbackRepository.deleteAllByUserId(user.getId());
