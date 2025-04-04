@@ -47,8 +47,8 @@ public class UserDeleteAccountService {
         User user = userService.getUser();
         robotService.deleteRobot(user.getRobot().getId());
         friendService.deleteUser(user.getId());
-        appleTransactionRepository.deleteAllByUserId(user.getId());
         userCreditRepository.deleteAllByUserId(user.getId());
+        appleTransactionRepository.deleteAllByUserId(user.getId());
         userSubscriptionRepository.deleteAllByUserId(user.getId());
         userFeedbackRepository.deleteAllByUserId(user.getId());
         aiFeedbackDeleteService.deleteAllByUserId(user.getId());
