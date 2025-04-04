@@ -30,7 +30,7 @@
         </root>
     </springProfile>
 
-    <springProfile name="test,prod">
+    <springProfile name="test,production">
         <root level="info">
             <appender-ref ref="CONSOLE"/>
             <appender-ref ref="CLOUDWATCH"/>
