@@ -46,8 +46,7 @@ public class AppleJwsVerificationService {
     // Verifies and decodes an Apple notification token.
     public AppleNotificationPayload verifyAndDecodeNotification(String jwsToken) {
         try {
-            String token = objectMapper.readTree(jwsToken).get("signedPayload").asText();
-            String payloadJson = parseJws(token);
+            String payloadJson = parseJws(jwsToken);
             return objectMapper.readValue(payloadJson, AppleNotificationPayload.class);
         } catch (Exception e) {
             log.error("Error verifying Apple JWS: {}", e.getMessage());

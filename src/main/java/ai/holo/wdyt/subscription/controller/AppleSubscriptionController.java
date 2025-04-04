@@ -1,5 +1,6 @@
 package ai.holo.wdyt.subscription.controller;
 
+import ai.holo.wdyt.subscription.model.dto.AppleNotificationDto;
 import ai.holo.wdyt.subscription.model.dto.TransactionPendingDTO;
 import ai.holo.wdyt.subscription.model.dto.UserSubscriptionDto;
 import ai.holo.wdyt.subscription.model.dto.UserTransactionDto;
@@ -39,17 +40,13 @@ public class AppleSubscriptionController {
     @PostMapping("/notify-transaction")
     public void notifyTransaction(@RequestBody UserTransactionDto userSubscriptionDto) {
         // This endpoint is being called by Ios Mobile App
-        appleSubscriptionService.createTransaction(userSubscriptionDto, true);
+        appleSubscriptionService.createTransaction(userSubscriptionDto, false);
     }
 
     @PostMapping("/notification")
-    public ResponseEntity<Void> handleAppleNotification(@RequestBody String signedPayload) {
-        log.info("Apple Notification received: {}", signedPayload);
-        if (StringUtils.isEmpty(signedPayload)) {
-            log.error("signedPayload is missing");
-            return ResponseEntity.badRequest().build();
-        }
-        appleSubscriptionService.processNotification(signedPayload);
+    public ResponseEntity<Void> handleAppleNotification(@RequestBody AppleNotificationDto payload) {
+        log.info("Apple Notification received: {}", payload);
+        appleSubscriptionService.processNotification(payload);
         return ResponseEntity.ok().build();
     }
 }

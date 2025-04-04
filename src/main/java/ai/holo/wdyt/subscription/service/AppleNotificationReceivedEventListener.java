@@ -38,7 +38,7 @@ public class AppleNotificationReceivedEventListener {
         if (notificationType.equals("SUBSCRIBED") || notificationType.equals("DID_RENEW") || notificationType.equals("ONE_TIME_CHARGE")) {
             String signedTransactionInfo = appleNotification.getSignedTransactionInfo();
             UserTransactionDto userTransactionDto = appleJwsVerificationService.verifyAndDecodeSignedTransaction(signedTransactionInfo);
-            appleSubscriptionService.createTransaction(userTransactionDto, false);
+            appleSubscriptionService.createTransaction(userTransactionDto, true);
             log.info("Received notification with Id {} and type {} processed successfully, transaction created. Signed Transaction info: {}", appleNotification.getId(), notificationType, userTransactionDto);
         }
 

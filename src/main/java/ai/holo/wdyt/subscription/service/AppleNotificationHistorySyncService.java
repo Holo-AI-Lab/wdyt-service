@@ -1,6 +1,7 @@
 package ai.holo.wdyt.subscription.service;
 
 import ai.holo.wdyt.config.authentication.apple.AppleClientSecretGenerator;
+import ai.holo.wdyt.subscription.model.dto.AppleNotificationDto;
 import ai.holo.wdyt.subscription.model.dto.AppleNotificationHistoryResponse;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -10,7 +11,8 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,7 +66,7 @@ public class AppleNotificationHistorySyncService {
             String response = callAppleApi(requestUrl, requestBody).block();
             System.out.println("Response: " + response);
             AppleNotificationHistoryResponse parsedModel = objectMapper.readValue(response, AppleNotificationHistoryResponse.class);
-            processNotifications(parsedModel.notificationHistory());
+            processNotifications(parsedModel.appleNotifications());
             hasMore = parsedModel.hasMore();
             paginationToken = hasMore ? parsedModel.paginationToken() : null;
         } while (hasMore);
@@ -106,14 +108,14 @@ public class AppleNotificationHistorySyncService {
                 });
     }
 
-    private void processNotifications(List<AppleNotificationHistoryResponse.AppleNotificationItem> notifications) {
+    private void processNotifications(List<AppleNotificationDto> notifications) {
         if (notifications == null || notifications.isEmpty()) {
             log.info("No notifications found in the response.");
             return;
         }
-        for (AppleNotificationHistoryResponse.AppleNotificationItem notification : notifications) {
+        for (AppleNotificationDto notification : notifications) {
             try {
-                appleSubscriptionService.processNotification(notification.signedPayload());
+                appleSubscriptionService.processNotification(notification);
                 log.info("Notification processed successfully: {}", notification.signedPayload());
             } catch (Exception ex) {
                 log.error("Error processing notification with token {}: {} -(From historySyncService)", notification.signedPayload(), ex.getMessage());
@@ -131,19 +133,19 @@ public class AppleNotificationHistorySyncService {
             JsonNode rootNode = parser.getCodec().readTree(parser);
             boolean hasMore = getBoolean(rootNode, "hasMore", false);
             String paginationToken = getText(rootNode, "paginationToken");
-            List<AppleNotificationHistoryResponse.AppleNotificationItem> items = parseNotifications(rootNode.get("notificationHistory"));
+            List<AppleNotificationDto> items = parseNotifications(rootNode.get("notificationHistory"));
             return new AppleNotificationHistoryResponse(hasMore, paginationToken, items);
         }
 
-        private List<AppleNotificationHistoryResponse.AppleNotificationItem> parseNotifications(JsonNode node) {
+        private List<AppleNotificationDto> parseNotifications(JsonNode node) {
             if (node == null || !node.isArray()) {
                 return Collections.emptyList();
             }
-            List<AppleNotificationHistoryResponse.AppleNotificationItem> list = new ArrayList<>();
+            List<AppleNotificationDto> list = new ArrayList<>();
             for (JsonNode itemNode : node) {
                 String signedPayload = getText(itemNode, "signedPayload");
                 if (signedPayload != null) {
-                    list.add(new AppleNotificationHistoryResponse.AppleNotificationItem(signedPayload));
+                    list.add(new AppleNotificationDto(signedPayload));
                 }
             }
             return list;

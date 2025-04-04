@@ -81,7 +81,7 @@ public class AppleSubscriptionService {
                 .atZone(ZoneId.systemDefault()) // Use system default time zone
                 .toLocalDateTime();
 
-        String callSource = callbackFromApple ? "Call from Ios App" : "Callback from Apple";
+        String callSource = callbackFromApple ? "Callback from Apple" : "Callback from iOS App";
         if (appleTransactionRepository.existsByTransactionId(userTransactionDto.transactionId())) {
             log.warn("Transaction already exists for transaction Id: {} , call-source is {} - more details : {}", userTransactionDto.transactionId(), callSource , userTransactionDto);
             return;
@@ -97,8 +97,8 @@ public class AppleSubscriptionService {
         return UUID.randomUUID().toString();
     }
 
-    public void processNotification(String jwsToken) {
-        AppleNotificationPayload notification = appleJwsVerificationService.verifyAndDecodeNotification(jwsToken);
+    public void processNotification(AppleNotificationDto appleNotificationDto) {
+        AppleNotificationPayload notification = appleJwsVerificationService.verifyAndDecodeNotification(appleNotificationDto.signedPayload());
         if (notification == null) {
             log.error("Invalid JWS or parse error");
             throw new RuntimeException("Invalid JWS or parse error");

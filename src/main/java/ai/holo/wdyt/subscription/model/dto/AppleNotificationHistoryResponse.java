@@ -11,8 +11,6 @@ import java.util.List;
 public record AppleNotificationHistoryResponse(
         boolean hasMore,
         String paginationToken,
-        List<AppleNotificationItem> notificationHistory
+        List<AppleNotificationDto> appleNotifications
 ) {
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record AppleNotificationItem(String signedPayload) {}
 }
