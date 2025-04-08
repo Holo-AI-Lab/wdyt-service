@@ -147,8 +147,10 @@ public class AiFeedbackSearchService {
         if (feedbackIdForComparison != null) {
             whereClause.append("""
                  AND id NOT IN (
-                    SELECT ai_feedback_id1 FROM ai_comparison_feedback WHERE ai_feedback_id2 = :feedbackIdForComparison or  ai_feedback_id1 = :feedbackIdForComparison
-                )
+                    SELECT ai_feedback_id1 FROM ai_comparison_feedback WHERE ai_feedback_id2 = :feedbackIdForComparison
+                    UNION
+                    SELECT ai_feedback_id2 FROM ai_comparison_feedback WHERE ai_feedback_id1 = :feedbackIdForComparison
+                 )
                 """.replaceAll("\\n", ""));
         }
 

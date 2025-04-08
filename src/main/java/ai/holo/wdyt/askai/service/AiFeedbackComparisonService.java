@@ -104,11 +104,21 @@ public class AiFeedbackComparisonService {
     private AiComparisonDetailedDto generateComparisonAiFeedbackDto(AiComparisonFeedback comparisonFeedback) {
         List<FeedbackEntryDto> feedbackEntryDtos = comparisonFeedback.getFeedbackEntries().stream().map(feedback -> {
             ComparisonAnalysis analysis = extractResponseForComparison(feedback.response());
+            analysis = overrideUserOccasionIfProvided(comparisonFeedback, analysis);
             User aiUser = userService.getUserById(feedback.userId());
             return new FeedbackEntryDto(feedback, null, null, analysis, new UserDto(aiUser));
         }).toList();
         return new AiComparisonDetailedDto(comparisonFeedback, s3Service.getFileS3Url(comparisonFeedback.getImage1Path()),
                 s3Service.getFileS3Url(comparisonFeedback.getImage2Path()), userService.getUserInfo(), feedbackEntryDtos);
+    }
+
+    private static ComparisonAnalysis overrideUserOccasionIfProvided(AiComparisonFeedback comparisonFeedback, ComparisonAnalysis analysis) {
+        // Override occasion tags with the ones coming from the user
+        if (!CollectionUtils.isEmpty(analysis.tag().occasion())) {
+            List<String> overrideOccasions = comparisonFeedback.getTags().get("occasion");
+            analysis = new ComparisonAnalysis(analysis, overrideOccasions);
+        }
+        return analysis;
     }
 
     private ComparisonAnalysis extractResponseForComparison(String response) {
