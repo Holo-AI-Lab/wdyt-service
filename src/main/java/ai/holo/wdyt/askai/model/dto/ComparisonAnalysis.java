@@ -26,7 +26,7 @@ public record ComparisonAnalysis(
                 comparisonAnalysis.enhancementRecommendations,
                 comparisonAnalysis.areasForImprovement,
                 comparisonAnalysis.finalCompliment,
-                new Tag(comparisonAnalysis.tag.style(), occasions, comparisonAnalysis.tag.color())
+                new Tag(comparisonAnalysis.tag().style(), occasions, comparisonAnalysis.tag().color())
         );
     }
 

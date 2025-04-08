@@ -90,7 +90,7 @@ public class AiFeedbackComparisonService {
         Map<String, List<String>> tags = analysis.getTags();
         // Override occasion tags with the ones coming from the user
         if (!CollectionUtils.isEmpty(comparisonSubmissionDto.occasions())) {
-            tags.put("occasion", comparisonSubmissionDto.occasions());
+            tags.put(Taggable.OCCASION, comparisonSubmissionDto.occasions());
         }
 
         aiComparisonFeedback.updateTags(tags);
@@ -114,9 +114,8 @@ public class AiFeedbackComparisonService {
 
     private static ComparisonAnalysis overrideUserOccasionIfProvided(AiComparisonFeedback comparisonFeedback, ComparisonAnalysis analysis) {
         // Override occasion tags with the ones coming from the user
-        if (!CollectionUtils.isEmpty(analysis.tag().occasion())) {
-            List<String> overrideOccasions = comparisonFeedback.getTags().get("occasion");
-            analysis = new ComparisonAnalysis(analysis, overrideOccasions);
+        if (!CollectionUtils.isEmpty(comparisonFeedback.getTags().get(Taggable.OCCASION))) {
+            analysis = new ComparisonAnalysis(analysis, comparisonFeedback.getTags().get(Taggable.OCCASION));
         }
         return analysis;
     }

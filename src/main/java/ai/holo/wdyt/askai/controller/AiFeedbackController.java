@@ -66,9 +66,9 @@ public class AiFeedbackController {
                                                @RequestParam(defaultValue = "0") Integer page) {
 
         Map<String, List<String>> tagFilters = Map.of(
-                "color", color != null ? Arrays.asList(color) : List.of(),
-                "style", style != null ? Arrays.asList(style) : List.of(),
-                "occasion", occasion != null ? Arrays.asList(occasion) : List.of()
+                Taggable.COLOR, color != null ? Arrays.asList(color) : List.of(),
+                Taggable.STYLE, style != null ? Arrays.asList(style) : List.of(),
+                Taggable.OCCASION, occasion != null ? Arrays.asList(occasion) : List.of()
         );
         return aiFeedbackService.listAiFeedbacks(tagFilters, liked, feedbackIdForComparison, idsNot, imageType, PageRequest.of(page, size));
     }
