@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -55,7 +56,16 @@ public class DeeplinkService {
 
     @Transactional
     public void saveUserFingerprint(String nonce, String fingerprint) {
+        if (fingerprint == null || fingerprint.isEmpty()) {
+            log.warn("Fingerprint is null or empty");
+            return;
+        }
         ClientFingerprint clientFingerprint = new ClientFingerprint(nonce, fingerprint);
+        Optional<ClientFingerprint> fingerprintByNonce = clientFingerprintRepository.findByNonce(nonce);
+        if (fingerprintByNonce.isPresent()) {
+            log.warn("Fingerprint already exists for nonce {}", nonce);
+            return;
+        }
         clientFingerprintRepository.save(clientFingerprint);
     }
 
