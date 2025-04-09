@@ -14,9 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sns.SnsClient;
-import software.amazon.awssdk.services.sns.model.CreatePlatformEndpointRequest;
-import software.amazon.awssdk.services.sns.model.CreatePlatformEndpointResponse;
-import software.amazon.awssdk.services.sns.model.PublishRequest;
+import software.amazon.awssdk.services.sns.model.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -50,22 +51,59 @@ public class PushNotificationService {
             log.warn("User {} does not have a device token, so push notification will not be sent", user.getId());
             return;
         }
-        String snsEndpoint = createSnsEndpoint(deviceToken);
-        String content = buildPushMessage(title, message);
-        log.info("Push notification content: {}", content);
-        sendNotification(content, snsEndpoint);
-        pushNotificationRepository.save(new PushNotification(notificationType, userId, content));
-        log.info("Push notification sent to user {}", user.getId());
+        try {
+            String snsEndpoint = getOrCreateValidSnsEndpoint(deviceToken);
+            String content = buildPushMessage(title, message);
+            sendNotification(content, snsEndpoint);
+            pushNotificationRepository.save(new PushNotification(notificationType, userId, content));
+            log.info("Push notification {} sent to user {}", content, user.getId());
+        } catch (EndpointDisabledException e) {
+            log.warn("SNS endpoint is disabled for user {}. Removing device token.", user.getId());
+            removeDeviceTokenFromDisabledEndpointUser(user);
+        } catch (Exception e) {
+            log.error("Failed to send push notification to user {}", user.getId(), e);
+        }
     }
 
-    private String createSnsEndpoint(String userDeviceToken) {
-        CreatePlatformEndpointRequest request = CreatePlatformEndpointRequest.builder()
-                .token(userDeviceToken)
+    private void removeDeviceTokenFromDisabledEndpointUser(User user) {
+        user.setDeviceToken(null);
+        user.setTimezone(null);
+        userRepository.save(user);
+    }
+
+    private String getOrCreateValidSnsEndpoint(String deviceToken) {
+        // TODO - Consider caching existing endpoint ARNs by token
+        CreatePlatformEndpointRequest createRequest = CreatePlatformEndpointRequest.builder()
+                .token(deviceToken)
                 .platformApplicationArn(snsArn)
                 .build();
 
-        CreatePlatformEndpointResponse response = snsClient.createPlatformEndpoint(request);
-        return response.endpointArn();
+        CreatePlatformEndpointResponse response = snsClient.createPlatformEndpoint(createRequest);
+        String endpointArn = response.endpointArn();
+        tryReenablingTheEndpointIfDisabled(endpointArn);
+        return endpointArn;
+    }
+
+    private void tryReenablingTheEndpointIfDisabled(String endpointArn) {
+        // Check if it's enabled
+        GetEndpointAttributesRequest attrRequest = GetEndpointAttributesRequest.builder()
+                .endpointArn(endpointArn)
+                .build();
+
+        GetEndpointAttributesResponse attrResponse = snsClient.getEndpointAttributes(attrRequest);
+
+        if (!Boolean.parseBoolean(attrResponse.attributes().get("Enabled"))) {
+            log.warn("SNS endpoint is disabled. Attempting to re-enable it.");
+            Map<String, String> updatedAttrs = new HashMap<>();
+            updatedAttrs.put("Enabled", "true");
+
+            SetEndpointAttributesRequest setAttrsRequest = SetEndpointAttributesRequest.builder()
+                    .endpointArn(endpointArn)
+                    .attributes(updatedAttrs)
+                    .build();
+
+            snsClient.setEndpointAttributes(setAttrsRequest); // try to re-enable
+        }
     }
 
     private void sendNotification(String message, String snsEndpoint) {

@@ -34,3 +34,6 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
   jpa:
     show-sql: false      # Show SQL queries in the console
+application:
+  base:
+    url: https://api.thewdyt.com
