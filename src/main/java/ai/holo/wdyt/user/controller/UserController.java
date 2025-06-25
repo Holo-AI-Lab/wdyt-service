@@ -81,6 +81,11 @@ public class UserController {
         return userService.getStyles(filter);
     }
 
+    @PostMapping("/update-privacy-status")
+    public UserDto updatePrivacyStatus(@RequestBody UpdatePrivacyStatusDto updatePrivacyStatusDto) {
+        return userService.updatePrivacyStatus(updatePrivacyStatusDto);
+    }
+
     @PostMapping("/send-hello-world-push-notification")
     public void sendHelloWorldPushNotification() {
         userService.sendHelloWorldPushNotification();

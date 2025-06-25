@@ -346,6 +346,8 @@ SET af.last_feedback_received_at = subquery.latest_created_at;
 
 DROP TABLE IF EXISTS gpt_prompt;
 
+ALTER TABLE user ADD COLUMN privacy_status BOOLEAN DEFAULT FALSE;
+
 ```
 
 # Create Docker image and push to ECR
