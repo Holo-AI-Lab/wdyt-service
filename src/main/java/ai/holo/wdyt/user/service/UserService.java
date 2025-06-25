@@ -1,7 +1,5 @@
 package ai.holo.wdyt.user.service;
 
-import ai.holo.wdyt.askai.repository.AiFeedbackComparisonRepository;
-import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.service.AiFeedbackSearchService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.EventPublisher;
@@ -43,15 +41,13 @@ public class UserService {
     private final EventPublisher eventPublisher;
     private final PushNotificationService pushNotificationService;
     private final AiFeedbackSearchService aiFeedbackSearchService;
-    private final AiFeedbackRepository aiFeedbackRepository;
-    private final AiFeedbackComparisonRepository aiFeedbackComparisonRepository;
 
     public UserService(UserRepository userRepository,
                        RobotService robotService,
                        @Value("${aws.s3.endpoint}") String s3Endpoint,
                        UserFeedbackRepository userFeedbackRepository,
                        S3Service s3Service,
-                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository, EventPublisher eventPublisher, PushNotificationService pushNotificationService, AiFeedbackSearchService aiFeedbackSearchService, AiFeedbackRepository aiFeedbackRepository, AiFeedbackComparisonRepository aiFeedbackComparisonRepository) {
+                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository, EventPublisher eventPublisher, PushNotificationService pushNotificationService, AiFeedbackSearchService aiFeedbackSearchService) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
@@ -63,8 +59,6 @@ public class UserService {
         this.eventPublisher = eventPublisher;
         this.pushNotificationService = pushNotificationService;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
-        this.aiFeedbackRepository = aiFeedbackRepository;
-        this.aiFeedbackComparisonRepository = aiFeedbackComparisonRepository;
     }
 
     public User createOrRetrieveUser(String email, String name, String appleId) {
@@ -283,5 +277,12 @@ public class UserService {
 
     public void sendHelloWorldPushNotification() {
         pushNotificationService.sendPushNotification(getUser().getId(), "Hello World!", "Hello, World!", NotificationType.OTHER);
+    }
+
+    public UserDto updatePrivacyStatus(UpdatePrivacyStatusDto updatePrivacyStatusDto) {
+        User user = getUser();
+        user.setPrivacyStatus(updatePrivacyStatusDto.privacyStatus());
+        User savedUser = userRepository.save(user);
+        return new UserDto(savedUser);
     }
 }
