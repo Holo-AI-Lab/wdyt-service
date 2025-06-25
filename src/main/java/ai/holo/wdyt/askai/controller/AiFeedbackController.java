@@ -73,6 +73,26 @@ public class AiFeedbackController {
         return aiFeedbackService.listAiFeedbacks(tagFilters, liked, feedbackIdForComparison, idsNot, imageType, PageRequest.of(page, size));
     }
 
+    @GetMapping("/friend/{id}")
+    public Page<AiFeedbackDto> listFriendsAiFeedbacks(@RequestParam(value = "friendId", required = true) Long friendId,
+                                                      @RequestParam(value = "liked", required = false) Boolean liked,
+                                                      @RequestParam(value = "color", required = false) String[] color,
+                                                      @RequestParam(value = "style", required = false) String[] style,
+                                                      @RequestParam(value = "occasion", required = false) String[] occasion,
+                                                      @RequestParam(value = "feedbackIdForComparison", required = false) Long feedbackIdForComparison,
+                                                      @RequestParam(value = "imageType", required = false) ImageType imageType,
+                                                      @RequestParam(value = "idsNot", required = false) List<Long> idsNot,
+                                                      @RequestParam(defaultValue = "100") Integer size,
+                                                      @RequestParam(defaultValue = "0") Integer page) {
+
+        Map<String, List<String>> tagFilters = Map.of(
+                Taggable.COLOR, color != null ? Arrays.asList(color) : List.of(),
+                Taggable.STYLE, style != null ? Arrays.asList(style) : List.of(),
+                Taggable.OCCASION, occasion != null ? Arrays.asList(occasion) : List.of()
+        );
+        return aiFeedbackService.listFriendsAiFeedbacks(friendId, tagFilters, liked, feedbackIdForComparison, idsNot, imageType, PageRequest.of(page, size));
+    }
+
     @GetMapping("/{id}")
     public AiFeedbackDetailedDto getAiFeedback(@PathVariable("id") Long id) {
         return aiFeedbackService.getAiFeedback(id);

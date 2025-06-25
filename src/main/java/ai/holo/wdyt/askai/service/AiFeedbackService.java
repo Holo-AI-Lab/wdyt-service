@@ -12,6 +12,7 @@ import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.exception.BadRequestException;
 import ai.holo.wdyt.common.exception.InsufficientCreditException;
 import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.common.exception.PrivateAccountException;
 import ai.holo.wdyt.common.json.JsonUtils;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import ai.holo.wdyt.subscription.service.UserCreditService;
@@ -243,6 +244,30 @@ public class AiFeedbackService {
         return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked,
                 feedbackIdForComparison, idsNot, imageType, pageRequestWithSort).map(aiFeedback ->
                 new AiFeedbackDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AiFeedbackDto> listFriendsAiFeedbacks(Long friendId, Map<String, List<String>> tagFilters, Boolean liked,
+                                               Long feedbackIdForComparison, List<Long> idsNot, ImageType imageType,
+                                               PageRequest pageRequest) {
+        User friend = userService.getUserById(friendId);
+        UserDto friendInfo = new UserDto(friend);
+
+        if (!userService.isCurrentUserFriendWith(friendId)) {
+            throw new BadRequestException("User is not a friend");
+        }
+
+        if (!friend.isPrivacyStatus()){
+            throw new PrivateAccountException("This profile is private !");
+        }
+
+        Sort sortBy = Sort.by(
+                Sort.Order.by("created_at").with(Sort.Direction.DESC)
+        );
+        PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
+        return aiFeedbackSearchService.findAiFeedbacksByTags(friendInfo.id(), tagFilters, liked,
+                feedbackIdForComparison, idsNot, imageType, pageRequestWithSort).map(aiFeedback ->
+                new AiFeedbackDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), friendInfo));
     }
 
     @Transactional
