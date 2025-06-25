@@ -45,13 +45,13 @@ public class AiFeedbackController {
         AiFeedbackService.AISubmissionImage aiSubmissionImage = aiFeedbackService.checkImagesAndMakeNecessaryPreprocessing(imageBytes, currentUser, aiFeedbackSubmissionDto);
         LocationAndWeatherDto locationAndWeather = locationAndWeatherService.getLocationAndWeather(aiFeedbackSubmissionDto.locationAndWeather(), aiFeedbackSubmissionDto.clientIpAddress());
 
-        AiSubmissionPrompt prompt = aiFeedbackService.preparePrompt(aiFeedbackSubmissionDto, currentUser, aiSubmissionImage.imageType(), locationAndWeather);
+        String prompt = aiFeedbackService.preparePrompt(aiFeedbackSubmissionDto, currentUser, locationAndWeather);
 
         // Call ChatGPT with retries
-        String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage.extractedImagePath(), prompt.promptText(), aiSubmissionImage.imageType());
+        String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage.extractedImagePath(), prompt, aiSubmissionImage.imageType());
 
         // Save AI response
-        return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto, prompt.prompt().getId(), gptResponse, aiSubmissionImage, locationAndWeather);
+        return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto,"singleSubmissionPrompt", gptResponse, aiSubmissionImage, locationAndWeather);
     }
 
     @GetMapping("/")

@@ -342,6 +342,10 @@ JOIN (
 ) subquery ON af.id = subquery.id
 SET af.last_feedback_received_at = subquery.latest_created_at;
 
+----- V3 -----
+
+DROP TABLE IF EXISTS gpt_prompt;
+
 ```
 
 # Create Docker image and push to ECR

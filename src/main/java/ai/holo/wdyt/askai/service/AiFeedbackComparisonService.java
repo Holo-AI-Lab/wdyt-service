@@ -6,6 +6,7 @@ import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
 import ai.holo.wdyt.askai.repository.AiFeedbackComparisonRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
+import ai.holo.wdyt.askai.service.aiprompt.ComparisonPrompt;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
@@ -42,7 +43,6 @@ public class AiFeedbackComparisonService {
     private final UserService userService;
     private final AiFeedbackComparisonRepository aiFeedbackComparisonRepository;
     private final S3Service s3Service;
-    private final PromptService promptService;
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final ChatGptService chatGptService;
     private final CallSupplierWithRetryService callSupplierWithRetryService;
@@ -52,7 +52,7 @@ public class AiFeedbackComparisonService {
     public AiFeedbackComparisonService(AiFeedbackRepository aiFeedbackRepository,
                                        UserService userService,
                                        AiFeedbackComparisonRepository aiFeedbackComparisonRepository,
-                                       S3Service s3Service, PromptService promptService,
+                                       S3Service s3Service,
                                        AiFeedbackSearchService aiFeedbackSearchService,
                                        ChatGptService chatGptService,
                                        CallSupplierWithRetryService callSupplierWithRetryService,
@@ -61,7 +61,6 @@ public class AiFeedbackComparisonService {
         this.userService = userService;
         this.aiFeedbackComparisonRepository = aiFeedbackComparisonRepository;
         this.s3Service = s3Service;
-        this.promptService = promptService;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.chatGptService = chatGptService;
         this.callSupplierWithRetryService = callSupplierWithRetryService;
@@ -70,7 +69,7 @@ public class AiFeedbackComparisonService {
     }
 
     @Transactional
-    public AiComparisonDetailedDto saveAiCompareResponse(AiComparisonSubmissionDto comparisonSubmissionDto, AiSubmissionPrompt prompt, String gptResponse,
+    public AiComparisonDetailedDto saveAiCompareResponse(AiComparisonSubmissionDto comparisonSubmissionDto, String promptName, String gptResponse,
                                                          AISubmissionImagesForComparison comparisonImages, LocationAndWeatherDto locationAndWeather) {
 
         AiFeedback aiFeedback1 = aiFeedbackRepository.findById(comparisonSubmissionDto.feedback1()).orElseThrow(NotFoundException::new);
@@ -84,7 +83,7 @@ public class AiFeedbackComparisonService {
                 comparisonImages.image1().extractedImagePath(), comparisonImages.image2().extractedImagePath(),
                 analysis.winner());
 
-        aiComparisonFeedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), user.getId(), prompt.prompt().getId(),
+        aiComparisonFeedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), user.getId(), promptName,
                 gptResponse, locationAndWeather, LocalDateTime.now()));
 
         Map<String, List<String>> tags = analysis.getTags();
@@ -152,12 +151,14 @@ public class AiFeedbackComparisonService {
         return new AISubmissionImagesForComparison(image1, image2);
     }
 
-    public AiSubmissionPrompt getComparisonPrompt(AiComparisonSubmissionDto comparisonSubmissionDto, User currentUser,
-                                                  ImageType imageType, LocationAndWeatherDto locationAndWeather) {
-        ChatGptPrompt prompt = promptService.getPrompt(imageType, SubmissionType.COMPARE);
+    public String getComparisonPrompt(AiComparisonSubmissionDto comparisonSubmissionDto, User currentUser, LocationAndWeatherDto locationAndWeather) {
         List<String> styles = aiFeedbackSearchService.getStylesBasedOnUserStyleAdaptedPreference(currentUser);
-        String promptText = promptService.getPromptText(prompt, currentUser, comparisonSubmissionDto.clientTime(), locationAndWeather, comparisonSubmissionDto.occasions(), SubmissionType.COMPARE, styles);
-        return new AiSubmissionPrompt(prompt, promptText);
+        String location = locationAndWeather.location().getLocation();
+
+        // TODO : arrange all parameters and use builder based on new prompt.
+
+        ComparisonPrompt prompt = new ComparisonPrompt();
+        return prompt.generatePrompt();
     }
 
     public String sendPromptWithRetries(String extractedImagePath1, String extractedImagePath2, String promptText) {

@@ -1,7 +1,6 @@
 package ai.holo.wdyt.askai.controller;
 
 import ai.holo.wdyt.askai.model.dto.*;
-import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.askai.service.AiFeedbackComparisonService;
 import ai.holo.wdyt.askai.service.LocationAndWeatherService;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
@@ -39,15 +38,13 @@ public class AiFeedbackComparisonController {
         AiFeedbackComparisonService.AISubmissionImagesForComparison comparisonImages = aiFeedbackComparisonService.getComparisonImages(comparisonSubmissionDto);
         LocationAndWeatherDto locationAndWeather = locationAndWeatherService.getLocationAndWeather(comparisonSubmissionDto.locationAndWeather(), comparisonSubmissionDto.clientIpAddress());
 
-        ImageType imageType = comparisonImages.image1().imageType();
-        AiSubmissionPrompt prompt = aiFeedbackComparisonService.getComparisonPrompt(comparisonSubmissionDto,
-                currentUser, imageType, locationAndWeather);
+        String prompt = aiFeedbackComparisonService.getComparisonPrompt(comparisonSubmissionDto, currentUser, locationAndWeather);
 
         // Call ChatGPT with retries
-        String gptResponse = aiFeedbackComparisonService.sendPromptWithRetries(comparisonImages.image1().extractedImagePath(), comparisonImages.image2().extractedImagePath(), prompt.promptText());
+        String gptResponse = aiFeedbackComparisonService.sendPromptWithRetries(comparisonImages.image1().extractedImagePath(), comparisonImages.image2().extractedImagePath(), prompt);
 
         // Save AI response
-        return aiFeedbackComparisonService.saveAiCompareResponse(comparisonSubmissionDto, prompt, gptResponse, comparisonImages,  locationAndWeather);
+        return aiFeedbackComparisonService.saveAiCompareResponse(comparisonSubmissionDto,"comparisonPrompt", gptResponse, comparisonImages,  locationAndWeather);
     }
 
     @GetMapping("/")
