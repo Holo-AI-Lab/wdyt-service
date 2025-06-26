@@ -83,8 +83,12 @@ public class AiFeedbackService {
 
         List<String> styles = aiFeedbackSearchService.getStylesBasedOnUserStyleAdaptedPreference(aiUser);
         List<String> colors = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "colorCode");
+
         String location = locationAndWeather.location().getLocation();
-        List<String> occasions = aiFeedbackSubmissionDto.occasions();
+
+        List<String> occasions = aiFeedbackSubmissionDto.occasions() == null || aiFeedbackSubmissionDto.occasions().isEmpty()
+                ? aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "occasion")
+                : aiFeedbackSubmissionDto.occasions();
 
         SingleSubmissionUserPrompt.Builder builder = new SingleSubmissionUserPrompt.Builder();
         SingleSubmissionUserPrompt prompt = builder.useStyles(styles).useColors(colors).useCurrentDate().useOccasion(occasions.get(0)).useLocation(location).build();

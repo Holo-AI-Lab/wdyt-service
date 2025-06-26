@@ -38,7 +38,7 @@ public class AiFeedbackComparisonController {
         AiFeedbackComparisonService.AISubmissionImagesForComparison comparisonImages = aiFeedbackComparisonService.getComparisonImages(comparisonSubmissionDto);
         LocationAndWeatherDto locationAndWeather = locationAndWeatherService.getLocationAndWeather(comparisonSubmissionDto.locationAndWeather(), comparisonSubmissionDto.clientIpAddress());
 
-        String prompt = aiFeedbackComparisonService.getComparisonPrompt(comparisonSubmissionDto, currentUser, locationAndWeather);
+        String prompt = aiFeedbackComparisonService.getComparisonPrompt(comparisonSubmissionDto, locationAndWeather);
 
         // Call ChatGPT with retries
         String gptResponse = aiFeedbackComparisonService.sendPromptWithRetries(comparisonImages.image1().extractedImagePath(), comparisonImages.image2().extractedImagePath(), prompt);
