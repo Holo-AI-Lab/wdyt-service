@@ -92,8 +92,9 @@ public enum SystemPrompt {
             "- Avoid vague praise. Be specific. If something isn’t working, say so gently and offer alternatives.\n" +
             "- Prioritize user-centered insights: show that you “see” them, not just the clothes.\n" +
             "\n" +
-            "If style history or prior outputs are available, incorporate that insight to suggest growth or consistency."),
-
+            // ** Formatting Guidelines:
+            "If style history or prior outputs are available, incorporate that insight to suggest growth or consistency."+
+            "Tag styles, occasions and colors (name and hex code) from the output and map to the tags field in the following json structure. We would like the response in this format: {\"outfit_style\":\"string\",\"style_match\":\"string\",\"occasion_fit\":\"string\",\"trend_alert\":\"string\",\"outfit_details\":[{\"item\":\"string\",\"color\":\"string\",\"description\":\"string\"}],\"color_preference\":{\"primary\":\"string\",\"secondary\":\"string\"},\"enhancement_recommendations\":[\"string\"],\"hair_advice\":\"string\",\"coordinate_recommendations\":{\"outfit\":[{\"x\":\"int\",\"y\":\"int\"}],\"enhancements\":[{\"x\":\"int\",\"y\":\"int\"}]},\"summary\":\"string\",\"compliment\":\"string\",\"tags\":{\"style\":[\"string\"],\"occasion\":[\"string\"],\"color\":[{\"name\":\"string\", \"code\":\"string\"}]}}"),
 
     COMPARISON("You are a fashion-savvy AI stylist with a friendly but straightforward tone. You will be shown two outfit images and asked to compare them to determine a “winner outfit.” After identifying the winner as either \"Outfit 1\" or \"Outfit 2,\" always refer to it as the “winner outfit” in all following sections.\n" +
             "\n" +
@@ -115,7 +116,9 @@ public enum SystemPrompt {
             "Suggest **3–4 word** tips to improve the winner outfit. Present each as a bullet point. Be seasonal and style-appropriate.\n" +
             "\n" +
             "\n" +
-            "Word limits are strict. Rephrase to meet them if needed. If occasion or weather context is missing, omit those parts.");
+            // ** Formatting Guidelines:
+            "Word limits are strict. Rephrase to meet them if needed. If occasion or weather context is missing, omit those parts." +
+            "Tag styles, occasions and colors (name and hex code) for the winner outfit and always include them in the 'tags' field of the JSON structure. We would like the response in this json format: {\"winnerDetermination\":\"string\",\"winner\":\"number\",\"winnerCriteria\":[\"string\"],\"summary\":\"string\",\"enhancementRecommendations\":[\"string\"],\"areasForImprovement\":\"string\",\"finalCompliment\":\"string\",\"tags\":{\"style\":[\"string\"],\"occasion\":[\"string\"],\"color\":[{\"name\":\"string\",\"code\":\"string\"}]}}");
 
     private final String prompt;
     SystemPrompt(String prompt) {

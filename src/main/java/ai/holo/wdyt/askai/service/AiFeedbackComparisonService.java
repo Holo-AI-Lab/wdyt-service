@@ -154,7 +154,7 @@ public class AiFeedbackComparisonService {
 
     public String getComparisonPrompt(AiComparisonSubmissionDto comparisonSubmissionDto, LocationAndWeatherDto locationAndWeather) {
         String occasion = CollectionUtils.isEmpty(comparisonSubmissionDto.occasions()) ? " " : comparisonSubmissionDto.occasions().get(0);
-        String weather = locationAndWeather.weather() != null ? locationAndWeather.weather().toString() : "unknown";
+        String weather = locationAndWeather.weather() != null ? locationAndWeather.weather().condition() : "unknown";
         // TODO : will arrange all parameters and use builder based on new prompt.
         ComparisonUserPrompt.Builder promptBuilder = new ComparisonUserPrompt.Builder();
         ComparisonUserPrompt prompt = promptBuilder.setOccasion(occasion).setWeather(weather).build();
