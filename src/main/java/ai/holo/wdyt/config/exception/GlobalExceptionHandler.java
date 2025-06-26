@@ -86,6 +86,13 @@ public class GlobalExceptionHandler {
                 new ErrorResponse(ex.getMessage()));
     }
 
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(value = PrivateAccountException.class)
+    @ResponseBody
+    public ResponseEntity<ErrorResponse> handlePrivateAccountException(PrivateAccountException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(ex.getMessage()));
+    }
+
     public record ErrorResponse(String message) {
     }
 }
