@@ -1,32 +1,6 @@
 package ai.holo.wdyt.askai.service.aiprompt;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-
-public class SingleSubmissionPrompt extends AiPrompt {
-
-    private final String style1;
-    private final String style2;
-    private final String style3;
-    private final String occasion;
-    private final String location;
-    private final String date;
-    private final String color1;
-    private final String color2;
-    private final String color3;
-
-    public SingleSubmissionPrompt(Builder builder) {
-        this.style1 = builder.style1;
-        this.style2 = builder.style2;
-        this.style3 = builder.style3;
-        this.occasion = builder.occasion;
-        this.location = builder.location;
-        this.date = builder.date;
-        this.color1 = builder.color1;
-        this.color2 = builder.color2;
-        this.color3 = builder.color3;
-    }
+public class ComparisonUserPrompt extends AiPrompt {
 
     @Override
     public String generatePrompt() {
@@ -119,80 +93,7 @@ public class SingleSubmissionPrompt extends AiPrompt {
                                      - Prioritize user-centered insights: show that you “see” them, not just the clothes.
                 
                                      If style history or prior outputs are available, incorporate that insight to suggest growth or consistency.
-                """.formatted(
-                style1, style2, style3,
-                occasion,
-                location,
-                date,
-                color1, color2, color3
-        );
+                """;
     }
-
-    public static class Builder {
-        private String style1;
-        private String style2;
-        private String style3;
-        private String occasion;
-        private String location;
-        private String date;
-        private String color1;
-        private String color2;
-        private String color3;
-
-        public Builder useStyles(List<String> styles) {
-            this.style1 = getFromList(styles, 0);
-            this.style2 = getFromList(styles, 1);
-            this.style3 = getFromList(styles, 2);
-            return this;
-        }
-
-        public Builder useColors(List<String> colors) {
-            this.color1 = getFromList(colors, 0);
-            this.color2 = getFromList(colors, 1);
-            this.color3 = getFromList(colors, 2);
-            return this;
-        }
-
-        public Builder useLocation(String location) {
-            this.location = defaultIfBlank(location, "global");
-            return this;
-        }
-
-        public Builder useOccasion(String occasion) {
-            this.occasion = defaultIfBlank(occasion, "Casual");
-            return this;
-        }
-
-        public Builder useCurrentDate() {
-            this.date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            return this;
-        }
-
-        public SingleSubmissionPrompt build() {
-            this.style1 = defaultIfBlank(this.style1, "minimalist");
-            this.style2 = defaultIfBlank(this.style2, "elegant");
-            this.style3 = defaultIfBlank(this.style3, "casual");
-
-            this.occasion = defaultIfBlank(this.occasion, "general");
-            this.location = defaultIfBlank(this.location, "global");
-            this.date = defaultIfBlank(this.date, LocalDate.now().toString());
-
-            this.color1 = defaultIfBlank(this.color1, "black");
-            this.color2 = defaultIfBlank(this.color2, "white");
-            this.color3 = defaultIfBlank(this.color3, "beige");
-
-            return new SingleSubmissionPrompt(this);
-        }
-
-        private String getFromList(java.util.List<String> list, int index) {
-            if (list != null && list.size() > index) {
-                return list.get(index);
-            }
-            return "";
-        }
-
-        private String defaultIfBlank(String value, String fallback) {
-            return (value == null || value.isBlank()) ? fallback : value;
-        }
-    }
+// TODO : Create builder for this prompt based on updated prompt.
 }

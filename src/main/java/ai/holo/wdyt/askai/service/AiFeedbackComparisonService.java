@@ -6,7 +6,8 @@ import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
 import ai.holo.wdyt.askai.repository.AiFeedbackComparisonRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
-import ai.holo.wdyt.askai.service.aiprompt.ComparisonPrompt;
+import ai.holo.wdyt.askai.service.aiprompt.ComparisonUserPrompt;
+import ai.holo.wdyt.askai.service.aiprompt.SystemPrompt;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
@@ -156,18 +157,17 @@ public class AiFeedbackComparisonService {
         String location = locationAndWeather.location().getLocation();
 
         // TODO : arrange all parameters and use builder based on new prompt.
-
-        ComparisonPrompt prompt = new ComparisonPrompt();
+        ComparisonUserPrompt prompt = new ComparisonUserPrompt();
         return prompt.generatePrompt();
     }
 
-    public String sendPromptWithRetries(String extractedImagePath1, String extractedImagePath2, String promptText) {
+    public String sendPromptWithRetries(String extractedImagePath1, String extractedImagePath2, String userPrompt) {
         String extractedImageS3Url1 = s3Service.getFileS3Url(extractedImagePath1);
         String extractedImageS3Url2 = s3Service.getFileS3Url(extractedImagePath2);
 
         Supplier<String> gptResponseSupplier = () -> {
             // Attempt to send the prompt and extract the response
-            String gptResponse = chatGptService.sendPromptWith2Images(extractedImageS3Url1, extractedImageS3Url2, promptText);
+            String gptResponse = chatGptService.sendPromptWith2Images(extractedImageS3Url1, extractedImageS3Url2, userPrompt, SystemPrompt.COMPARISON.getPrompt());
             extractResponseForComparison(gptResponse);
             return gptResponse;
         };

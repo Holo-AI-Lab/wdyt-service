@@ -4,6 +4,7 @@ import ai.holo.wdyt.askai.model.dto.*;
 import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.askai.service.LocationAndWeatherService;
+import ai.holo.wdyt.askai.service.aiprompt.SystemPrompt;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
@@ -45,10 +46,10 @@ public class AiFeedbackController {
         AiFeedbackService.AISubmissionImage aiSubmissionImage = aiFeedbackService.checkImagesAndMakeNecessaryPreprocessing(imageBytes, currentUser, aiFeedbackSubmissionDto);
         LocationAndWeatherDto locationAndWeather = locationAndWeatherService.getLocationAndWeather(aiFeedbackSubmissionDto.locationAndWeather(), aiFeedbackSubmissionDto.clientIpAddress());
 
-        String prompt = aiFeedbackService.preparePrompt(aiFeedbackSubmissionDto, currentUser, locationAndWeather);
+        String userPrompt = aiFeedbackService.preparePrompt(aiFeedbackSubmissionDto, currentUser, locationAndWeather);
 
         // Call ChatGPT with retries
-        String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage.extractedImagePath(), prompt, aiSubmissionImage.imageType());
+        String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage.extractedImagePath(), SystemPrompt.SINGLE_SUBMISSION.getPrompt(), userPrompt, aiSubmissionImage.imageType());
 
         // Save AI response
         return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto,"singleSubmissionPrompt", gptResponse, aiSubmissionImage, locationAndWeather);

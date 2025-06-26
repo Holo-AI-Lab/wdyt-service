@@ -6,7 +6,7 @@ import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.OccasionRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
-import ai.holo.wdyt.askai.service.aiprompt.SingleSubmissionPrompt;
+import ai.holo.wdyt.askai.service.aiprompt.SingleSubmissionUserPrompt;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
@@ -84,13 +84,11 @@ public class AiFeedbackService {
         List<String> styles = aiFeedbackSearchService.getStylesBasedOnUserStyleAdaptedPreference(aiUser);
         List<String> colors = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "colorCode");
         String location = locationAndWeather.location().getLocation();
-
-        // TODO : We get more than 3 occasion from the user, but we only use the first one for the prompt ..investigate and arrange this.
-
         List<String> occasions = aiFeedbackSubmissionDto.occasions();
 
-        SingleSubmissionPrompt.Builder builder = new SingleSubmissionPrompt.Builder();
-        SingleSubmissionPrompt prompt = builder.useStyles(styles).useColors(colors).useCurrentDate().useOccasion(occasions.get(0)).useLocation(location).build();
+        SingleSubmissionUserPrompt.Builder builder = new SingleSubmissionUserPrompt.Builder();
+        SingleSubmissionUserPrompt prompt = builder.useStyles(styles).useColors(colors).useCurrentDate().useOccasion(occasions.get(0)).useLocation(location).build();
+
         return prompt.generatePrompt();
     }
 
@@ -162,12 +160,12 @@ public class AiFeedbackService {
         return mapper.readValue(data, AiFeedbackSubmissionDto.class);
     }
 
-    public String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
+    public String sendPromptWithRetries(String extractedImagePath, String systemPrompt, String userPrompt, ImageType imageType) {
         String extractedImageS3Url = s3Service.getFileS3Url(extractedImagePath);
 
         Supplier<String> gptResponseSupplier = () -> {
             // Attempt to send the prompt and extract the response
-            String response = chatGptService.sendPromptWithImage(extractedImageS3Url, promptText);
+            String response = chatGptService.sendPromptWithImage(extractedImageS3Url, systemPrompt, userPrompt);
             extractResponse(response, imageType);
             return response;
         };
