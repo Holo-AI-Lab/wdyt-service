@@ -348,6 +348,8 @@ DROP TABLE IF EXISTS gpt_prompt;
 
 ALTER TABLE user ADD COLUMN public_profile BOOLEAN DEFAULT FALSE;
 
+ALTER TABLE wdyt_robot ADD COLUMN robot_source_id INT(11) UNIQUE NOT NULL;
+
 ```
 
 # Create Docker image and push to ECR

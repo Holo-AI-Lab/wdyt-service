@@ -1,7 +1,7 @@
 package ai.holo.wdyt.user.controller;
 
 import ai.holo.wdyt.user.model.dto.ChangeRobotNameDto;
-import ai.holo.wdyt.user.model.dto.RobotResponsePayload;
+import ai.holo.wdyt.user.model.dto.RobotDto;
 import ai.holo.wdyt.user.service.RobotService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,7 +17,7 @@ public class RobotController {
     }
 
     @PostMapping("/update-name")
-    public RobotResponsePayload updateRobotName(@RequestBody ChangeRobotNameDto changeRobotNameDto) {
+    public RobotDto updateRobotName(@RequestBody ChangeRobotNameDto changeRobotNameDto) {
         return robotService.updateRobotName(changeRobotNameDto);
     }
 }

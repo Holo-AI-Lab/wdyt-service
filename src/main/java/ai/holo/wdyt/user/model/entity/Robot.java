@@ -13,8 +13,10 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Robot {
     @Id
-    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(name = "robot_source_id", unique = true)
+    private Long robot_source_id;
     @Column(name = "name")
     private String name;
     @Column(name = "gender")
@@ -29,9 +31,9 @@ public class Robot {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    public Robot(Long id ,String name, Gender gender, LocalDateTime birthday,
+    public Robot(Long robot_source_id ,String name, Gender gender, LocalDateTime birthday,
                  String headImageUrl, String avatarUrl) {
-        this.id = id;
+        this.robot_source_id = robot_source_id;
         this.name = name;
         this.gender =  gender;
         this.birthday = birthday;
