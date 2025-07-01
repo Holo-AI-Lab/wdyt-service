@@ -46,20 +46,18 @@ public class RobotService {
                 .baseUrl(createRobotUrl)
                 .build();
 
-        CreateRobotResponse response = webClient
+        CreateRobotResponsePayload response = webClient
                 .post()
-                .header(HttpHeaders.AUTHORIZATION, createRobotSecret)
-                .bodyValue(new CreateRobotRequestPayload(gender.getGenderCode(), userId))
+                .header("createRobotEndpointToken", createRobotSecret)
+                .bodyValue(new CreateRobotRequestPayload(gender.getGenderCode()))
                 .retrieve()
-                .bodyToMono(CreateRobotResponse.class)
+                .bodyToMono(CreateRobotResponsePayload.class)
                 .block();
-        return response.data;
+        return response;
     }
 
     @Transactional
     public void deleteRobot(Long id) {
         robotRepository.deleteById(id);
     }
-
-    public record CreateRobotResponse(boolean success, CreateRobotResponsePayload data){}
 }
