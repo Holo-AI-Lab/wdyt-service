@@ -1,4 +1,6 @@
 package ai.holo.wdyt.user.model.dto;
 
-public record CreateRobotRequestPayload (int gender) {
+import ai.holo.wdyt.user.model.entity.Gender;
+
+public record CreateRobotRequestPayload (Gender gender) {
 }

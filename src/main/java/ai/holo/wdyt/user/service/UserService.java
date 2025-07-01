@@ -79,7 +79,7 @@ public class UserService {
             User savedUser = userRepository.save(newUser);
             eventPublisher.publishEvent(new NewUserRegisteredEvent(newUser.getId()));
             // We're generating gender randomly for now..
-            Robot robot = robotService.createRobot(savedUser.getId(), getGenderRandomly());
+            Robot robot = robotService.createRobot(getGenderRandomly());
             savedUser.setRobot(robot);
             return savedUser;
         }
