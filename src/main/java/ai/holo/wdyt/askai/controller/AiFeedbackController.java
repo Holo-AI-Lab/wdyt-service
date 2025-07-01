@@ -76,7 +76,7 @@ public class AiFeedbackController {
     }
 
     @GetMapping("/friend/{friendId}")
-    public Page<AiFeedbackDto> listFriendsAiFeedbacks(@PathVariable(value = "friendId", required = true) Long friendId,
+    public Page<AiFeedbackDto> listFriendsAiFeedbacks(@PathVariable(value = "friendId") Long friendId,
                                                       @RequestParam(value = "liked", required = false) Boolean liked,
                                                       @RequestParam(value = "color", required = false) String[] color,
                                                       @RequestParam(value = "style", required = false) String[] style,
