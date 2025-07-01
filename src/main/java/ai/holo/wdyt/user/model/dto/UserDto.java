@@ -12,7 +12,7 @@ public record UserDto(Long id,
                       String robotName,
                       Gender robotGender,
                       String robotAvatarUrl,
-                      boolean privacyStatus,
+                      boolean publicProfile,
                       boolean isStyleAdapted,
                       UserSelectedStyle selectedStyle) {
 

@@ -265,7 +265,7 @@ public class AiFeedbackService {
             throw new BadRequestException("User is not a friend");
         }
 
-        if (!friend.isPrivacyStatus()){
+        if (!friend.isPublicProfile()){
             throw new PrivateAccountException("This profile is private !");
         }
 
