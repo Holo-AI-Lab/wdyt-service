@@ -19,7 +19,7 @@ public record UserDto(Long id,
     public UserDto(User user) {
         this(user.getId(), user.getEmail(), user.getName(), user.getUsername(),
                 user.getProfilePicture(), user.getRobot().getId(), user.getRobot().getName(),
-                user.getRobot().getGender(), user.getRobot().getAvatarUrl(), user.isPrivacyStatus(),
+                user.getRobot().getGender(), user.getRobot().getAvatarUrl(), user.isPublicProfile(),
                 user.isStyleAdapted(), user.getSelectedStyle());
     }
 }
