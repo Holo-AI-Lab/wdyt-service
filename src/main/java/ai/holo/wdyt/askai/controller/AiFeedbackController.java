@@ -4,7 +4,7 @@ import ai.holo.wdyt.askai.model.dto.*;
 import ai.holo.wdyt.askai.model.entity.ImageType;
 import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.askai.service.LocationAndWeatherService;
-import ai.holo.wdyt.askai.service.aiprompt.SystemPrompt;
+import ai.holo.wdyt.askai.service.aiprompt.SingleImageSubmissionPrompt;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
@@ -49,10 +49,11 @@ public class AiFeedbackController {
         String userPrompt = aiFeedbackService.preparePrompt(aiFeedbackSubmissionDto, currentUser, locationAndWeather);
 
         // Call ChatGPT with retries
-        String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage.extractedImagePath(), SystemPrompt.SINGLE_SUBMISSION.getPrompt(), userPrompt, aiSubmissionImage.imageType());
+        String gptResponse = aiFeedbackService.sendPromptWithRetries(aiSubmissionImage.extractedImagePath(), SingleImageSubmissionPrompt.generateSystemPrompt(),
+                userPrompt, aiSubmissionImage.imageType());
 
         // Save AI response
-        return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto,"singleSubmissionPrompt", gptResponse, aiSubmissionImage, locationAndWeather);
+        return aiFeedbackService.saveAiResponse(aiFeedbackSubmissionDto,gptResponse, aiSubmissionImage, locationAndWeather);
     }
 
     @GetMapping("/")

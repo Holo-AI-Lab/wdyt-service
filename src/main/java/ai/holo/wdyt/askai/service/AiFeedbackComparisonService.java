@@ -6,8 +6,7 @@ import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
 import ai.holo.wdyt.askai.repository.AiFeedbackComparisonRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
-import ai.holo.wdyt.askai.service.aiprompt.ComparisonUserPrompt;
-import ai.holo.wdyt.askai.service.aiprompt.SystemPrompt;
+import ai.holo.wdyt.askai.service.aiprompt.ComparisonPrompt;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
@@ -84,7 +83,7 @@ public class AiFeedbackComparisonService {
                 comparisonImages.image1().extractedImagePath(), comparisonImages.image2().extractedImagePath(),
                 analysis.winner());
 
-        aiComparisonFeedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), user.getId(), promptName,
+        aiComparisonFeedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), user.getId(),
                 gptResponse, locationAndWeather, LocalDateTime.now()));
 
         Map<String, List<String>> tags = analysis.getTags();
@@ -156,8 +155,8 @@ public class AiFeedbackComparisonService {
         String occasion = CollectionUtils.isEmpty(comparisonSubmissionDto.occasions()) ? " " : comparisonSubmissionDto.occasions().get(0);
         String weather = locationAndWeather.weather() != null ? locationAndWeather.weather().condition() : "unknown";
         // TODO : will arrange all parameters and use builder based on new prompt.
-        ComparisonUserPrompt.Builder promptBuilder = new ComparisonUserPrompt.Builder();
-        ComparisonUserPrompt prompt = promptBuilder.setOccasion(occasion).setWeather(weather).build();
+        ComparisonPrompt.Builder promptBuilder = new ComparisonPrompt.Builder();
+        ComparisonPrompt prompt = promptBuilder.setOccasion(occasion).setWeather(weather).build();
         return prompt.generatePrompt();
     }
 
@@ -167,7 +166,7 @@ public class AiFeedbackComparisonService {
 
         Supplier<String> gptResponseSupplier = () -> {
             // Attempt to send the prompt and extract the response
-            String gptResponse = chatGptService.sendPromptWith2Images(extractedImageS3Url1, extractedImageS3Url2, userPrompt, SystemPrompt.COMPARISON.getPrompt());
+            String gptResponse = chatGptService.sendPromptWith2Images(extractedImageS3Url1, extractedImageS3Url2, userPrompt, ComparisonPrompt.getSystemPrompt());
             extractResponseForComparison(gptResponse);
             return gptResponse;
         };
