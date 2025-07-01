@@ -14,6 +14,7 @@ import ai.holo.wdyt.user.model.entity.*;
 import ai.holo.wdyt.user.model.event.NewUserRegisteredEvent;
 import ai.holo.wdyt.user.repository.*;
 import jakarta.validation.constraints.NotEmpty;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,11 +24,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@Slf4j
 public class UserService {
 
     private final UserRepository userRepository;
@@ -271,8 +275,27 @@ public class UserService {
     public void updateDeviceTokenAndTimezone(String deviceToken, @NotEmpty String timezone) {
         User user = getUser();
         user.setDeviceToken(deviceToken);
+        String cleanedZoneId = cleanZoneIdString(timezone);
+        if (isValidZoneId(cleanedZoneId)) {
+            user.setTimezone(cleanedZoneId);
+        } else {
+            log.error("Invalid timezone ID received: '{}'", timezone);
+        }
         user.setTimezone(timezone);
         userRepository.save(user);
+    }
+
+    private boolean isValidZoneId(String zoneId) {
+        try {
+            ZoneId.of(zoneId);
+            return true;
+        } catch (DateTimeException e) {
+            return false;
+        }
+    }
+
+    private String cleanZoneIdString(String raw) {
+        return raw.split(" ")[0]; // Assuming the first part is the valid ZoneId
     }
 
     public void sendHelloWorldPushNotification() {
