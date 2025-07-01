@@ -281,7 +281,7 @@ public class UserService {
 
     public UserDto updatePrivacyStatus(UpdatePrivacyStatusDto updatePrivacyStatusDto) {
         User user = getUser();
-        user.setPrivacyStatus(updatePrivacyStatusDto.privacyStatus());
+        user.setPublicProfile(updatePrivacyStatusDto.publicProfile());
         User savedUser = userRepository.save(user);
         return new UserDto(savedUser);
     }

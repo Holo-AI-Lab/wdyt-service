@@ -6,6 +6,7 @@ import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.OccasionRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
+import ai.holo.wdyt.askai.service.aiprompt.SingleImageSubmissionPrompt;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
@@ -47,7 +48,6 @@ public class AiFeedbackService {
     private final ImageClassificationService imageClassificationService;
     private final UserService userService;
     private final AiFeedbackRepository aiFeedbackRepository;
-    private final PromptService promptService;
     private final ReportAiFeedbackRepository reportAiFeedbackRepository;
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final OccasionRepository occasionRepository;
@@ -59,7 +59,6 @@ public class AiFeedbackService {
                              ImageClassificationService imageClassificationService,
                              UserService userService,
                              AiFeedbackRepository aiFeedbackRepository,
-                             PromptService promptService,
                              ReportAiFeedbackRepository reportAiFeedbackRepository,
                              AiFeedbackSearchService aiFeedbackSearchService,
                              OccasionRepository occasionRepository,
@@ -71,7 +70,6 @@ public class AiFeedbackService {
         this.imageClassificationService = imageClassificationService;
         this.userService = userService;
         this.aiFeedbackRepository = aiFeedbackRepository;
-        this.promptService = promptService;
         this.reportAiFeedbackRepository = reportAiFeedbackRepository;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.occasionRepository = occasionRepository;
@@ -80,14 +78,23 @@ public class AiFeedbackService {
     }
 
     @Transactional(readOnly = true)
-    public AiSubmissionPrompt preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, ImageType imageType, LocationAndWeatherDto locationAndWeather) {
+    public String preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, LocationAndWeatherDto locationAndWeather) {
         // Send prompt with image to ChatGPT
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
-        ChatGptPrompt prompt = promptService.getPrompt(imageType, SubmissionType.SINGLE);
 
         List<String> styles = aiFeedbackSearchService.getStylesBasedOnUserStyleAdaptedPreference(aiUser);
-        String promptText = promptService.getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions(), SubmissionType.SINGLE, styles);
-        return new AiSubmissionPrompt(prompt, promptText);
+        List<String> colors = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "colorCode");
+
+        String location = locationAndWeather.location().getLocation();
+
+        List<String> occasions = aiFeedbackSubmissionDto.occasions() == null || aiFeedbackSubmissionDto.occasions().isEmpty()
+                ? aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "occasion")
+                : aiFeedbackSubmissionDto.occasions();
+
+        SingleImageSubmissionPrompt.Builder builder = new SingleImageSubmissionPrompt.Builder();
+        SingleImageSubmissionPrompt prompt = builder.useStyles(styles).useColors(colors).useCurrentDate().useOccasion(occasions.get(0)).useLocation(location).build();
+
+        return prompt.generatePrompt();
     }
 
     public AiFeedbackSubmissionDto validateAndParseSubmissionDto(byte[] image, String data) throws JsonProcessingException {
@@ -158,12 +165,12 @@ public class AiFeedbackService {
         return mapper.readValue(data, AiFeedbackSubmissionDto.class);
     }
 
-    public String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
+    public String sendPromptWithRetries(String extractedImagePath, String systemPrompt, String userPrompt, ImageType imageType) {
         String extractedImageS3Url = s3Service.getFileS3Url(extractedImagePath);
 
         Supplier<String> gptResponseSupplier = () -> {
             // Attempt to send the prompt and extract the response
-            String response = chatGptService.sendPromptWithImage(extractedImageS3Url, promptText);
+            String response = chatGptService.sendPromptWithImage(extractedImageS3Url, systemPrompt, userPrompt);
             extractResponse(response, imageType);
             return response;
         };
@@ -172,8 +179,9 @@ public class AiFeedbackService {
     }
 
     @Transactional
-    public AiFeedbackDetailedDto saveAiResponse(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, Long promptId,
-                                                String gptResponse, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather) {
+    public AiFeedbackDetailedDto saveAiResponse(AiFeedbackSubmissionDto aiFeedbackSubmissionDto,
+                                                String gptResponse, AISubmissionImage aiSubmissionImage,
+                                                LocationAndWeatherDto locationAndWeather) {
         User currentUser = userService.getUser();
         AiFeedback feedback;
         if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
@@ -184,7 +192,7 @@ public class AiFeedbackService {
 
         }
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
-        feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), promptId, gptResponse, locationAndWeather, LocalDateTime.now()));
+        feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), gptResponse, locationAndWeather, LocalDateTime.now()));
         Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(gptResponse, aiSubmissionImage.imageType());
         Map<String, List<String>> tags = getTags(analysis);
 
