@@ -61,7 +61,13 @@ public class ComparisonPrompt extends AiPrompt {
         }
 
         public ComparisonPrompt build() {
-            return new ComparisonPrompt(occasion, weather);
+            String finalOccasion = defaultIfBlank(this.occasion, "unknown");
+            String finalWeather = defaultIfBlank(this.weather, "unknown");
+            return new ComparisonPrompt(finalOccasion, finalWeather);
+        }
+
+        private String defaultIfBlank(String value, String fallback) {
+            return (value == null || value.isBlank()) ? fallback : value;
         }
     }
 }

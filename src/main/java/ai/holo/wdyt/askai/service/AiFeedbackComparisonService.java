@@ -69,7 +69,7 @@ public class AiFeedbackComparisonService {
     }
 
     @Transactional
-    public AiComparisonDetailedDto saveAiCompareResponse(AiComparisonSubmissionDto comparisonSubmissionDto, String promptName, String gptResponse,
+    public AiComparisonDetailedDto saveAiCompareResponse(AiComparisonSubmissionDto comparisonSubmissionDto, String gptResponse,
                                                          AISubmissionImagesForComparison comparisonImages, LocationAndWeatherDto locationAndWeather) {
 
         AiFeedback aiFeedback1 = aiFeedbackRepository.findById(comparisonSubmissionDto.feedback1()).orElseThrow(NotFoundException::new);
@@ -152,12 +152,20 @@ public class AiFeedbackComparisonService {
     }
 
     public String getComparisonPrompt(AiComparisonSubmissionDto comparisonSubmissionDto, LocationAndWeatherDto locationAndWeather) {
-        String occasion = CollectionUtils.isEmpty(comparisonSubmissionDto.occasions()) ? " " : comparisonSubmissionDto.occasions().get(0);
-        String weather = locationAndWeather.weather() != null ? locationAndWeather.weather().condition() : "unknown";
-        // TODO : will arrange all parameters and use builder based on new prompt.
-        ComparisonPrompt.Builder promptBuilder = new ComparisonPrompt.Builder();
-        ComparisonPrompt prompt = promptBuilder.setOccasion(occasion).setWeather(weather).build();
-        return prompt.generatePrompt();
+            String occasion = (comparisonSubmissionDto.occasions() == null || comparisonSubmissionDto.occasions().isEmpty())
+                    ? "unknown"
+                    : String.join(", ", comparisonSubmissionDto.occasions());
+
+            String weather = locationAndWeather.weather() != null
+                    ? locationAndWeather.weather().condition()
+                    : "unknown";
+
+            ComparisonPrompt prompt = new ComparisonPrompt.Builder()
+                    .setOccasion(occasion)
+                    .setWeather(weather)
+                    .build();
+
+            return prompt.generatePrompt();
     }
 
     public String sendPromptWithRetries(String extractedImagePath1, String extractedImagePath2, String userPrompt) {

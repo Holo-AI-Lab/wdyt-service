@@ -79,23 +79,34 @@ public class AiFeedbackService {
 
     @Transactional(readOnly = true)
     public String preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, LocationAndWeatherDto locationAndWeather) {
-        // Send prompt with image to ChatGPT
-        User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
+        User aiUser = aiFeedbackSubmissionDto.userId() != null
+                ? userService.getUserById(aiFeedbackSubmissionDto.userId())
+                : currentUser;
 
         List<String> styles = aiFeedbackSearchService.getStylesBasedOnUserStyleAdaptedPreference(aiUser);
         List<String> colors = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "colorCode");
-
         String location = locationAndWeather.location().getLocation();
+        List<String> occasions = aiFeedbackSubmissionDto.occasions();
 
-        List<String> occasions = aiFeedbackSubmissionDto.occasions() == null || aiFeedbackSubmissionDto.occasions().isEmpty()
-                ? aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "occasion")
-                : aiFeedbackSubmissionDto.occasions();
+        if (occasions == null || occasions.isEmpty()) {
+            occasions = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "occasion");
+        }
 
-        SingleImageSubmissionPrompt.Builder builder = new SingleImageSubmissionPrompt.Builder();
-        SingleImageSubmissionPrompt prompt = builder.useStyles(styles).useColors(colors).useCurrentDate().useOccasion(occasions.get(0)).useLocation(location).build();
+        String occasion = (occasions != null && !occasions.isEmpty())
+                ? String.join(", ", occasions)
+                : "unknown";
+
+        SingleImageSubmissionPrompt prompt = new SingleImageSubmissionPrompt.Builder()
+                .useStyles(styles)
+                .useColors(colors)
+                .useCurrentDate()
+                .useOccasion(occasion)
+                .useLocation(location)
+                .build();
 
         return prompt.generatePrompt();
     }
+
 
     public AiFeedbackSubmissionDto validateAndParseSubmissionDto(byte[] image, String data) throws JsonProcessingException {
         AiFeedbackSubmissionDto aiFeedbackSubmissionDto = parseJson(data);

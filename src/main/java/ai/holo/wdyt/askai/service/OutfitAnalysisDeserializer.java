@@ -30,12 +30,10 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
         String occasionFit = getText(rootNode, "occasion_fit");
         String trendAlert = getText(rootNode, "trend_alert");
         String hairAdvice = getText(rootNode, "hair_advice");
-        List<OutfitAnalysis.OutfitDetail> outfitDetails = getOutfitDetails(rootNode);
         OutfitAnalysis.ColorPreference colorPreference = getColorPreference(rootNode);
         List<String> enhancementRecommendations = getEnhancementRecommendations(rootNode);
-        OutfitAnalysis.CoordinateRecommendations coordinateRecommendations = getCoordinateRecommendations(rootNode);
+        List<OutfitAnalysis.OutfitItemRecommendation> outfitItemRecommendations = getOutfitItemRecommendations(rootNode);
         String summary = getText(rootNode, "summary");
-        String upliftingCompliment = getText(rootNode, "compliment");
         Tag tag = getTag(rootNode);
 
         // Return final object
@@ -44,13 +42,11 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
                 styleMatch,
                 occasionFit,
                 trendAlert,
-                outfitDetails,
                 colorPreference,
                 enhancementRecommendations,
+                outfitItemRecommendations,
                 hairAdvice,
-                coordinateRecommendations,
                 summary,
-                upliftingCompliment,
                 tag
         );
     }
@@ -96,56 +92,23 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
         return null;
     }
 
-    private List<OutfitAnalysis.OutfitDetail> getOutfitDetails(JsonNode rootNode) {
+    private List<OutfitAnalysis.OutfitItemRecommendation> getOutfitItemRecommendations(JsonNode rootNode) {
         try {
-            List<OutfitAnalysis.OutfitDetail> outfitDetails = new ArrayList<>();
-            JsonNode outfitDetailsNode = rootNode.get("outfit_details");
-
-            // Check if outfit_details is an array
-            if (outfitDetailsNode.isArray()) {
-                for (JsonNode detailNode : outfitDetailsNode) {
-                    outfitDetails.add(new OutfitAnalysis.OutfitDetail(
-                            detailNode.get("item").asText(),
-                            detailNode.get("color").asText(),
-                            detailNode.get("description").asText()
+            // Deserialize outfit_item_recommendations which is an array of strings
+            List<OutfitAnalysis.OutfitItemRecommendation> outfitItemRecommendations = new ArrayList<>();
+            JsonNode outfitItemRecommendationsNode = rootNode.get("outfit_item_recommendations");
+            // Check if the node is an array and process each element
+            if (outfitItemRecommendationsNode.isArray()) {
+                for (JsonNode node : outfitItemRecommendationsNode) {
+                    outfitItemRecommendations.add(new OutfitAnalysis.OutfitItemRecommendation(
+                            node.get("item_name").asText(),
+                            node.get("type").asText(),
+                            node.get("color").asText(),
+                            node.get("season").asText()
                     ));
                 }
             }
-            return outfitDetails;
-        } catch (Exception ignored) {
-        }
-        return null;
-    }
-
-    private OutfitAnalysis.CoordinateRecommendations getCoordinateRecommendations(JsonNode rootNode) {
-        try {
-            JsonNode recommendationsNode = rootNode.get("coordinate_recommendations");
-
-            // Parse outfit coordinates
-            List<OutfitAnalysis.Coordinate> outfitCoordinates = new ArrayList<>();
-            JsonNode outfitNode = recommendationsNode.get("outfit");
-            if (outfitNode.isArray()) {
-                for (JsonNode coordinateNode : outfitNode) {
-                    outfitCoordinates.add(new OutfitAnalysis.Coordinate(
-                            coordinateNode.get("x").asInt(),
-                            coordinateNode.get("y").asInt()
-                    ));
-                }
-            }
-
-            // Parse enhancements coordinates
-            List<OutfitAnalysis.Coordinate> enhancementsCoordinates = new ArrayList<>();
-            JsonNode enhancementsNode = recommendationsNode.get("enhancements");
-            if (enhancementsNode.isArray()) {
-                for (JsonNode coordinateNode : enhancementsNode) {
-                    enhancementsCoordinates.add(new OutfitAnalysis.Coordinate(
-                            coordinateNode.get("x").asInt(),
-                            coordinateNode.get("y").asInt()
-                    ));
-                }
-            }
-
-            return new OutfitAnalysis.CoordinateRecommendations(outfitCoordinates, enhancementsCoordinates);
+            return outfitItemRecommendations;
         } catch (Exception ignored) {
         }
         return null;
@@ -170,12 +133,22 @@ public class OutfitAnalysisDeserializer extends StdDeserializer<OutfitAnalysis> 
 
     private OutfitAnalysis.ColorPreference getColorPreference(JsonNode rootNode) {
         try {
-            // Deserialize color_preference
-            JsonNode colorPreferenceNode = rootNode.get("color_preference");
-            return new OutfitAnalysis.ColorPreference(
-                    colorPreferenceNode.get("primary").asText(),
-                    colorPreferenceNode.get("secondary").asText()
+            JsonNode colorPrefNode = rootNode.get("color_preference");
+            JsonNode primaryNode = colorPrefNode.get("primary");
+            JsonNode secondaryNode = colorPrefNode.get("secondary");
+            String comment = colorPrefNode.has("comment") ? colorPrefNode.get("comment").asText() : null;
+
+            Color primary = new Color(
+                    primaryNode.get("name").asText(),
+                    primaryNode.get("code").asText()
             );
+
+            Color secondary = new Color(
+                    secondaryNode.get("name").asText(),
+                    secondaryNode.get("code").asText()
+            );
+
+            return new OutfitAnalysis.ColorPreference(primary, secondary, comment);
         } catch (Exception ignored) {
         }
         return null;

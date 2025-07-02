@@ -66,69 +66,46 @@ public class SingleImageSubmissionPrompt extends AiPrompt {
                 ---
                 
                 # Return your response in the following 10 labeled sections, start with number (1, 2, 3...):
-                
-                1. **Head Style**  
-                   Describe the overall hair and accessory look in three precise fashion adjectives.  
-                   E.g., “Sleek – Balanced – Textured”
-                
-                2. **Style & Face Fit**  
-                   - If styles are provided, assess how the head look aligns with <style1>, <style2>, <style3>.  
-                     Mention if anything feels off-style, even if it still looks good.  
-                   - If not, in 4–5 words, describe how the hairstyle/accessories complement the face shape.
-                
-                3. **Occasion Fit**  
-                   - Evaluate how well the style suits the <occasion>.  
-                   - If misaligned, gently point that out.  
-                     E.g., “This look feels more relaxed than a formal dinner setting.”
-                
-                4. **Trend Alert**  
-                   Use 6–8 words to judge how trendy the hairstyle/accessories are based on seasonal trends for <location> on <date>.
-                
-                5. **Detailed Elements**  
-                   Number and describe each visible element (hair accessory, earring, makeup, piercing, etc.):  
-                   ① <Item>: <1-sentence comment>  
-                   ② <Item>: <1-sentence comment>
-                
-                6. **Color Preference**  
-                   - If color preferences exist: Comment on how the look aligns or clashes with <color1>, <color2>, <color3>.  
-                   - Else: Extract key primary/secondary colors, give them 2-word names + color codes.  
+                1. **Outfit Style** 
+                   Describe the overall outfit using three distinct style descriptors (e.g., “minimalist,” “sporty,” “elegant”) that best capture its aesthetic and vibe.
+                2. **Style Match** 
+                   - Does this outfit match any of my style preferences(<style1>, <style2>, <style3>)? Highlight both what works and what doesn’t.
+                   - Describe this in exactly 14-18 words—no more, no less.
+                3. **Occasion Fit** 
+                   - Evaluate how well the style suits the <occasion>. If misaligned, gently point that out.
+                   - Describe this in exactly 14-18 words—no more, no less.
+                4. **Trend Alert** 
+                   - Comment on trendiness and mention if anything feels outdated or mismatched based on seasonal trends for <location> on <date>.
+                   - Consider <weather>, seasonal colors and materials. If weather and outfit not matching, then warn the user and recommend another outfit.
+                   - Describe this in exactly 14-18 words—no more, no less.
+                5. **Color Preference** 
+                   - Comment on how the look aligns or clashes with <color1>, <color2>, <color3> (If color preferences exist). 
+                   - Extract key primary/secondary colors, give them 2-word names + color codes. 
                      E.g., “Rich Chestnut – #654321”
-                
-                7. **Enhancement Recommendations**  
-                   a) Suggest 3–4 short (3–4 words each) improvement tips in bullet points for the overall outfit. Evaluate how the outfit elements relate to each other. If something feels mismatched (e.g., heavy top with light shorts), point it out and recommend a swap or rebalancing.  
+                6. **Enhancement Recommendations** 
+                   a) Suggest 3–4 short (3–4 words each) improvement tips in bullet points for the overall outfit. Evaluate how the **outfit elements relate to each other**. If something feels mismatched (e.g., heavy top with light shorts), point it out and recommend a swap or rebalancing.
                    b) Recommend 3 complementary clothing items (not visible in the image) using valid JSON format:
-                   ```json
-                   [
-                     {
-                       "item_name": "",
-                       "type": "",        // e.g., "cardigan", "slip dress"
-                       "color": "",       // e.g., "warm beige", "denim blue"
-                       "season": ""       // spring, summer, autumn, winter
-                     }
-                   ]
-                   ```
-                
-                8. **Hair Advice**  
-                   A short tip for hair style (3-4 words):  
-                   If something could be improved: Suggest a simple alternate style.  
+                ```json
+                [
+                  {
+                    "item_name": "",
+                    "type": "",        // e.g., "cardigan", "slip dress"
+                    "color": "",       // e.g., "warm beige", "denim blue"
+                    "season": ""       // spring, summer, autumn, winter
+                  },
+                  ...
+                ]
+                7. **Hair Advice**
+                 A short tip for hair style (3-4 words):
+                   If something could be improved: Suggest a simple alternate style. 
                    If not: Give a specific, stylish compliment.
-                
-                9. **Coordinate Recommendations**  
-                   Provide coordinates (on 1080x1920 screen) for:  
-                   - Visible accessories (from Section 5)  
-                   - Suggested enhancements (from Section 7)  
-                   Format:  
-                   ① : (x, y)  
-                   Enhancement 1: (x, y)  
-                   Avoid placing items in the center.
-                
-                10. **Summary**  
-                    A concise (≤20 words) paragraph covering:  
-                    - Overall impression  
-                    - Suitability for the occasion or weather  
-                    - Personal style alignment (or note any deviation)  
-                    - Enhancement or balance insight  
-                    - Close with encouragement
+                8. **Summary**
+                  A concise (≤20 words) paragraph covering:
+                   - Overall impression
+                   - Suitability for the occasion or weather
+                   - Personal style alignment (or note any deviation)
+                   - Enhancement or balance insight
+                   - Close with encouragement
                 
                 ---
                 
@@ -137,37 +114,39 @@ public class SingleImageSubmissionPrompt extends AiPrompt {
                 - Avoid vague praise. Be specific. If something isn’t working, say so gently and offer alternatives.
                 - Prioritize user-centered insights: show that you “see” them, not just the clothes.
                 
-                If style history or prior outputs are available, incorporate that insight to suggest growth or consistency. Tag styles, occasions and colors (name and hex code) from the output and map to the tags field in the following json structure. We would like the response in this format:
+                If style history or prior outputs are available, incorporate that insight to suggest growth or consistency. Tag styles, occasions and colors (name and hex code) from the output and map to the tags field in the following json structure. 
+                Be sure to keep enhancement_recommendations as a list of short styling tips, and include outfit_item_recommendations as a separate list of structured complementary clothing items in JSON format.
+                We would like the response in this format:
                 {
                   "outfit_style": "string",
                   "style_match": "string",
                   "occasion_fit": "string",
                   "trend_alert": "string",
-                  "outfit_details": [
-                    {
-                      "item": "string",
-                      "color": "string",
-                      "description": "string"
-                    }
-                  ],
                   "color_preference": {
-                    "primary": "string",
-                    "secondary": "string"
+                    "primary": { "name": "string", "code": "string" },
+                    "secondary": { "name": "string", "code": "string" },
+                    "comment": "string"
                   },
                   "enhancement_recommendations": ["string"],
+                  "outfit_item_recommendations": [
+                    {
+                      "item_name": "string",
+                      "type": "string",
+                      "color": "string",
+                      "season": "string"
+                    }
+                  ],
                   "hair_advice": "string",
-                  "coordinate_recommendations": {
-                    "outfit": [{"x": "int", "y": "int"}],
-                    "enhancements": [{"x": "int", "y": "int"}]
-                  },
                   "summary": "string",
-                  "compliment": "string",
                   "tags": {
                     "style": ["string"],
                     "occasion": ["string"],
-                    "color": [{"name": "string", "code": "string"}]
+                    "color": [
+                      { "name": "string", "code": "string" }
+                    ]
                   }
                 }
+                
                 """;
     }
 
@@ -197,12 +176,12 @@ public class SingleImageSubmissionPrompt extends AiPrompt {
         }
 
         public Builder useLocation(String location) {
-            this.location = defaultIfBlank(location, "global");
+            this.location = location;
             return this;
         }
 
         public Builder useOccasion(String occasion) {
-            this.occasion = defaultIfBlank(occasion, "Casual");
+            this.occasion = occasion;
             return this;
         }
 
@@ -212,17 +191,17 @@ public class SingleImageSubmissionPrompt extends AiPrompt {
         }
 
         public SingleImageSubmissionPrompt build() {
-            this.style1 = defaultIfBlank(this.style1, "minimalist");
-            this.style2 = defaultIfBlank(this.style2, "elegant");
-            this.style3 = defaultIfBlank(this.style3, "casual");
+            this.style1 = defaultIfBlank(this.style1, "unknown");
+            this.style2 = defaultIfBlank(this.style2, "unknown");
+            this.style3 = defaultIfBlank(this.style3, "unknown");
 
-            this.occasion = defaultIfBlank(this.occasion, "general");
-            this.location = defaultIfBlank(this.location, "global");
+            this.occasion = defaultIfBlank(this.occasion, "unknown");
+            this.location = defaultIfBlank(this.location, "unknown");
             this.date = defaultIfBlank(this.date, LocalDate.now().toString());
 
-            this.color1 = defaultIfBlank(this.color1, "black");
-            this.color2 = defaultIfBlank(this.color2, "white");
-            this.color3 = defaultIfBlank(this.color3, "beige");
+            this.color1 = defaultIfBlank(this.color1, "unknown");
+            this.color2 = defaultIfBlank(this.color2, "unknown");
+            this.color3 = defaultIfBlank(this.color3, "unknown");
 
             return new SingleImageSubmissionPrompt(this);
         }
