@@ -105,7 +105,7 @@ public class AiFeedbackComparisonService {
             ComparisonAnalysis analysis = extractResponseForComparison(feedback.response());
             analysis = overrideUserOccasionIfProvided(comparisonFeedback, analysis);
             User aiUser = userService.getUserById(feedback.userId());
-            return new FeedbackEntryDto(feedback, null, null, analysis, new UserDto(aiUser));
+            return new FeedbackEntryDto(feedback, null, analysis, new UserDto(aiUser));
         }).toList();
         return new AiComparisonDetailedDto(comparisonFeedback, s3Service.getFileS3Url(comparisonFeedback.getImage1Path()),
                 s3Service.getFileS3Url(comparisonFeedback.getImage2Path()), userService.getUserInfo(), feedbackEntryDtos);

@@ -25,8 +25,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -204,7 +202,7 @@ public class AiFeedbackService {
         }
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
         feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), gptResponse, locationAndWeather, LocalDateTime.now()));
-        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(gptResponse, aiSubmissionImage.imageType());
+        OutfitAnalysis analysis = extractResponse(gptResponse, aiSubmissionImage.imageType());
         Map<String, List<String>> tags = getTags(analysis);
 
         feedback.updateTags(tags);
@@ -216,24 +214,20 @@ public class AiFeedbackService {
         return generateAiFeedbackDto(savedAiFeedback);
     }
 
-    private Map<String, List<String>> getTags(Pair<OutfitAnalysis, HeadStyleAnalysis> analysis) {
-        Taggable taggable = analysis.getLeft() != null ? analysis.getLeft() : analysis.getRight();
-        return taggable.getTags();
+    private Map<String, List<String>> getTags(OutfitAnalysis analysis) {
+        return analysis.getTags();
     }
 
-    private Pair<OutfitAnalysis, HeadStyleAnalysis> extractResponse(String response, ImageType imageType) {
+    private OutfitAnalysis extractResponse(String response, ImageType imageType) {
         try {
             AIResponsePayload aiResponsePayload = new ObjectMapper().readValue(response, AIResponsePayload.class);
             String rawContent = aiResponsePayload.choices().get(0).message().content();
             String content = JsonUtils.preprocessGptJson(rawContent);
-            OutfitAnalysis outfitAnalysis = null;
-            HeadStyleAnalysis headStyleAnalysis = null;
-            if (ImageType.BODY.equals(imageType)) {
-                outfitAnalysis = new ObjectMapper().readValue(content, OutfitAnalysis.class);
+            if (!ImageType.OTHER.equals(imageType)) {
+                return new ObjectMapper().readValue(content, OutfitAnalysis.class);
             } else {
-                headStyleAnalysis = new ObjectMapper().readValue(content, HeadStyleAnalysis.class);
+                throw new BadRequestException("Image type is not supported for AI analysis.");
             }
-            return new ImmutablePair<>(outfitAnalysis, headStyleAnalysis);
         } catch (JsonProcessingException e) {
             log.error("Failed to extract response from AI response", e);
             throw new RuntimeException(e);
@@ -316,9 +310,9 @@ public class AiFeedbackService {
 
     private AiFeedbackDetailedDto generateAiFeedbackDto(AiFeedback aiFeedback) {
         List<FeedbackEntryDto> feedbackEntryDtos = aiFeedback.getFeedbackEntries().stream().map(feedback -> {
-            Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(feedback.response(), aiFeedback.getImageType());
+            OutfitAnalysis analysis = extractResponse(feedback.response(), aiFeedback.getImageType());
             User aiUser = userService.getUserById(feedback.userId());
-            return new FeedbackEntryDto(feedback, analysis.getLeft(), analysis.getRight(), null, new UserDto(aiUser));
+            return new FeedbackEntryDto(feedback, analysis, null, new UserDto(aiUser));
         }).toList();
         return new AiFeedbackDetailedDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()),
                 userService.getUserInfo(), feedbackEntryDtos);
