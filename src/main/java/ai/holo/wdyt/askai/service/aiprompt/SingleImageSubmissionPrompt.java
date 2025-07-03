@@ -115,17 +115,16 @@ public class SingleImageSubmissionPrompt extends AiPrompt {
                 - Prioritize user-centered insights: show that you “see” them, not just the clothes.
                 
                 If style history or prior outputs are available, incorporate that insight to suggest growth or consistency. Tag styles, occasions and colors (name and hex code) from the output and map to the tags field in the following json structure. 
-                Be sure to keep enhancement_recommendations as a list of short styling tips, and include outfit_item_recommendations as a separate list of structured complementary clothing items in JSON format.
                 We would like the response in this format:
                 {
                   "outfit_style": "string",
                   "style_match": "string",
                   "occasion_fit": "string",
                   "trend_alert": "string",
+                  "outfitDetails": "string",
                   "color_preference": {
-                    "primary": { "name": "string", "code": "string" },
-                    "secondary": { "name": "string", "code": "string" },
-                    "comment": "string"
+                    "primary": "string",
+                    "secondary": "string",
                   },
                   "enhancement_recommendations": ["string"],
                   "outfit_item_recommendations": [
@@ -137,7 +136,9 @@ public class SingleImageSubmissionPrompt extends AiPrompt {
                     }
                   ],
                   "hair_advice": "string",
+                  "coordinateRecommendations": "string",
                   "summary": "string",
+                  "compliment": "string",                  
                   "tags": {
                     "style": ["string"],
                     "occasion": ["string"],
