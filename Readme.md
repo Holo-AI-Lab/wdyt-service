@@ -354,7 +354,7 @@ CREATE TABLE wardrobe_item (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255),
     image_path VARCHAR(255),
-    type VARCHAR(50),
+    category VARCHAR(50),
     liked BOOLEAN,
     tags JSON,
     wardrobe_id BIGINT,
