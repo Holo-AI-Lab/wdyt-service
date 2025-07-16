@@ -343,18 +343,18 @@ JOIN (
 SET af.last_feedback_received_at = subquery.latest_created_at;
 
 CREATE TABLE wardrobe_item (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255),
     image_path VARCHAR(255),
     category VARCHAR(50),
     liked BOOLEAN,
-    tags JSON,
-    wardrobe_id BIGINT,
+    tags JSON NULL,
+    wardrobe_id INT(11),
     FOREIGN KEY (wardrobe_id) REFERENCES wardrobe(id)
 );
 
 CREATE TABLE wardrobe (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
     user_id INT(11) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
     FOREIGN KEY (user_id) REFERENCES user(id)
