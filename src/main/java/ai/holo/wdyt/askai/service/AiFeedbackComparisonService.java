@@ -6,6 +6,7 @@ import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
 import ai.holo.wdyt.askai.repository.AiFeedbackComparisonRepository;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
+import ai.holo.wdyt.askai.service.aiprompt.ComparisonPrompt;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
@@ -42,7 +43,6 @@ public class AiFeedbackComparisonService {
     private final UserService userService;
     private final AiFeedbackComparisonRepository aiFeedbackComparisonRepository;
     private final S3Service s3Service;
-    private final PromptService promptService;
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final ChatGptService chatGptService;
     private final CallSupplierWithRetryService callSupplierWithRetryService;
@@ -52,7 +52,7 @@ public class AiFeedbackComparisonService {
     public AiFeedbackComparisonService(AiFeedbackRepository aiFeedbackRepository,
                                        UserService userService,
                                        AiFeedbackComparisonRepository aiFeedbackComparisonRepository,
-                                       S3Service s3Service, PromptService promptService,
+                                       S3Service s3Service,
                                        AiFeedbackSearchService aiFeedbackSearchService,
                                        ChatGptService chatGptService,
                                        CallSupplierWithRetryService callSupplierWithRetryService,
@@ -61,7 +61,6 @@ public class AiFeedbackComparisonService {
         this.userService = userService;
         this.aiFeedbackComparisonRepository = aiFeedbackComparisonRepository;
         this.s3Service = s3Service;
-        this.promptService = promptService;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.chatGptService = chatGptService;
         this.callSupplierWithRetryService = callSupplierWithRetryService;
@@ -70,7 +69,7 @@ public class AiFeedbackComparisonService {
     }
 
     @Transactional
-    public AiComparisonDetailedDto saveAiCompareResponse(AiComparisonSubmissionDto comparisonSubmissionDto, AiSubmissionPrompt prompt, String gptResponse,
+    public AiComparisonDetailedDto saveAiCompareResponse(AiComparisonSubmissionDto comparisonSubmissionDto, String gptResponse,
                                                          AISubmissionImagesForComparison comparisonImages, LocationAndWeatherDto locationAndWeather) {
 
         AiFeedback aiFeedback1 = aiFeedbackRepository.findById(comparisonSubmissionDto.feedback1()).orElseThrow(NotFoundException::new);
@@ -84,7 +83,7 @@ public class AiFeedbackComparisonService {
                 comparisonImages.image1().extractedImagePath(), comparisonImages.image2().extractedImagePath(),
                 analysis.winner());
 
-        aiComparisonFeedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), user.getId(), prompt.prompt().getId(),
+        aiComparisonFeedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), user.getId(),
                 gptResponse, locationAndWeather, LocalDateTime.now()));
 
         Map<String, List<String>> tags = analysis.getTags();
@@ -106,7 +105,7 @@ public class AiFeedbackComparisonService {
             ComparisonAnalysis analysis = extractResponseForComparison(feedback.response());
             analysis = overrideUserOccasionIfProvided(comparisonFeedback, analysis);
             User aiUser = userService.getUserById(feedback.userId());
-            return new FeedbackEntryDto(feedback, null, null, analysis, new UserDto(aiUser));
+            return new FeedbackEntryDto(feedback, null, analysis, new UserDto(aiUser));
         }).toList();
         return new AiComparisonDetailedDto(comparisonFeedback, s3Service.getFileS3Url(comparisonFeedback.getImage1Path()),
                 s3Service.getFileS3Url(comparisonFeedback.getImage2Path()), userService.getUserInfo(), feedbackEntryDtos);
@@ -152,21 +151,30 @@ public class AiFeedbackComparisonService {
         return new AISubmissionImagesForComparison(image1, image2);
     }
 
-    public AiSubmissionPrompt getComparisonPrompt(AiComparisonSubmissionDto comparisonSubmissionDto, User currentUser,
-                                                  ImageType imageType, LocationAndWeatherDto locationAndWeather) {
-        ChatGptPrompt prompt = promptService.getPrompt(imageType, SubmissionType.COMPARE);
-        List<String> styles = aiFeedbackSearchService.getStylesBasedOnUserStyleAdaptedPreference(currentUser);
-        String promptText = promptService.getPromptText(prompt, currentUser, comparisonSubmissionDto.clientTime(), locationAndWeather, comparisonSubmissionDto.occasions(), SubmissionType.COMPARE, styles);
-        return new AiSubmissionPrompt(prompt, promptText);
+    public String getComparisonPrompt(AiComparisonSubmissionDto comparisonSubmissionDto, LocationAndWeatherDto locationAndWeather) {
+            String occasion = (comparisonSubmissionDto.occasions() == null || comparisonSubmissionDto.occasions().isEmpty())
+                    ? "unknown"
+                    : String.join(", ", comparisonSubmissionDto.occasions());
+
+            String weather = locationAndWeather.weather() != null
+                    ? locationAndWeather.weather().condition()
+                    : "unknown";
+
+            ComparisonPrompt prompt = new ComparisonPrompt.Builder()
+                    .setOccasion(occasion)
+                    .setWeather(weather)
+                    .build();
+
+            return prompt.generatePrompt();
     }
 
-    public String sendPromptWithRetries(String extractedImagePath1, String extractedImagePath2, String promptText) {
+    public String sendPromptWithRetries(String extractedImagePath1, String extractedImagePath2, String userPrompt) {
         String extractedImageS3Url1 = s3Service.getFileS3Url(extractedImagePath1);
         String extractedImageS3Url2 = s3Service.getFileS3Url(extractedImagePath2);
 
         Supplier<String> gptResponseSupplier = () -> {
             // Attempt to send the prompt and extract the response
-            String gptResponse = chatGptService.sendPromptWith2Images(extractedImageS3Url1, extractedImageS3Url2, promptText);
+            String gptResponse = chatGptService.sendPromptWith2Images(extractedImageS3Url1, extractedImageS3Url2, userPrompt, ComparisonPrompt.getSystemPrompt());
             extractResponseForComparison(gptResponse);
             return gptResponse;
         };

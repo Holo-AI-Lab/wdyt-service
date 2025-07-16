@@ -342,6 +342,14 @@ JOIN (
 ) subquery ON af.id = subquery.id
 SET af.last_feedback_received_at = subquery.latest_created_at;
 
+----- V3 -----
+
+DROP TABLE IF EXISTS gpt_prompt;
+
+ALTER TABLE user ADD COLUMN public_profile BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE wdyt_robot ADD COLUMN robot_source_id INT(11) UNIQUE NOT NULL;
+
 CREATE TABLE wardrobe_item (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255),

@@ -1,17 +1,18 @@
 package ai.holo.wdyt.user.model.entity;
 
 public enum Gender {
+    FEMALE("female"),
+    MALE("male"),
+    NON_BINARY("non-binary"),
+    ;
 
-    FEMALE(0),
-    MALE(1);
+    private final String name;
 
-    private final int genderCode;
-
-    Gender(int genderCode) {
-        this.genderCode = genderCode;
+    Gender(String name) {
+        this.name = name;
     }
 
-    public int getGenderCode() {
-        return genderCode;
+    public String getName() {
+        return name;
     }
 }

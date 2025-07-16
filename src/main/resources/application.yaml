@@ -24,7 +24,7 @@ apple:
     url: https://api.storekit-sandbox.itunes.apple.com/inApps/v1/notifications/history
 integrations:
   create-robot:
-    url: https://test.the2nd.ai/aiCompanion/api/wdyt/robot/createRobot
+    url: https://test-second.the2nd.ai/api/v1/wdyt-integration/robot
   background-extraction:
     url: http://3.229.32.99:4321/bg/remove
   image-classification:

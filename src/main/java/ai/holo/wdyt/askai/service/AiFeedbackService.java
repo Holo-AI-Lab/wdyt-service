@@ -6,12 +6,14 @@ import ai.holo.wdyt.askai.model.event.AiFeedbackReceivedEvent;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.repository.OccasionRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
+import ai.holo.wdyt.askai.service.aiprompt.SingleImageSubmissionPrompt;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.exception.BadRequestException;
 import ai.holo.wdyt.common.exception.InsufficientCreditException;
 import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.common.exception.PrivateAccountException;
 import ai.holo.wdyt.common.json.JsonUtils;
 import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import ai.holo.wdyt.subscription.service.UserCreditService;
@@ -23,8 +25,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -46,7 +46,6 @@ public class AiFeedbackService {
     private final ImageClassificationService imageClassificationService;
     private final UserService userService;
     private final AiFeedbackRepository aiFeedbackRepository;
-    private final PromptService promptService;
     private final ReportAiFeedbackRepository reportAiFeedbackRepository;
     private final AiFeedbackSearchService aiFeedbackSearchService;
     private final OccasionRepository occasionRepository;
@@ -58,7 +57,6 @@ public class AiFeedbackService {
                              ImageClassificationService imageClassificationService,
                              UserService userService,
                              AiFeedbackRepository aiFeedbackRepository,
-                             PromptService promptService,
                              ReportAiFeedbackRepository reportAiFeedbackRepository,
                              AiFeedbackSearchService aiFeedbackSearchService,
                              OccasionRepository occasionRepository,
@@ -70,7 +68,6 @@ public class AiFeedbackService {
         this.imageClassificationService = imageClassificationService;
         this.userService = userService;
         this.aiFeedbackRepository = aiFeedbackRepository;
-        this.promptService = promptService;
         this.reportAiFeedbackRepository = reportAiFeedbackRepository;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
         this.occasionRepository = occasionRepository;
@@ -79,15 +76,35 @@ public class AiFeedbackService {
     }
 
     @Transactional(readOnly = true)
-    public AiSubmissionPrompt preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, ImageType imageType, LocationAndWeatherDto locationAndWeather) {
-        // Send prompt with image to ChatGPT
-        User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
-        ChatGptPrompt prompt = promptService.getPrompt(imageType, SubmissionType.SINGLE);
+    public String preparePrompt(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, User currentUser, LocationAndWeatherDto locationAndWeather) {
+        User aiUser = aiFeedbackSubmissionDto.userId() != null
+                ? userService.getUserById(aiFeedbackSubmissionDto.userId())
+                : currentUser;
 
         List<String> styles = aiFeedbackSearchService.getStylesBasedOnUserStyleAdaptedPreference(aiUser);
-        String promptText = promptService.getPromptText(prompt, aiUser, aiFeedbackSubmissionDto.clientTime(), locationAndWeather, aiFeedbackSubmissionDto.occasions(), SubmissionType.SINGLE, styles);
-        return new AiSubmissionPrompt(prompt, promptText);
+        List<String> colors = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "colorCode");
+        String location = locationAndWeather.location().getLocation();
+        List<String> occasions = aiFeedbackSubmissionDto.occasions();
+
+        if (occasions == null || occasions.isEmpty()) {
+            occasions = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(currentUser.getId(), "occasion");
+        }
+
+        String occasion = (occasions != null && !occasions.isEmpty())
+                ? String.join(", ", occasions)
+                : "unknown";
+
+        SingleImageSubmissionPrompt prompt = new SingleImageSubmissionPrompt.Builder()
+                .useStyles(styles)
+                .useColors(colors)
+                .useCurrentDate()
+                .useOccasion(occasion)
+                .useLocation(location)
+                .build();
+
+        return prompt.generatePrompt();
     }
+
 
     public AiFeedbackSubmissionDto validateAndParseSubmissionDto(byte[] image, String data) throws JsonProcessingException {
         AiFeedbackSubmissionDto aiFeedbackSubmissionDto = parseJson(data);
@@ -157,12 +174,12 @@ public class AiFeedbackService {
         return mapper.readValue(data, AiFeedbackSubmissionDto.class);
     }
 
-    public String sendPromptWithRetries(String extractedImagePath, String promptText, ImageType imageType) {
+    public String sendPromptWithRetries(String extractedImagePath, String systemPrompt, String userPrompt, ImageType imageType) {
         String extractedImageS3Url = s3Service.getFileS3Url(extractedImagePath);
 
         Supplier<String> gptResponseSupplier = () -> {
             // Attempt to send the prompt and extract the response
-            String response = chatGptService.sendPromptWithImage(extractedImageS3Url, promptText);
+            String response = chatGptService.sendPromptWithImage(extractedImageS3Url, systemPrompt, userPrompt);
             extractResponse(response, imageType);
             return response;
         };
@@ -171,8 +188,9 @@ public class AiFeedbackService {
     }
 
     @Transactional
-    public AiFeedbackDetailedDto saveAiResponse(AiFeedbackSubmissionDto aiFeedbackSubmissionDto, Long promptId,
-                                                String gptResponse, AISubmissionImage aiSubmissionImage, LocationAndWeatherDto locationAndWeather) {
+    public AiFeedbackDetailedDto saveAiResponse(AiFeedbackSubmissionDto aiFeedbackSubmissionDto,
+                                                String gptResponse, AISubmissionImage aiSubmissionImage,
+                                                LocationAndWeatherDto locationAndWeather) {
         User currentUser = userService.getUser();
         AiFeedback feedback;
         if (aiFeedbackSubmissionDto.aiFeedbackId() != null) {
@@ -183,8 +201,8 @@ public class AiFeedbackService {
 
         }
         User aiUser = aiFeedbackSubmissionDto.userId() != null ? userService.getUserById(aiFeedbackSubmissionDto.userId()) : currentUser;
-        feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), promptId, gptResponse, locationAndWeather, LocalDateTime.now()));
-        Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(gptResponse, aiSubmissionImage.imageType());
+        feedback.addFeedbackEntry(new FeedbackEntry(UUID.randomUUID().toString(), aiUser.getId(), gptResponse, locationAndWeather, LocalDateTime.now()));
+        OutfitAnalysis analysis = extractResponse(gptResponse, aiSubmissionImage.imageType());
         Map<String, List<String>> tags = getTags(analysis);
 
         feedback.updateTags(tags);
@@ -196,24 +214,20 @@ public class AiFeedbackService {
         return generateAiFeedbackDto(savedAiFeedback);
     }
 
-    private Map<String, List<String>> getTags(Pair<OutfitAnalysis, HeadStyleAnalysis> analysis) {
-        Taggable taggable = analysis.getLeft() != null ? analysis.getLeft() : analysis.getRight();
-        return taggable.getTags();
+    private Map<String, List<String>> getTags(OutfitAnalysis analysis) {
+        return analysis.getTags();
     }
 
-    private Pair<OutfitAnalysis, HeadStyleAnalysis> extractResponse(String response, ImageType imageType) {
+    private OutfitAnalysis extractResponse(String response, ImageType imageType) {
         try {
             AIResponsePayload aiResponsePayload = new ObjectMapper().readValue(response, AIResponsePayload.class);
             String rawContent = aiResponsePayload.choices().get(0).message().content();
             String content = JsonUtils.preprocessGptJson(rawContent);
-            OutfitAnalysis outfitAnalysis = null;
-            HeadStyleAnalysis headStyleAnalysis = null;
-            if (ImageType.BODY.equals(imageType)) {
-                outfitAnalysis = new ObjectMapper().readValue(content, OutfitAnalysis.class);
+            if (!ImageType.OTHER.equals(imageType)) {
+                return new ObjectMapper().readValue(content, OutfitAnalysis.class);
             } else {
-                headStyleAnalysis = new ObjectMapper().readValue(content, HeadStyleAnalysis.class);
+                throw new BadRequestException("Image type is not supported for AI analysis.");
             }
-            return new ImmutablePair<>(outfitAnalysis, headStyleAnalysis);
         } catch (JsonProcessingException e) {
             log.error("Failed to extract response from AI response", e);
             throw new RuntimeException(e);
@@ -245,6 +259,30 @@ public class AiFeedbackService {
                 new AiFeedbackDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
     }
 
+    @Transactional(readOnly = true)
+    public Page<AiFeedbackDto> listFriendsAiFeedbacks(Long friendId, Map<String, List<String>> tagFilters, Boolean liked,
+                                               Long feedbackIdForComparison, List<Long> idsNot, ImageType imageType,
+                                               PageRequest pageRequest) {
+        User friend = userService.getUserById(friendId);
+        UserDto friendInfo = new UserDto(friend);
+
+        if (!userService.isCurrentUserFriendWith(friendId)) {
+            throw new BadRequestException("User is not a friend");
+        }
+
+        if (!friend.isPublicProfile()){
+            throw new PrivateAccountException("This profile is private !");
+        }
+
+        Sort sortBy = Sort.by(
+                Sort.Order.by("created_at").with(Sort.Direction.DESC)
+        );
+        PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
+        return aiFeedbackSearchService.findAiFeedbacksByTags(friendInfo.id(), tagFilters, liked,
+                feedbackIdForComparison, idsNot, imageType, pageRequestWithSort).map(aiFeedback ->
+                new AiFeedbackDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), friendInfo));
+    }
+
     @Transactional
     public AiFeedbackDto likeStyle(LikeStyleDto likeStyleDto) {
         AiFeedback aiFeedback = aiFeedbackRepository.findById(likeStyleDto.id()).orElseThrow(NotFoundException::new);
@@ -272,9 +310,9 @@ public class AiFeedbackService {
 
     private AiFeedbackDetailedDto generateAiFeedbackDto(AiFeedback aiFeedback) {
         List<FeedbackEntryDto> feedbackEntryDtos = aiFeedback.getFeedbackEntries().stream().map(feedback -> {
-            Pair<OutfitAnalysis, HeadStyleAnalysis> analysis = extractResponse(feedback.response(), aiFeedback.getImageType());
+            OutfitAnalysis analysis = extractResponse(feedback.response(), aiFeedback.getImageType());
             User aiUser = userService.getUserById(feedback.userId());
-            return new FeedbackEntryDto(feedback, analysis.getLeft(), analysis.getRight(), null, new UserDto(aiUser));
+            return new FeedbackEntryDto(feedback, analysis, null, new UserDto(aiUser));
         }).toList();
         return new AiFeedbackDetailedDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()),
                 userService.getUserInfo(), feedbackEntryDtos);

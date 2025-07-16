@@ -47,9 +47,6 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-logging")
 	implementation("org.springframework.boot:spring-boot-starter-web")
 
-	// Janino for Logback's conditional expressions (if required)
-	implementation("org.codehaus.janino:janino:3.1.6")
-
 	// JSON Web Tokens
 	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")

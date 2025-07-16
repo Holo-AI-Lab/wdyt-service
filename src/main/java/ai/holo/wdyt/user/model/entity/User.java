@@ -31,6 +31,8 @@ public class User {
     private Robot robot;
     @Column(name = "is_style_adapted")
     private boolean isStyleAdapted;
+    @Column(name = "public_profile")
+    private boolean publicProfile; // true public, false private
     // Used for push notifications
     @Column(name = "device_token")
     private String deviceToken;

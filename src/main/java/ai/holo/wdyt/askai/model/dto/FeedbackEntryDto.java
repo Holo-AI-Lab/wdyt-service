@@ -9,11 +9,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public record FeedbackEntryDto(String id,
                                UserDto aiUserInfo,
                                OutfitAnalysis outfitAnalysis,
-                               HeadStyleAnalysis headStyleAnalysis,
                                ComparisonAnalysis comparisonAnalysis,
                                LocationAndWeatherDto locationAndWeather) {
 
-    public FeedbackEntryDto(FeedbackEntry feedback, OutfitAnalysis outfitAnalysis, HeadStyleAnalysis headStyleAnalysis, ComparisonAnalysis comparisonAnalysis, UserDto userInfo) {
-        this(feedback.id(), userInfo, outfitAnalysis, headStyleAnalysis, comparisonAnalysis,  feedback.locationAndWeather());
+    public FeedbackEntryDto(FeedbackEntry feedback, OutfitAnalysis outfitAnalysis, ComparisonAnalysis comparisonAnalysis, UserDto userInfo) {
+        this(feedback.id(), userInfo, outfitAnalysis, comparisonAnalysis,  feedback.locationAndWeather());
     }
 }

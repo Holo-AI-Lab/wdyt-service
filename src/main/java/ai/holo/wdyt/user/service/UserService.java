@@ -1,7 +1,5 @@
 package ai.holo.wdyt.user.service;
 
-import ai.holo.wdyt.askai.repository.AiFeedbackComparisonRepository;
-import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
 import ai.holo.wdyt.askai.service.AiFeedbackSearchService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.event.service.EventPublisher;
@@ -16,6 +14,7 @@ import ai.holo.wdyt.user.model.entity.*;
 import ai.holo.wdyt.user.model.event.NewUserRegisteredEvent;
 import ai.holo.wdyt.user.repository.*;
 import jakarta.validation.constraints.NotEmpty;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,11 +24,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@Slf4j
 public class UserService {
 
     private final UserRepository userRepository;
@@ -43,15 +45,13 @@ public class UserService {
     private final EventPublisher eventPublisher;
     private final PushNotificationService pushNotificationService;
     private final AiFeedbackSearchService aiFeedbackSearchService;
-    private final AiFeedbackRepository aiFeedbackRepository;
-    private final AiFeedbackComparisonRepository aiFeedbackComparisonRepository;
 
     public UserService(UserRepository userRepository,
                        RobotService robotService,
                        @Value("${aws.s3.endpoint}") String s3Endpoint,
                        UserFeedbackRepository userFeedbackRepository,
                        S3Service s3Service,
-                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository, EventPublisher eventPublisher, PushNotificationService pushNotificationService, AiFeedbackSearchService aiFeedbackSearchService, AiFeedbackRepository aiFeedbackRepository, AiFeedbackComparisonRepository aiFeedbackComparisonRepository) {
+                       StyleRepository styleRepository, FriendRequestRepository friendRequestRepository, FriendRepository friendRepository, EventPublisher eventPublisher, PushNotificationService pushNotificationService, AiFeedbackSearchService aiFeedbackSearchService) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
@@ -63,8 +63,6 @@ public class UserService {
         this.eventPublisher = eventPublisher;
         this.pushNotificationService = pushNotificationService;
         this.aiFeedbackSearchService = aiFeedbackSearchService;
-        this.aiFeedbackRepository = aiFeedbackRepository;
-        this.aiFeedbackComparisonRepository = aiFeedbackComparisonRepository;
     }
 
     public User createOrRetrieveUser(String email, String name, String appleId) {
@@ -81,7 +79,7 @@ public class UserService {
             User savedUser = userRepository.save(newUser);
             eventPublisher.publishEvent(new NewUserRegisteredEvent(newUser.getId()));
             // We're generating gender randomly for now..
-            Robot robot = robotService.createRobot(savedUser.getId(), getGenderRandomly());
+            Robot robot = robotService.createRobot(getGenderRandomly());
             savedUser.setRobot(robot);
             return savedUser;
         }
@@ -277,11 +275,37 @@ public class UserService {
     public void updateDeviceTokenAndTimezone(String deviceToken, @NotEmpty String timezone) {
         User user = getUser();
         user.setDeviceToken(deviceToken);
+        String cleanedZoneId = cleanZoneIdString(timezone);
+        if (isValidZoneId(cleanedZoneId)) {
+            user.setTimezone(cleanedZoneId);
+        } else {
+            log.error("Invalid timezone ID received: '{}'", timezone);
+        }
         user.setTimezone(timezone);
         userRepository.save(user);
     }
 
+    private boolean isValidZoneId(String zoneId) {
+        try {
+            ZoneId.of(zoneId);
+            return true;
+        } catch (DateTimeException e) {
+            return false;
+        }
+    }
+
+    private String cleanZoneIdString(String raw) {
+        return raw.split(" ")[0]; // Assuming the first part is the valid ZoneId
+    }
+
     public void sendHelloWorldPushNotification() {
         pushNotificationService.sendPushNotification(getUser().getId(), "Hello World!", "Hello, World!", NotificationType.OTHER);
+    }
+
+    public UserDto updatePrivacyStatus(UpdatePrivacyStatusDto updatePrivacyStatusDto) {
+        User user = getUser();
+        user.setPublicProfile(updatePrivacyStatusDto.publicProfile());
+        User savedUser = userRepository.save(user);
+        return new UserDto(savedUser);
     }
 }
