@@ -24,7 +24,7 @@ public class WardrobeItem {
     private String imagePath;
     @Column(name = "type")
     @Enumerated(EnumType.STRING)
-    private Category type;
+    private Category category;
     @Column(name = "liked")
     private boolean liked;
     @Convert(converter = TagConverter.class)
