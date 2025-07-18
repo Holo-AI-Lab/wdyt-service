@@ -1,14 +1,9 @@
 package ai.holo.wdyt.wardrobe.model.entity;
 
-import ai.holo.wdyt.askai.model.entity.TagConverter;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @Entity(name = "wardrobe_item")
 @Getter
@@ -22,12 +17,15 @@ public class WardrobeItem {
     private String name;
     @Column(name = "image_path")
     private String imagePath;
-    @Column(name = "type")
+    @Column(name = "category")
     @Enumerated(EnumType.STRING)
     private Category category;
     @Column(name = "liked")
     private boolean liked;
-    @Convert(converter = TagConverter.class)
+    @Convert(converter = WardrobeTagConverter.class)
     @Column(columnDefinition = "JSON")
-    private Map<String, List<String>> tags = new HashMap<>();
+    private Tags tags;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "wardrobe_id", nullable = false)
+    private Wardrobe wardrobe;
 }

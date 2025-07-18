@@ -7,6 +7,7 @@ import ai.holo.wdyt.subscription.repository.UserSubscriptionRepository;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserFeedbackRepository;
 import ai.holo.wdyt.user.repository.UserRepository;
+import ai.holo.wdyt.wardrobe.service.WardrobeService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ public class UserDeleteAccountService {
     private final UserCreditRepository userCreditRepository;
     private final UserSubscriptionRepository userSubscriptionRepository;
     private final AppleTransactionRepository appleTransactionRepository;
+    private final WardrobeService wardrobeService;
 
     public UserDeleteAccountService(UserRepository userRepository,
                                     RobotService robotService,
@@ -31,7 +33,9 @@ public class UserDeleteAccountService {
                                     FriendService friendService,
                                     UserService userService,
                                     UserCreditRepository userCreditRepository,
-                                    UserSubscriptionRepository userSubscriptionRepository, AppleTransactionRepository appleTransactionRepository) {
+                                    UserSubscriptionRepository userSubscriptionRepository,
+                                    AppleTransactionRepository appleTransactionRepository,
+                                    WardrobeService wardrobeService) {
         this.userRepository = userRepository;
         this.robotService = robotService;
         this.userFeedbackRepository = userFeedbackRepository;
@@ -41,10 +45,12 @@ public class UserDeleteAccountService {
         this.userCreditRepository = userCreditRepository;
         this.userSubscriptionRepository = userSubscriptionRepository;
         this.appleTransactionRepository = appleTransactionRepository;
+        this.wardrobeService = wardrobeService;
     }
 
     public void deleteAccount() {
         User user = userService.getUser();
+        wardrobeService.deleteWardrobeForUser(user.getId());
         robotService.deleteRobot(user.getRobot().getId());
         friendService.deleteUser(user.getId());
         userCreditRepository.deleteAllByUserId(user.getId());

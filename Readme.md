@@ -350,6 +350,12 @@ ALTER TABLE user ADD COLUMN public_profile BOOLEAN DEFAULT FALSE;
 
 ALTER TABLE wdyt_robot ADD COLUMN robot_source_id INT(11) UNIQUE NOT NULL;
 
+CREATE TABLE wardrobe (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    user_id INT(11) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+);
+
 CREATE TABLE wardrobe_item (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255),
@@ -357,16 +363,18 @@ CREATE TABLE wardrobe_item (
     category VARCHAR(50),
     liked BOOLEAN,
     tags JSON NULL,
-    wardrobe_id INT(11),
+    wardrobe_id INT(11) NOT NULL,
     FOREIGN KEY (wardrobe_id) REFERENCES wardrobe(id)
 );
 
-CREATE TABLE wardrobe (
+CREATE TABLE report_wardrobe (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    wardrobe_item_id INT(11) NOT NULL,
     user_id INT(11) NOT NULL,
+    feedback TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES user(id)
 );
+
 ```
 
 # Create Docker image and push to ECR
