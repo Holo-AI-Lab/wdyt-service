@@ -3,10 +3,7 @@ package ai.holo.wdyt.wardrobe.service;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
-import ai.holo.wdyt.wardrobe.model.dto.CreateWardrobeItemDto;
-import ai.holo.wdyt.wardrobe.model.dto.UpdateWardrobeItemDto;
-import ai.holo.wdyt.wardrobe.model.dto.WardrobeItemDto;
-import ai.holo.wdyt.wardrobe.model.dto.WardrobeItemFilterRequest;
+import ai.holo.wdyt.wardrobe.model.dto.*;
 import ai.holo.wdyt.wardrobe.model.entity.Category;
 import ai.holo.wdyt.wardrobe.model.entity.ReportWardrobe;
 import ai.holo.wdyt.wardrobe.model.entity.Wardrobe;
@@ -151,11 +148,11 @@ public class WardrobeService {
         wardrobeItemRepository.delete(item);
     }
 
-    public void reportItem(Long itemId, String feedback) {
+    public void reportItem(WardrobeReportRequest wardrobeReportRequest) {
         User user = userService.getUser();
-        WardrobeItem item = wardrobeItemRepository.findById(itemId).orElseThrow(NotFoundException::new);
-        ReportWardrobe reportWardrobe = new ReportWardrobe(user.getId(), item.getId(), feedback);
+        WardrobeItem item = wardrobeItemRepository.findById(wardrobeReportRequest.itemId()).orElseThrow(NotFoundException::new);
+        ReportWardrobe reportWardrobe = new ReportWardrobe(user.getId(), item.getId(), wardrobeReportRequest.feedback());
         reportWardrobeRepository.save(reportWardrobe);
-        log.info("Report created for item ID: {} by user ID: {}", itemId, user.getId());
+        log.info("Report created for item ID: {} by user ID: {}", wardrobeReportRequest.itemId(), user.getId());
     }
 }

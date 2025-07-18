@@ -1,9 +1,6 @@
 package ai.holo.wdyt.wardrobe.controller;
 
-import ai.holo.wdyt.wardrobe.model.dto.CreateWardrobeItemDto;
-import ai.holo.wdyt.wardrobe.model.dto.UpdateWardrobeItemDto;
-import ai.holo.wdyt.wardrobe.model.dto.WardrobeItemDto;
-import ai.holo.wdyt.wardrobe.model.dto.WardrobeItemFilterRequest;
+import ai.holo.wdyt.wardrobe.model.dto.*;
 import ai.holo.wdyt.wardrobe.service.WardrobeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -63,8 +60,7 @@ public class WardrobeController {
     }
 
     @PostMapping("/report")
-    public void reportItem(@RequestParam("itemId") Long itemId,
-                           @RequestParam("reason") String feedback) {
-        wardrobeService.reportItem(itemId, feedback);
+    public void reportItem(@RequestBody WardrobeReportRequest request) {
+        wardrobeService.reportItem(request);
     }
 }
