@@ -45,7 +45,7 @@ public class WardrobeController {
         return wardrobeService.createItem(dto);
     }
 
-    @PutMapping("/update-item/{id}")
+    @PostMapping("/update-item/{id}")
     public WardrobeItemDto updateItem(@PathVariable("id") Long id,
                                       @RequestBody UpdateWardrobeItemDto dto) {
         return wardrobeService.updateItem(id, dto);
