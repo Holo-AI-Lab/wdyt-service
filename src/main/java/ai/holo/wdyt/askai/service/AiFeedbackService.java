@@ -8,6 +8,7 @@ import ai.holo.wdyt.askai.repository.OccasionRepository;
 import ai.holo.wdyt.askai.repository.ReportAiFeedbackRepository;
 import ai.holo.wdyt.askai.service.aiprompt.SingleImageSubmissionPrompt;
 import ai.holo.wdyt.common.S3Service;
+import ai.holo.wdyt.common.chatgpt.ChatGptService;
 import ai.holo.wdyt.common.event.service.CallSupplierWithRetryService;
 import ai.holo.wdyt.common.event.service.EventPublisher;
 import ai.holo.wdyt.common.exception.BadRequestException;

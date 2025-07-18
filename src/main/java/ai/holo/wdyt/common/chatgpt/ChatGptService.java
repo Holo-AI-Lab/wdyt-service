@@ -1,4 +1,4 @@
-package ai.holo.wdyt.askai.service;
+package ai.holo.wdyt.common.chatgpt;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.extern.slf4j.Slf4j;
@@ -26,11 +26,7 @@ public class ChatGptService {
         this.gptVersion = gptVersion;
     }
 
-    public String sendPromptWithImage(String imageUrl, String systemPrompt, String userPrompt) {
-        List<Message> messages = List.of(
-                new Message("system", List.of(new MessageContent("text", systemPrompt, null))),
-                new Message("user", List.of(new MessageContent("text", userPrompt, null), new MessageContent("image_url", null, new ImageAttachment(imageUrl)))));
-
+    public String sendPrompt(List<Message> messages) {
         ChatGPTRequest request = new ChatGPTRequest(gptVersion, messages);
 
         return webClient.post()
@@ -41,7 +37,14 @@ public class ChatGptService {
                 .onStatus(HttpStatusCode::is5xxServerError, clientResponse -> handleError(clientResponse, "Server error"))
                 .bodyToMono(String.class)
                 .block();
+    }
 
+    public String sendPromptWithImage(String imageUrl, String systemPrompt, String userPrompt) {
+        List<Message> messages = List.of(
+                new Message("system", List.of(new MessageContent("text", systemPrompt, null))),
+                new Message("user", List.of(new MessageContent("text", userPrompt, null), new MessageContent("image_url", null, new ImageAttachment(imageUrl)))));
+
+        return sendPrompt(messages);
     }
 
     public String sendPromptWith2Images(String imageUrl1, String imageUrl2, String promptText, String systemPrompt) {
@@ -55,17 +58,7 @@ public class ChatGptService {
                 new MessageContent("image_url", null, new ImageAttachment(imageUrl2))
         )));
 
-        ChatGPTRequest request = new ChatGPTRequest(gptVersion, messages);
-
-        return webClient.post()
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
-                .retrieve()
-                .onStatus(HttpStatusCode::is4xxClientError, clientResponse -> handleError(clientResponse, "Client error"))
-                .onStatus(HttpStatusCode::is5xxServerError, clientResponse -> handleError(clientResponse, "Server error"))
-                .bodyToMono(String.class)
-                .block();
-
+        return sendPrompt(messages);
     }
 
     private static Mono<? extends Throwable> handleError(ClientResponse clientResponse, String errorType) {
