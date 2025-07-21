@@ -382,10 +382,14 @@ CREATE TABLE draft_wardrobe_item (
     name VARCHAR(255),
     content TEXT,
     category VARCHAR(255),
+    sub_category VARCHAR(255),
     season VARCHAR(50),
     colors JSON,
-    image_path VARCHAR(255)
+    image_path VARCHAR(255),
+    extraction_type VARCHAR(50) NOT NULL DEFAULT 'AUTOMATIC'
 );
+
+ALTER TABLE ai_feedback add column wardrobe_item_extracted BOOLEAN DEFAULT FALSE;
 
 ```
 

@@ -26,6 +26,8 @@ public class DraftWardrobeItem {
     @Column(name = "category")
     @Enumerated(EnumType.STRING)
     private WardrobeItemCategory category;
+    @Column(name = "sub_category")
+    private String subCategory;
     @Column(name = "season")
     private String season;
     @Column(name = "colors")
@@ -33,14 +35,18 @@ public class DraftWardrobeItem {
     private List<Color> colors;
     @Column(name = "image_path")
     private String imagePath;
+    @Column(name = "extraction_type")
+    @Enumerated(EnumType.STRING)
+    private WardrobeItemExtractionType extractionType = WardrobeItemExtractionType.AUTOMATIC;
 
-    public DraftWardrobeItem(Long userId, Long aiFeedbackId, String name, String content, WardrobeItemCategory category,
+    public DraftWardrobeItem(Long userId, Long aiFeedbackId, String name, String content, WardrobeItemCategory category, String subCategory,
                              List<Color> colors, String season, String imagePath) {
         this.userId = userId;
         this.aiFeedbackId = aiFeedbackId;
         this.name = name;
         this.content = content;
         this.category = category;
+        this.subCategory = subCategory;
         this.colors = colors;
         this.season = season;
         this.imagePath = imagePath;

@@ -34,6 +34,8 @@ public class AiFeedback implements TaggableEntity, FeedbackReceiverEntity {
     private LocalDateTime lastFeedbackReceivedAt;
     @Column(name = "like_style")
     private boolean likeStyle;
+    @Column(name = "wardrobe_item_extracted")
+    private boolean wardrobeItemExtracted = false;
     @Convert(converter = TagConverter.class)
     @Column(columnDefinition = "JSON")
     private Map<String, List<String>> tags = new HashMap<>();

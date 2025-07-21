@@ -2,7 +2,6 @@ package ai.holo.wdyt.wardrobe.service;
 
 import ai.holo.wdyt.askai.model.entity.AiFeedback;
 import ai.holo.wdyt.askai.repository.AiFeedbackRepository;
-import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.chatgpt.ChatGptService;
 import ai.holo.wdyt.common.chatgpt.ChatGptText2ImageService;
@@ -15,7 +14,7 @@ import ai.holo.wdyt.wardrobe.model.entity.Color;
 import ai.holo.wdyt.wardrobe.model.entity.DraftWardrobeItem;
 import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemCategory;
 import ai.holo.wdyt.wardrobe.repository.DraftWardrobeItemRepository;
-import ai.holo.wdyt.wardrobe.service.prompt.ImageWardrobeItemDetectionPrompt;
+import ai.holo.wdyt.wardrobe.service.prompt.WardrobeItemAutomaticExtractionPrompt;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -25,7 +24,10 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
 @Service
 public class WardrobeItemAutoExtractService {
@@ -65,7 +67,7 @@ public class WardrobeItemAutoExtractService {
     }
 
     private List<DraftWardrobeItemDto> extractItems(UserDto userInfo, String imageUrl, Long aiFeedbackId) {
-        String systemPrompt = new ImageWardrobeItemDetectionPrompt().getSystemPrompt();
+        String systemPrompt = new WardrobeItemAutomaticExtractionPrompt().getSystemPrompt();
 
         List<ChatGptService.Message> messages = List.of(
                 new ChatGptService.Message("system", List.of(new ChatGptService.MessageContent("text", systemPrompt, null))),
@@ -81,9 +83,16 @@ public class WardrobeItemAutoExtractService {
 
         List<DraftWardrobeItem> draftWardrobeItems = executeImageGenerationInParallel(wardrobeItemImageGenerationPrompts, userInfo, aiFeedbackId);
         List<DraftWardrobeItem> savedDraftItems = draftWardrobeItemRepository.saveAll(draftWardrobeItems);
+        updateAiFeedbackExtractedInfo(aiFeedbackId);
         return savedDraftItems.stream()
                 .map(draftItem -> new DraftWardrobeItemDto(draftItem, s3Service.getFileS3Url(draftItem.getImagePath())))
                 .toList();
+    }
+
+    private void updateAiFeedbackExtractedInfo(Long aiFeedbackId) {
+        AiFeedback aiFeedback = aiFeedbackRepository.findById(aiFeedbackId).orElseThrow(NotFoundException::new);
+        aiFeedback.setWardrobeItemExtracted(true);
+        aiFeedbackRepository.save(aiFeedback);
     }
 
     private List<DraftWardrobeItem> executeImageGenerationInParallel(
@@ -131,6 +140,7 @@ public class WardrobeItemAutoExtractService {
                         prompt.item.name(),
                         prompt.item.content(),
                         WardrobeItemCategory.fromValue(prompt.item.label()),
+                        prompt.item.subLabel(),
                         prompt.item.colors.stream()
                                 .map(c -> new Color(c.name(), c.code()))
                                 .toList(),
@@ -172,9 +182,9 @@ public class WardrobeItemAutoExtractService {
         return detectedWardrobeItemResponses.stream().map(item -> {
             String colorPrompt = item.colorStripesIntersecting() ? String.format("Multiple colors are staggered in stripes, a %s", item.colors) : String.format("a %s", item.colors());
             if (WardrobeItemCategory.FOOTWEAR.getDisplayName().equals(item.label())) {
-                return new WardrobeItemImageGenerationPrompt(item, String.format("%s %s %s %s", shoesPrompt, colorPrompt, item.cloLabel(), item.content()));
+                return new WardrobeItemImageGenerationPrompt(item, String.format("%s %s %s %s", shoesPrompt, colorPrompt, item.subLabel(), item.content()));
             } else {
-                return new WardrobeItemImageGenerationPrompt(item, String.format("%s %s %s %s", genericPrompt, colorPrompt, item.cloLabel(), item.content()));
+                return new WardrobeItemImageGenerationPrompt(item, String.format("%s %s %s %s", genericPrompt, colorPrompt, item.subLabel(), item.content()));
             }
         }).toList();
     }
@@ -212,7 +222,7 @@ public class WardrobeItemAutoExtractService {
             String name,
             String content,
             String label,
-            String cloLabel,
+            String subLabel,
             List<DetectedWardrobeItemColor> colors,
             String season,
             boolean colorStripesIntersecting
@@ -223,11 +233,11 @@ public class WardrobeItemAutoExtractService {
     public record DetectedWardrobeItemColor(String name, String code) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ResponsePayload(String id, List<AiFeedbackService.AIResponseAssistantMessage> choices) {
+    public record ResponsePayload(String id, List<ResponseAssistantMessage> choices) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ResponseAssistantMessage(AiFeedbackService.AIMessage message) {
+    public record ResponseAssistantMessage(ResponseMessage message) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
