@@ -57,7 +57,7 @@ public class WardrobeItemAutoExtractService {
     }
 
     private List<DraftWardrobeItemsDto> executeImageGenerationInParallel(List<WardrobeItemImageGenerationPrompt> wardrobeItemImageGenerationPrompts, UserDto userInfo) {
-        ExecutorService executor = Executors.newFixedThreadPool(8); // adjust pool size based on your system
+        ExecutorService executor = Executors.newFixedThreadPool(20); // adjust pool size based on your system
         List<CompletableFuture<DraftWardrobeItemsDto>> futures = wardrobeItemImageGenerationPrompts.stream()
                 .map(prompt -> CompletableFuture.supplyAsync(() -> {
                     byte[] image = chatGptText2ImageService.generateImage(prompt.text2ImagePrompt());
