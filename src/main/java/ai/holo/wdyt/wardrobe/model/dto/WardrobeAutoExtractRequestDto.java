@@ -1,4 +1,6 @@
 package ai.holo.wdyt.wardrobe.model.dto;
 
-public record WardrobeAutoExtractRequestDto(String imageUrl) {
+import jakarta.validation.constraints.NotNull;
+
+public record WardrobeAutoExtractRequestDto(@NotNull Long aiFeedbackId) {
 }

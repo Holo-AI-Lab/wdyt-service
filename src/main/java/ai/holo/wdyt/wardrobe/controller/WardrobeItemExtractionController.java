@@ -1,6 +1,6 @@
 package ai.holo.wdyt.wardrobe.controller;
 
-import ai.holo.wdyt.wardrobe.model.dto.DraftWardrobeItemsDto;
+import ai.holo.wdyt.wardrobe.model.dto.DraftWardrobeItemDto;
 import ai.holo.wdyt.wardrobe.model.dto.WardrobeAutoExtractRequestDto;
 import ai.holo.wdyt.wardrobe.service.WardrobeItemAutoExtractService;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,7 +21,7 @@ public class WardrobeItemExtractionController {
     }
 
     @PostMapping("/auto-extract")
-    public List<DraftWardrobeItemsDto> updateUserInfo(@RequestBody WardrobeAutoExtractRequestDto wardrobeAutoExtractRequestDto) {
-        return wardrobeItemAutoExtractService.extractWardrobeItems(wardrobeAutoExtractRequestDto.imageUrl());
+    public List<DraftWardrobeItemDto> updateUserInfo(@RequestBody WardrobeAutoExtractRequestDto wardrobeAutoExtractRequestDto) {
+        return wardrobeItemAutoExtractService.extractWardrobeItems(wardrobeAutoExtractRequestDto.aiFeedbackId());
     }
 }

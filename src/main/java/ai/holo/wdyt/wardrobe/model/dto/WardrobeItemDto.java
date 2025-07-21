@@ -1,6 +1,6 @@
 package ai.holo.wdyt.wardrobe.model.dto;
 
-import ai.holo.wdyt.wardrobe.model.entity.Category;
+import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemCategory;
 import ai.holo.wdyt.wardrobe.model.entity.WardrobeItem;
 import ai.holo.wdyt.wardrobe.model.entity.Tags;
 
@@ -8,7 +8,7 @@ public record WardrobeItemDto(
         Long id,
         String name,
         String imagePath,
-        Category category,
+        WardrobeItemCategory category,
         boolean liked,
         Tags tags
 ) {

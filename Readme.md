@@ -353,7 +353,7 @@ ALTER TABLE wdyt_robot ADD COLUMN robot_source_id INT(11) UNIQUE NOT NULL;
 CREATE TABLE wardrobe (
     id INT(11) AUTO_INCREMENT PRIMARY KEY,
     user_id INT(11) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 CREATE TABLE wardrobe_item (
@@ -372,7 +372,19 @@ CREATE TABLE report_wardrobe (
     wardrobe_item_id INT(11) NOT NULL,
     user_id INT(11) NOT NULL,
     feedback TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE TABLE draft_wardrobe_item (
+    id INT(11) AUTO_INCREMENT PRIMARY KEY,
+    user_id INT(11) NOT NULL,
+    ai_feedback_id INT(11) NULL,
+    name VARCHAR(255),
+    content TEXT,
+    category VARCHAR(255),
+    season VARCHAR(50),
+    colors JSON,
+    image_path VARCHAR(255)
 );
 
 ```

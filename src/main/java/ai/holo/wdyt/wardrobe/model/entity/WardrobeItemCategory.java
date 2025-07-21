@@ -18,4 +18,13 @@ public enum WardrobeItemCategory {
     WardrobeItemCategory(String displayName) {
         this.displayName = displayName;
     }
+
+    public static WardrobeItemCategory fromValue(String label) {
+        for (WardrobeItemCategory category : WardrobeItemCategory.values()) {
+            if (category.getDisplayName().equalsIgnoreCase(label)) {
+                return category;
+            }
+        }
+        throw new IllegalArgumentException("Unknown category: " + label);
+    }
 }

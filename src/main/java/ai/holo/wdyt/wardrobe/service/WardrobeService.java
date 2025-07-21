@@ -4,11 +4,7 @@ import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
 import ai.holo.wdyt.wardrobe.model.dto.*;
-import ai.holo.wdyt.wardrobe.model.entity.Category;
-import ai.holo.wdyt.wardrobe.model.entity.ReportWardrobe;
-import ai.holo.wdyt.wardrobe.model.entity.Wardrobe;
-import ai.holo.wdyt.wardrobe.model.entity.WardrobeItem;
-import ai.holo.wdyt.wardrobe.model.entity.Tags;
+import ai.holo.wdyt.wardrobe.model.entity.*;
 import ai.holo.wdyt.wardrobe.repository.ReportWardrobeRepository;
 import ai.holo.wdyt.wardrobe.repository.WardrobeItemRepository;
 import ai.holo.wdyt.wardrobe.repository.WardrobeRepository;
@@ -83,7 +79,7 @@ public class WardrobeService {
     public Page<WardrobeItemDto> listWardrobeItems(String category, Pageable pageable) {
         Wardrobe wardrobe = getUserWardrobe();
         Page<WardrobeItem> page;
-        Category categoryEnum = category != null ? Category.valueOf(category.toUpperCase()) : null;
+        WardrobeItemCategory categoryEnum = category != null ? WardrobeItemCategory.valueOf(category.toUpperCase()) : null;
         if (categoryEnum != null) {
             page = wardrobeItemRepository.findByWardrobeIdAndCategory(wardrobe.getId(), categoryEnum, pageable);
         } else {

@@ -1,13 +1,13 @@
 package ai.holo.wdyt.wardrobe.model.dto;
 
-import ai.holo.wdyt.askai.model.dto.Color;
-import ai.holo.wdyt.wardrobe.model.entity.Category;
+import ai.holo.wdyt.wardrobe.model.entity.Color;
+import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemCategory;
 
 import java.util.List;
 
 public record UpdateWardrobeItemDto(
         String name,
-        Category category,
+        WardrobeItemCategory category,
         boolean liked,
         List<Color> colors,
         List<String> seasons,

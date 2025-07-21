@@ -1,6 +1,5 @@
 package ai.holo.wdyt.wardrobe.model.entity;
 
-import ai.holo.wdyt.askai.model.dto.Color;
 
 import java.util.List;
 
