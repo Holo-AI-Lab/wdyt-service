@@ -7,7 +7,7 @@ import java.util.List;
 
 public record CreateWardrobeItemDto(
         String name,
-        String imagePath,
+        Long draftItemId,
         WardrobeItemCategory category,
         boolean liked,
         List<Color> colors,

@@ -5,6 +5,7 @@ import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
 import ai.holo.wdyt.wardrobe.model.dto.*;
 import ai.holo.wdyt.wardrobe.model.entity.*;
+import ai.holo.wdyt.wardrobe.repository.DraftWardrobeItemRepository;
 import ai.holo.wdyt.wardrobe.repository.ReportWardrobeRepository;
 import ai.holo.wdyt.wardrobe.repository.WardrobeItemRepository;
 import ai.holo.wdyt.wardrobe.repository.WardrobeRepository;
@@ -25,12 +26,14 @@ public class WardrobeService {
     private final WardrobeRepository wardrobeRepository;
     private final ReportWardrobeRepository reportWardrobeRepository;
     private final UserService userService;
+    private final DraftWardrobeItemRepository draftWardrobeItemRepository;
 
-    public WardrobeService(WardrobeItemRepository wardrobeItemRepository, WardrobeRepository wardrobeRepository, ReportWardrobeRepository reportWardrobeRepository, UserService userService) {
+    public WardrobeService(WardrobeItemRepository wardrobeItemRepository, WardrobeRepository wardrobeRepository, ReportWardrobeRepository reportWardrobeRepository, UserService userService, DraftWardrobeItemRepository draftWardrobeItemRepository) {
         this.wardrobeItemRepository = wardrobeItemRepository;
         this.wardrobeRepository = wardrobeRepository;
         this.reportWardrobeRepository = reportWardrobeRepository;
         this.userService = userService;
+        this.draftWardrobeItemRepository = draftWardrobeItemRepository;
     }
 
     public Page<WardrobeItemDto> filter(WardrobeItemFilterRequest request, Pageable pageable) {
@@ -66,7 +69,7 @@ public class WardrobeService {
 
         WardrobeItem item = new WardrobeItem();
         item.setName(dto.name());
-        item.setImagePath(dto.imagePath());
+        item.setImagePath(getImagePath(dto));
         item.setCategory(dto.category());
         item.setLiked(dto.liked());
         item.setTags(tags);
@@ -74,6 +77,11 @@ public class WardrobeService {
 
         WardrobeItem savedItem = wardrobeItemRepository.save(item);
         return new WardrobeItemDto(savedItem);
+    }
+
+    private String getImagePath(CreateWardrobeItemDto dto) {
+        DraftWardrobeItem draftWardrobeItem = draftWardrobeItemRepository.findById(dto.draftItemId()).orElseThrow(NotFoundException::new);
+        return draftWardrobeItem.getImagePath();
     }
 
     public Page<WardrobeItemDto> listWardrobeItems(String category, Pageable pageable) {
