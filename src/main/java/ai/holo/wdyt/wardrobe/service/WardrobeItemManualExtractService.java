@@ -12,6 +12,7 @@ import ai.holo.wdyt.wardrobe.model.dto.WardrobeManualExtractRequestDataDto;
 import ai.holo.wdyt.wardrobe.model.entity.Color;
 import ai.holo.wdyt.wardrobe.model.entity.DraftWardrobeItem;
 import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemCategory;
+import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemExtractionType;
 import ai.holo.wdyt.wardrobe.repository.DraftWardrobeItemRepository;
 import ai.holo.wdyt.wardrobe.service.prompt.WardrobeItemManualExtractionPrompt;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -89,7 +90,7 @@ public class WardrobeItemManualExtractService {
         DraftWardrobeItem draftWardrobeItem = new DraftWardrobeItem(userInfo.id(), null, wardrobeItemManualExtractResponse.item.name(), null,
                 WardrobeItemCategory.fromValue(wardrobeItemManualExtractResponse.item.label()), wardrobeItemManualExtractResponse.item.subLabel(),
                 wardrobeItemManualExtractResponse.item.colors().stream().map(color -> new Color(color.name(), color.code())).toList(),
-                wardrobeItemManualExtractResponse.item.season(), imagePath);
+                wardrobeItemManualExtractResponse.item.season(), imagePath, WardrobeItemExtractionType.MANUAL);
         DraftWardrobeItem savedWardrobeItem = draftWardrobeItemRepository.save(draftWardrobeItem);
         return new DraftWardrobeItemDto(savedWardrobeItem, imageUrl);
     }

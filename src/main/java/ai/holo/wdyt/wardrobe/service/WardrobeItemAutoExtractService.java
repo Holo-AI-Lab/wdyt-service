@@ -13,6 +13,7 @@ import ai.holo.wdyt.wardrobe.model.dto.DraftWardrobeItemDto;
 import ai.holo.wdyt.wardrobe.model.entity.Color;
 import ai.holo.wdyt.wardrobe.model.entity.DraftWardrobeItem;
 import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemCategory;
+import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemExtractionType;
 import ai.holo.wdyt.wardrobe.repository.DraftWardrobeItemRepository;
 import ai.holo.wdyt.wardrobe.service.prompt.WardrobeItemAutomaticExtractionPrompt;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -145,7 +146,8 @@ public class WardrobeItemAutoExtractService {
                                 .map(c -> new Color(c.name(), c.code()))
                                 .toList(),
                         prompt.item.season(),
-                        savedImagePath
+                        savedImagePath,
+                        WardrobeItemExtractionType.AUTOMATIC
                 );
             } catch (RuntimeException ex) {
                 if (isRateLimitError(ex) && attempt < MAX_RETRIES) {

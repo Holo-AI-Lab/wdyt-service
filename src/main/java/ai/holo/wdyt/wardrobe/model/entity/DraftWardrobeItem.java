@@ -40,7 +40,7 @@ public class DraftWardrobeItem {
     private WardrobeItemExtractionType extractionType = WardrobeItemExtractionType.AUTOMATIC;
 
     public DraftWardrobeItem(Long userId, Long aiFeedbackId, String name, String content, WardrobeItemCategory category, String subCategory,
-                             List<Color> colors, String season, String imagePath) {
+                             List<Color> colors, String season, String imagePath, WardrobeItemExtractionType extractionType) {
         this.userId = userId;
         this.aiFeedbackId = aiFeedbackId;
         this.name = name;
@@ -50,5 +50,6 @@ public class DraftWardrobeItem {
         this.colors = colors;
         this.season = season;
         this.imagePath = imagePath;
+        this.extractionType = extractionType;
     }
 }
