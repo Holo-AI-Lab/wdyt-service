@@ -383,7 +383,7 @@ CREATE TABLE draft_wardrobe_item (
     content TEXT,
     category VARCHAR(255),
     sub_category VARCHAR(255),
-    season VARCHAR(50),
+    seasons JSON,
     colors JSON,
     image_path VARCHAR(255),
     extraction_type VARCHAR(50) NOT NULL DEFAULT 'AUTOMATIC'

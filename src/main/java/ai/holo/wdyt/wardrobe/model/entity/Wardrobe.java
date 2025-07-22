@@ -21,4 +21,8 @@ public class Wardrobe {
     @OneToMany(fetch = FetchType.LAZY)
     @JoinColumn(name = "wardrobe_id")
     private List<WardrobeItem> items = new ArrayList<>();
+
+    public Wardrobe(Long userId) {
+        this.userId = userId;
+    }
 }

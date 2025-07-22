@@ -28,8 +28,9 @@ public class DraftWardrobeItem {
     private WardrobeItemCategory category;
     @Column(name = "sub_category")
     private String subCategory;
-    @Column(name = "season")
-    private String season;
+    @Column(name = "seasons")
+    @Convert(converter = SeasonConverter.class)
+    private List<Season> seasons;
     @Column(name = "colors")
     @Convert(converter = ColorConverter.class)
     private List<Color> colors;
@@ -40,7 +41,7 @@ public class DraftWardrobeItem {
     private WardrobeItemExtractionType extractionType = WardrobeItemExtractionType.AUTOMATIC;
 
     public DraftWardrobeItem(Long userId, Long aiFeedbackId, String name, String content, WardrobeItemCategory category, String subCategory,
-                             List<Color> colors, String season, String imagePath, WardrobeItemExtractionType extractionType) {
+                             List<Color> colors, List<Season> seasons, String imagePath, WardrobeItemExtractionType extractionType) {
         this.userId = userId;
         this.aiFeedbackId = aiFeedbackId;
         this.name = name;
@@ -48,7 +49,7 @@ public class DraftWardrobeItem {
         this.category = category;
         this.subCategory = subCategory;
         this.colors = colors;
-        this.season = season;
+        this.seasons = seasons;
         this.imagePath = imagePath;
         this.extractionType = extractionType;
     }

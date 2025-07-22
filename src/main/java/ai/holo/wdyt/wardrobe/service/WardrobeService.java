@@ -12,13 +12,16 @@ import ai.holo.wdyt.wardrobe.repository.WardrobeRepository;
 import ai.holo.wdyt.wardrobe.util.WardrobeItemSpecifications;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -40,15 +43,18 @@ public class WardrobeService {
 
     @Transactional(readOnly = true)
     public FilterDto filter() {
-        Wardrobe wardrobe = getUserWardrobe();
-        List<Color> colors = getDistinctColors();
-        List<String> seasons = wardrobeItemRepository.findDistinctSeasons(wardrobe.getId());
-        List<String> types = wardrobeItemRepository.findDistinctTypes(wardrobe.getId());
+        Optional<Wardrobe> wardrobe = getUserWardrobe();
+        if (wardrobe.isEmpty()) {
+            return new FilterDto(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        }
+
+        List<Color> colors = getDistinctColors(wardrobe.get());
+        List<String> seasons = wardrobeItemRepository.findDistinctSeasons(wardrobe.get().getId());
+        List<String> types = wardrobeItemRepository.findDistinctTypes(wardrobe.get().getId());
         return new FilterDto(colors, seasons, types);
     }
 
-    private List<Color> getDistinctColors() {
-        Wardrobe wardrobe = getUserWardrobe();
+    private List<Color> getDistinctColors(Wardrobe wardrobe) {
         List<Object[]> results = wardrobeItemRepository.findDistinctColors(wardrobe.getId());
         List<Color> colors = new ArrayList<>();
         for (Object[] row : results) {
@@ -63,7 +69,7 @@ public class WardrobeService {
         if (request.items() == null || request.items().isEmpty()) {
             throw new IllegalArgumentException("At least one item is required.");
         }
-        Wardrobe wardrobe = getUserWardrobe();
+        Wardrobe wardrobe = getUserWardrobe().orElseGet(this::createWardrobeForUser);
 
         List<WardrobeItem> items = request.items().stream()
                 .map(dto -> {
@@ -93,9 +99,12 @@ public class WardrobeService {
     }
 
     public Page<WardrobeItemDto> listWardrobeItems(WardrobeItemCategory category, Boolean liked, List<String> colors, List<String> seasons, List<String> types, Pageable pageable) {
-        Wardrobe wardrobe = getUserWardrobe();
-        Specification<WardrobeItem> spec = Specification.where(WardrobeItemSpecifications.belongsToWardrobe(wardrobe.getId()));
+        Optional<Wardrobe> wardrobe = getUserWardrobe();
+        if (wardrobe.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList());
+        }
 
+        Specification<WardrobeItem> spec = Specification.where(WardrobeItemSpecifications.belongsToWardrobe(wardrobe.get().getId()));
         if (category != null) {
             spec = spec.and(WardrobeItemSpecifications.hasCategory(category));
         }
@@ -120,26 +129,26 @@ public class WardrobeService {
         return new WardrobeItemDto(item);
     }
 
-    private Wardrobe getUserWardrobe() {
+    private Optional<Wardrobe> getUserWardrobe() {
         User user = userService.getUser();
-        return wardrobeRepository.findByUserId(user.getId()).orElseThrow(NotFoundException::new);
+        return wardrobeRepository.findByUserId(user.getId());
     }
 
-    public void createWardrobeForUser(Long userId) {
-        if (wardrobeRepository.existsByUserId(userId)) {
-            return; // Wardrobe already exists for this user
-        }
-        Wardrobe wardrobe = new Wardrobe();
-        wardrobe.setUserId(userId);
-        wardrobeRepository.save(wardrobe);
+    private Wardrobe createWardrobeForUser() {
+        Long userId = userService.getUser().getId();
+        Wardrobe wardrobe = new Wardrobe(userId);
         log.info("Wardrobe created for user with ID: {}", userId);
+        return wardrobeRepository.save(wardrobe);
     }
 
     public void deleteWardrobeForUser(Long userId) {
-        Wardrobe wardrobe = wardrobeRepository.findByUserId(userId).orElseThrow(NotFoundException::new);
-        wardrobeItemRepository.deleteAllByWardrobeId(wardrobe.getId());
+        Optional<Wardrobe> wardrobe = getUserWardrobe();
+        if (wardrobe.isEmpty()) {
+            return;
+        }
+        wardrobeItemRepository.deleteAllByWardrobeId(wardrobe.get().getId());
         draftWardrobeItemRepository.deleteByUserId(userId);
-        wardrobeRepository.delete(wardrobe);
+        wardrobeRepository.delete(wardrobe.get());
         log.info("Wardrobe deleted for user with ID: {}", userId);
     }
 

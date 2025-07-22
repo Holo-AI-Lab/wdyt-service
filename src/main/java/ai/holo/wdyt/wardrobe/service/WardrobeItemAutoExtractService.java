@@ -10,10 +10,7 @@ import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.service.UserService;
 import ai.holo.wdyt.wardrobe.model.dto.DraftWardrobeItemDto;
-import ai.holo.wdyt.wardrobe.model.entity.Color;
-import ai.holo.wdyt.wardrobe.model.entity.DraftWardrobeItem;
-import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemCategory;
-import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemExtractionType;
+import ai.holo.wdyt.wardrobe.model.entity.*;
 import ai.holo.wdyt.wardrobe.repository.DraftWardrobeItemRepository;
 import ai.holo.wdyt.wardrobe.service.prompt.WardrobeItemAutomaticExtractionPrompt;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -145,7 +142,7 @@ public class WardrobeItemAutoExtractService {
                         prompt.item.colors.stream()
                                 .map(c -> new Color(c.name(), c.code()))
                                 .toList(),
-                        prompt.item.season(),
+                        prompt.item.seasons.stream().map(s -> new Season(s.name())).toList(),
                         savedImagePath,
                         WardrobeItemExtractionType.AUTOMATIC
                 );
@@ -226,13 +223,16 @@ public class WardrobeItemAutoExtractService {
             String label,
             String subLabel,
             List<DetectedWardrobeItemColor> colors,
-            String season,
+            List<DetectedWardrobeItemSeason> seasons,
             boolean colorStripesIntersecting
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record DetectedWardrobeItemColor(String name, String code) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DetectedWardrobeItemSeason(String name) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ResponsePayload(String id, List<ResponseAssistantMessage> choices) {

@@ -22,8 +22,8 @@ public class WardrobeItemManualExtractionPrompt {
                       "label": "Must be one of: tops, dresses, jumpsuits, bottoms, outerwear, footwear, accessories, swimwear",
                       "subLabel": "Detailed sub-category of the item (no more than 15 characters)",
                       "colors": [multiple colors are possible in this format - {name: "The name of color of the current item. (no more than 15 characters in length)", code: "Color code, for example: #000000"}],
-                      "season": "The applicable season of the current item，Spring, Summer, Autumn, Winter, All"
-                      }
+                      "seasons": [multiple seasons are possible - {name: "Must be one of the applicable season of the current item，Spring, Summer, Autumn, Winter"}]
+                    }
                 }
                 
                 If INVALID (fails validation):

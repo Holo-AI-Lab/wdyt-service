@@ -9,34 +9,34 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Converter
-public class ColorConverter implements AttributeConverter<List<Color>, String> {
+public class SeasonConverter implements AttributeConverter<List<Season>, String> {
 
     private final ObjectMapper objectMapper;
 
-    public ColorConverter() {
+    public SeasonConverter() {
         objectMapper = new ObjectMapper();
     }
 
     @Override
-    public String convertToDatabaseColumn(List<Color> colors) {
-        if (colors == null || colors.isEmpty()) {
+    public String convertToDatabaseColumn(List<Season> seasons) {
+        if (seasons == null || seasons.isEmpty()) {
             return null;
         }
         try {
-            return objectMapper.writeValueAsString(colors);
+            return objectMapper.writeValueAsString(seasons);
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Error converting list to JSON", e);
         }
     }
 
     @Override
-    public List<Color> convertToEntityAttribute(String json) {
+    public List<Season> convertToEntityAttribute(String json) {
         if (json == null || json.isEmpty()) {
             return new ArrayList<>();
         }
         try {
             return objectMapper.readValue(json,
-                    objectMapper.getTypeFactory().constructCollectionType(List.class, Color.class));
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, Season.class));
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Error converting JSON to list", e);
         }

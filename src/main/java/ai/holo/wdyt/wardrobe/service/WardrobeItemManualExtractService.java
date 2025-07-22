@@ -9,10 +9,7 @@ import ai.holo.wdyt.user.service.UserService;
 import ai.holo.wdyt.wardrobe.model.dto.DraftWardrobeItemDto;
 import ai.holo.wdyt.wardrobe.model.dto.WardrobeManualExtractDto;
 import ai.holo.wdyt.wardrobe.model.dto.WardrobeManualExtractRequestDataDto;
-import ai.holo.wdyt.wardrobe.model.entity.Color;
-import ai.holo.wdyt.wardrobe.model.entity.DraftWardrobeItem;
-import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemCategory;
-import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemExtractionType;
+import ai.holo.wdyt.wardrobe.model.entity.*;
 import ai.holo.wdyt.wardrobe.repository.DraftWardrobeItemRepository;
 import ai.holo.wdyt.wardrobe.service.prompt.WardrobeItemManualExtractionPrompt;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -90,13 +87,13 @@ public class WardrobeItemManualExtractService {
         DraftWardrobeItem draftWardrobeItem = new DraftWardrobeItem(userInfo.id(), null, wardrobeItemManualExtractResponse.item.name(), null,
                 WardrobeItemCategory.fromValue(wardrobeItemManualExtractResponse.item.label()), wardrobeItemManualExtractResponse.item.subLabel(),
                 wardrobeItemManualExtractResponse.item.colors().stream().map(color -> new Color(color.name(), color.code())).toList(),
-                wardrobeItemManualExtractResponse.item.season(), imagePath, WardrobeItemExtractionType.MANUAL);
+                wardrobeItemManualExtractResponse.item.seasons().stream().map(s -> new Season(s.name())).toList(), imagePath, WardrobeItemExtractionType.MANUAL);
         DraftWardrobeItem savedWardrobeItem = draftWardrobeItemRepository.save(draftWardrobeItem);
         return new DraftWardrobeItemDto(savedWardrobeItem, imageUrl);
     }
 
     private WardrobeItemManualExtractResponse extractManualItemsResponse(String content, String imageUrl) {
-        WardrobeItemManualExtractResponse wardrobeItemManualExtractResponse = null;
+        WardrobeItemManualExtractResponse wardrobeItemManualExtractResponse;
         try {
             wardrobeItemManualExtractResponse = new ObjectMapper().readValue(content, WardrobeItemManualExtractResponse.class);
             if (!wardrobeItemManualExtractResponse.valid()) {
@@ -136,12 +133,15 @@ public class WardrobeItemManualExtractService {
             String label,
             String subLabel,
             List<DetectedWardrobeItemColor> colors,
-            String season
+            List<DetectedWardrobeItemSeason> seasons
     ) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record DetectedWardrobeItemColor(String name, String code) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DetectedWardrobeItemSeason(String name) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ResponsePayload(String id, List<ResponseAssistantMessage> choices) {
