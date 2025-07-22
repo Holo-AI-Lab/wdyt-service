@@ -58,25 +58,32 @@ public class WardrobeService {
         return resultPage.map(WardrobeItemDto::new);
     }
 
-    public WardrobeItemDto createItem(CreateWardrobeItemDto dto) {
+    public List<WardrobeItemDto> createItem(CreateWardrobeItemsRequest request) {
+        if (request.items() == null || request.items().isEmpty()) {
+            throw new IllegalArgumentException("At least one item is required.");
+        }
         Wardrobe wardrobe = getUserWardrobe();
-        Tags tags = new Tags(
-                dto.colors() != null ? dto.colors() : List.of(),
-                dto.seasons() != null ? dto.seasons() : List.of(),
-                dto.types() != null ? dto.types() : List.of(),
-                dto.tags() != null ? dto.tags() : List.of()
-        );
 
-        WardrobeItem item = new WardrobeItem();
-        item.setName(dto.name());
-        item.setImagePath(getImagePath(dto));
-        item.setCategory(dto.category());
-        item.setLiked(dto.liked());
-        item.setTags(tags);
-        item.setWardrobe(wardrobe);
+        List<WardrobeItem> items = request.items().stream()
+                .map(dto -> {
+                    Tags tags = new Tags(
+                            dto.colors() != null ? dto.colors() : List.of(),
+                            dto.seasons() != null ? dto.seasons() : List.of(),
+                            dto.types() != null ? dto.types() : List.of(),
+                            dto.tags() != null ? dto.tags() : List.of()
+                    );
+                    WardrobeItem item = new WardrobeItem();
+                    item.setName(dto.name());
+                    item.setImagePath(getImagePath(dto));
+                    item.setCategory(dto.category());
+                    item.setTags(tags);
+                    item.setWardrobe(wardrobe);
+                    return item;
+                })
+                .toList();
 
-        WardrobeItem savedItem = wardrobeItemRepository.save(item);
-        return new WardrobeItemDto(savedItem);
+        List<WardrobeItem> savedItems = wardrobeItemRepository.saveAll(items);
+        return savedItems.stream().map(WardrobeItemDto::new).toList();
     }
 
     private String getImagePath(CreateWardrobeItemDto dto) {

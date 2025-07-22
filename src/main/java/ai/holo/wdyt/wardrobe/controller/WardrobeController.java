@@ -7,6 +7,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/wardrobe")
 public class WardrobeController {
@@ -38,7 +40,7 @@ public class WardrobeController {
     }
 
     @PostMapping("/add-item")
-    public WardrobeItemDto createItem(@RequestBody CreateWardrobeItemDto dto) {
+    public List<WardrobeItemDto> createItem(@RequestBody CreateWardrobeItemsRequest dto) {
         return wardrobeService.createItem(dto);
     }
 

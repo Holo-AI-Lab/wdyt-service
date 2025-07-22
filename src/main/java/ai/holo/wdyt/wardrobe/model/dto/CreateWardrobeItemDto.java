@@ -9,7 +9,6 @@ public record CreateWardrobeItemDto(
         String name,
         Long draftItemId,
         WardrobeItemCategory category,
-        boolean liked,
         List<Color> colors,
         List<String> seasons,
         List<String> types,
