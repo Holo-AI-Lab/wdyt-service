@@ -15,7 +15,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -36,26 +38,25 @@ public class WardrobeService {
         this.draftWardrobeItemRepository = draftWardrobeItemRepository;
     }
 
-    public Page<WardrobeItemDto> filter(WardrobeItemFilterRequest request, Pageable pageable) {
+    @Transactional(readOnly = true)
+    public FilterDto filter() {
         Wardrobe wardrobe = getUserWardrobe();
-        Specification<WardrobeItem> spec = Specification.where(
-                (root, query, cb) -> cb.equal(root.get("wardrobe").get("id"), wardrobe.getId())
-        );
-        if (request.colors() != null && !request.colors().isEmpty()) {
-            spec = spec.and(WardrobeItemSpecifications.hasAnyColor(request.colors()));
-        }
-        if (request.seasons() != null && !request.seasons().isEmpty()) {
-            spec = spec.and(WardrobeItemSpecifications.hasAnySeason(request.seasons()));
-        }
-        if (request.types() != null && !request.types().isEmpty()) {
-            spec = spec.and(WardrobeItemSpecifications.hasAnyType(request.types()));
-        }
-        if (request.liked()) {
-            spec = spec.and(WardrobeItemSpecifications.isLiked());
-        }
+        List<Color> colors = getDistinctColors();
+        List<String> seasons = wardrobeItemRepository.findDistinctSeasons(wardrobe.getId());
+        List<String> types = wardrobeItemRepository.findDistinctTypes(wardrobe.getId());
+        return new FilterDto(colors, seasons, types);
+    }
 
-        Page<WardrobeItem> resultPage = wardrobeItemRepository.findAll(spec, pageable);
-        return resultPage.map(WardrobeItemDto::new);
+    private List<Color> getDistinctColors() {
+        Wardrobe wardrobe = getUserWardrobe();
+        List<Object[]> results = wardrobeItemRepository.findDistinctColors(wardrobe.getId());
+        List<Color> colors = new ArrayList<>();
+        for (Object[] row : results) {
+            String name = (String) row[0];
+            String code = (String) row[1];
+            colors.add(new Color(name, code));
+        }
+        return colors;
     }
 
     public List<WardrobeItemDto> createItem(CreateWardrobeItemsRequest request) {
@@ -91,15 +92,26 @@ public class WardrobeService {
         return draftWardrobeItem.getImagePath();
     }
 
-    public Page<WardrobeItemDto> listWardrobeItems(String category, Pageable pageable) {
+    public Page<WardrobeItemDto> listWardrobeItems(WardrobeItemCategory category, Boolean liked, List<String> colors, List<String> seasons, List<String> types, Pageable pageable) {
         Wardrobe wardrobe = getUserWardrobe();
-        Page<WardrobeItem> page;
-        WardrobeItemCategory categoryEnum = category != null ? WardrobeItemCategory.valueOf(category.toUpperCase()) : null;
-        if (categoryEnum != null) {
-            page = wardrobeItemRepository.findByWardrobeIdAndCategory(wardrobe.getId(), categoryEnum, pageable);
-        } else {
-            page = wardrobeItemRepository.findByWardrobeId(wardrobe.getId(), pageable);
+        Specification<WardrobeItem> spec = Specification.where(WardrobeItemSpecifications.belongsToWardrobe(wardrobe.getId()));
+
+        if (category != null) {
+            spec = spec.and(WardrobeItemSpecifications.hasCategory(category));
         }
+        if (liked != null) {
+            spec = spec.and(WardrobeItemSpecifications.isLiked(liked));
+        }
+        if (colors != null && !colors.isEmpty()) {
+            spec = spec.and(WardrobeItemSpecifications.hasAnyColor(colors));
+        }
+        if (seasons != null && !seasons.isEmpty()) {
+            spec = spec.and(WardrobeItemSpecifications.hasAnySeason(seasons));
+        }
+        if (types != null && !types.isEmpty()) {
+            spec = spec.and(WardrobeItemSpecifications.hasAnyType(types));
+        }
+        Page<WardrobeItem> page = wardrobeItemRepository.findAll(spec, pageable);
         return page.map(WardrobeItemDto::new);
     }
 

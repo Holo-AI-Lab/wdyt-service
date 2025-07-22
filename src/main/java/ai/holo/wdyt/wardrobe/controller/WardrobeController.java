@@ -1,10 +1,10 @@
 package ai.holo.wdyt.wardrobe.controller;
 
 import ai.holo.wdyt.wardrobe.model.dto.*;
+import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemCategory;
 import ai.holo.wdyt.wardrobe.service.WardrobeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,10 +20,14 @@ public class WardrobeController {
     }
 
     @GetMapping("/")
-    public Page<WardrobeItemDto> listWardrobeItems(@RequestParam(required = false) String category,
+    public Page<WardrobeItemDto> listWardrobeItems(@RequestParam(required = false) WardrobeItemCategory category,
+                                                   @RequestParam(required = false) List<String> colors,
+                                                   @RequestParam(required = false) List<String> seasons,
+                                                   @RequestParam(required = false) List<String> types,
+                                                   @RequestParam(required = false) Boolean liked,
                                                    @RequestParam(defaultValue = "20") Integer size,
                                                    @RequestParam(defaultValue = "0") Integer page) {
-        return wardrobeService.listWardrobeItems(category, PageRequest.of(page, size));
+        return wardrobeService.listWardrobeItems(category, liked, colors, seasons, types, PageRequest.of(page, size));
     }
 
     @GetMapping("/item/{id}")
@@ -31,12 +35,9 @@ public class WardrobeController {
         return wardrobeService.getItemById(id);
     }
 
-    @PostMapping("/filter")
-    public Page<WardrobeItemDto> filterItems(@RequestBody WardrobeItemFilterRequest filterRequest,
-                                             @RequestParam(defaultValue = "20") Integer size,
-                                             @RequestParam(defaultValue = "0") Integer page) {
-        Pageable pageable = PageRequest.of(page, size);
-        return wardrobeService.filter(filterRequest, pageable);
+    @GetMapping("/filter")
+    public FilterDto filter() {
+        return wardrobeService.filter();
     }
 
     @PostMapping("/add-item")
