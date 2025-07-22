@@ -58,6 +58,7 @@ public class AiFeedbackController {
 
     @GetMapping("/")
     public Page<AiFeedbackDto> listAiFeedbacks(@RequestParam(value = "liked", required = false) Boolean liked,
+                                               @RequestParam(value = "wardrobeItemExtracted", required = false) Boolean wardrobeItemExtracted,
                                                @RequestParam(value = "color", required = false) String[] color,
                                                @RequestParam(value = "style", required = false) String[] style,
                                                @RequestParam(value = "occasion", required = false) String[] occasion,
@@ -72,7 +73,7 @@ public class AiFeedbackController {
                 Taggable.STYLE, style != null ? Arrays.asList(style) : List.of(),
                 Taggable.OCCASION, occasion != null ? Arrays.asList(occasion) : List.of()
         );
-        return aiFeedbackService.listAiFeedbacks(tagFilters, liked, feedbackIdForComparison, idsNot, imageType, PageRequest.of(page, size));
+        return aiFeedbackService.listAiFeedbacks(tagFilters, liked, wardrobeItemExtracted, feedbackIdForComparison, idsNot, imageType, PageRequest.of(page, size));
     }
 
     @GetMapping("/friend/{friendId}")

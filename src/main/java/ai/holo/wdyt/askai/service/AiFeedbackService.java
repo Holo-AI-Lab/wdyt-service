@@ -246,7 +246,7 @@ public class AiFeedbackService {
     }
 
     @Transactional(readOnly = true)
-    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, Boolean liked,
+    public Page<AiFeedbackDto> listAiFeedbacks(Map<String, List<String>> tagFilters, Boolean liked, Boolean wardrobeItemExtracted,
                                                Long feedbackIdForComparison, List<Long> idsNot, ImageType imageType,
                                                PageRequest pageRequest) {
         Sort sortBy = Sort.by(
@@ -255,7 +255,7 @@ public class AiFeedbackService {
 
         PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
         UserDto userInfo = userService.getUserInfo();
-        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked,
+        return aiFeedbackSearchService.findAiFeedbacksByTags(userInfo.id(), tagFilters, liked, wardrobeItemExtracted,
                 feedbackIdForComparison, idsNot, imageType, pageRequestWithSort).map(aiFeedback ->
                 new AiFeedbackDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), userInfo));
     }
@@ -280,7 +280,7 @@ public class AiFeedbackService {
         );
         PageRequest pageRequestWithSort = PageRequest.of(pageRequest.getPageNumber(), pageRequest.getPageSize(), sortBy);
         return aiFeedbackSearchService.findAiFeedbacksByTags(friendInfo.id(), tagFilters, liked,
-                feedbackIdForComparison, idsNot, imageType, pageRequestWithSort).map(aiFeedback ->
+                null, feedbackIdForComparison, idsNot, imageType, pageRequestWithSort).map(aiFeedback ->
                 new AiFeedbackDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), friendInfo));
     }
 
