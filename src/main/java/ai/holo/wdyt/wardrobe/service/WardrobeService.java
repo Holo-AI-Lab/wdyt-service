@@ -138,6 +138,7 @@ public class WardrobeService {
     public void deleteWardrobeForUser(Long userId) {
         Wardrobe wardrobe = wardrobeRepository.findByUserId(userId).orElseThrow(NotFoundException::new);
         wardrobeItemRepository.deleteAllByWardrobeId(wardrobe.getId());
+        draftWardrobeItemRepository.deleteByUserId(userId);
         wardrobeRepository.delete(wardrobe);
         log.info("Wardrobe deleted for user with ID: {}", userId);
     }

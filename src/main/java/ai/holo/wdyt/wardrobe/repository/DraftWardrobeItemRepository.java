@@ -8,4 +8,5 @@ import java.util.List;
 
 public interface DraftWardrobeItemRepository extends JpaRepository<DraftWardrobeItem, Long>{
     List<DraftWardrobeItem> findByAiFeedbackId(Long aiFeedbackId);
+    void deleteByUserId(Long userId);
 }
