@@ -189,4 +189,9 @@ public class WardrobeService {
         reportWardrobeRepository.save(reportWardrobe);
         log.info("Report created for item ID: {} by user ID: {}", wardrobeReportRequest.itemId(), user.getId());
     }
+
+    public List<String> getSubcategories(String category, String search) {
+        WardrobeItemCategory wardrobeItemCategory = WardrobeItemCategory.fromValue(category);
+        return wardrobeItemCategory.filterSubcategories(search);
+    }
 }

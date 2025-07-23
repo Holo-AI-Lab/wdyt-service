@@ -66,4 +66,10 @@ public class WardrobeController {
     public void reportItem(@RequestBody WardrobeReportRequest request) {
         wardrobeService.reportItem(request);
     }
+
+    @GetMapping("/subcategories")
+    public List<String> getSubcategories(@RequestParam String category,
+                                         @RequestParam(required = false) String search) {
+        return wardrobeService.getSubcategories(category, search);
+    }
 }
