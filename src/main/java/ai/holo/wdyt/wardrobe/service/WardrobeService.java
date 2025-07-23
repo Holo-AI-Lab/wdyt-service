@@ -45,13 +45,14 @@ public class WardrobeService {
     public FilterDto filter() {
         Optional<Wardrobe> wardrobe = getUserWardrobe();
         if (wardrobe.isEmpty()) {
-            return new FilterDto(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+            return new FilterDto(Collections.emptyList(), Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         }
 
         List<Color> colors = getDistinctColors(wardrobe.get());
         List<String> seasons = wardrobeItemRepository.findDistinctSeasons(wardrobe.get().getId());
         List<String> types = wardrobeItemRepository.findDistinctTypes(wardrobe.get().getId());
-        return new FilterDto(colors, seasons, types);
+        List<WardrobeItemCategory> categories = wardrobeItemRepository.findDistinctCategories(wardrobe.get().getId());
+        return new FilterDto(categories ,colors, seasons, types);
     }
 
     private List<Color> getDistinctColors(Wardrobe wardrobe) {
