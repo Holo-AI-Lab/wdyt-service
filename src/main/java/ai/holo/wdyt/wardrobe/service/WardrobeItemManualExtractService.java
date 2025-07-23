@@ -85,9 +85,13 @@ public class WardrobeItemManualExtractService {
         WardrobeItemManualExtractResponse wardrobeItemManualExtractResponse = extractManualItemsResponse(content, imageUrl);
         UserDto userInfo = userService.getUserInfo();
         DraftWardrobeItem draftWardrobeItem = new DraftWardrobeItem(userInfo.id(), null, wardrobeItemManualExtractResponse.item.name(), null,
-                WardrobeItemCategory.fromValue(wardrobeItemManualExtractResponse.item.label()), wardrobeItemManualExtractResponse.item.subLabel(),
+                WardrobeItemCategory.fromValue(wardrobeItemManualExtractResponse.item.label()),
+                wardrobeItemManualExtractResponse.item.subCategories.stream().map(s -> new SubCategory(s.name())).toList(),
                 wardrobeItemManualExtractResponse.item.colors().stream().map(color -> new Color(color.name(), color.code())).toList(),
-                wardrobeItemManualExtractResponse.item.seasons().stream().map(s -> new Season(s.name())).toList(), imagePath, WardrobeItemExtractionType.MANUAL);
+                wardrobeItemManualExtractResponse.item.seasons().stream().map(s -> new Season(s.name())).toList(),
+                imagePath, WardrobeItemExtractionType.MANUAL,
+                wardrobeItemManualExtractResponse.item.tags.stream().map(t -> new DraftItemTag(t.name())).toList()
+                );
         DraftWardrobeItem savedWardrobeItem = draftWardrobeItemRepository.save(draftWardrobeItem);
         return new DraftWardrobeItemDto(savedWardrobeItem, imageUrl);
     }
@@ -131,9 +135,10 @@ public class WardrobeItemManualExtractService {
     public record DetectedWardrobeItemResponse(
             String name,
             String label,
-            String subLabel,
+            List<DetectedWardrobeItemSubCategory> subCategories,
             List<DetectedWardrobeItemColor> colors,
-            List<DetectedWardrobeItemSeason> seasons
+            List<DetectedWardrobeItemSeason> seasons,
+            List<DetectedWardrobeItemTag> tags
     ) {
     }
 
@@ -142,6 +147,12 @@ public class WardrobeItemManualExtractService {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record DetectedWardrobeItemSeason(String name) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DetectedWardrobeItemSubCategory(String name) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DetectedWardrobeItemTag(String name) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ResponsePayload(String id, List<ResponseAssistantMessage> choices) {

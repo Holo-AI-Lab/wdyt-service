@@ -12,10 +12,11 @@ public class WardrobeItemAutomaticExtractionPrompt {
                     "name": "The name of the current item, need to say the color + type (length no more than 30 characters)",
                     "content": "Stable diffusion prompt words for the current item. Please comprehensively and thoroughly list all details, colors, stripe styles and colors, patterns and all other visual characteristics as much as possible. Do not include any descriptions related to humans, usage scenarios, or other items. The description must exclusively focus on the current item without referencing any other objects. For example, if the current item is a top, only describe the top. Sets (including bikini sets, suits, etc.) must be split into individual pieces, each described separately, clearly indicating whether the current item is a top or pants.",
                     "label": "must be one of: tops, dresses, jumpsuits, bottoms, outerwear, footwear, accessories, swimwear",
-                    "subLabel": "The detailed sub-category of the current item (no more than 15 characters)",
+                    "subCategories": [multiple seasons are possible - {name: "The detailed sub-category of the current item (no more than 15 characters)"}],
                     "colors": [multiple colors are possible in this format - {name: "The name of color of the current item. (no more than 15 characters in length)", code: "Color code, for example: #000000"}],
                     "seasons": [multiple seasons are possible - {name: "Must be one of the applicable season of the current item，Spring, Summer, Autumn, Winter"}],
-                    "colorStripesIntersecting": "Is it a striped style with multiple colors interlaced: true or false"
+                    "colorStripesIntersecting": "Is it a striped style with multiple colors interlaced: true or false",
+                    "tags": [multiple seasons are possible - {name: "tag the current item using style tags such as "casual", "relaxed", "formal", "sporty", "elegant", or others that best fit."}]
                   }
                   // ... more items
                 ]

@@ -26,8 +26,9 @@ public class DraftWardrobeItem {
     @Column(name = "category")
     @Enumerated(EnumType.STRING)
     private WardrobeItemCategory category;
-    @Column(name = "sub_category")
-    private String subCategory;
+    @Column(name = "sub_categories")
+    @Convert(converter = SubCategoryConverter.class)
+    private List<SubCategory> subCategories;
     @Column(name = "seasons")
     @Convert(converter = SeasonConverter.class)
     private List<Season> seasons;
@@ -39,18 +40,22 @@ public class DraftWardrobeItem {
     @Column(name = "extraction_type")
     @Enumerated(EnumType.STRING)
     private WardrobeItemExtractionType extractionType = WardrobeItemExtractionType.AUTOMATIC;
+    @Column(name = "tags")
+    @Convert(converter = DraftItemTagConverter.class)
+    private List<DraftItemTag> tags;
 
-    public DraftWardrobeItem(Long userId, Long aiFeedbackId, String name, String content, WardrobeItemCategory category, String subCategory,
-                             List<Color> colors, List<Season> seasons, String imagePath, WardrobeItemExtractionType extractionType) {
+    public DraftWardrobeItem(Long userId, Long aiFeedbackId, String name, String content, WardrobeItemCategory category, List<SubCategory> subCategories,
+                             List<Color> colors, List<Season> seasons, String imagePath, WardrobeItemExtractionType extractionType, List<DraftItemTag> tags) {
         this.userId = userId;
         this.aiFeedbackId = aiFeedbackId;
         this.name = name;
         this.content = content;
         this.category = category;
-        this.subCategory = subCategory;
+        this.subCategories = subCategories;
         this.colors = colors;
         this.seasons = seasons;
         this.imagePath = imagePath;
         this.extractionType = extractionType;
+        this.tags = tags;
     }
 }

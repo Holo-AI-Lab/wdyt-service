@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
 
 @Service
 public class WardrobeItemAutoExtractService {
@@ -138,13 +139,14 @@ public class WardrobeItemAutoExtractService {
                         prompt.item.name(),
                         prompt.item.content(),
                         WardrobeItemCategory.fromValue(prompt.item.label()),
-                        prompt.item.subLabel(),
+                        prompt.item.subCategories.stream().map(s -> new SubCategory(s.name())).toList(),
                         prompt.item.colors.stream()
                                 .map(c -> new Color(c.name(), c.code()))
                                 .toList(),
                         prompt.item.seasons.stream().map(s -> new Season(s.name())).toList(),
                         savedImagePath,
-                        WardrobeItemExtractionType.AUTOMATIC
+                        WardrobeItemExtractionType.AUTOMATIC,
+                        prompt.item.tags.stream().map(t -> new DraftItemTag(t.name())).toList()
                 );
             } catch (RuntimeException ex) {
                 if (isRateLimitError(ex) && attempt < MAX_RETRIES) {
@@ -180,10 +182,11 @@ public class WardrobeItemAutoExtractService {
         String genericPrompt = "Surreal-style product image, single item display, centered placement, laid flat, front-facing, well-lit studio shot, no surreal elements, no distortion. The background should be pure white, with no other decorations or objects besides the product. There should be blank space around the product. No people should appear in the image.";
         return detectedWardrobeItemResponses.stream().map(item -> {
             String colorPrompt = item.colorStripesIntersecting() ? String.format("Multiple colors are staggered in stripes, a %s", item.colors) : String.format("a %s", item.colors());
+            String subCategories = item.subCategories().stream().map(DetectedWardrobeItemSubCategory::name).collect(Collectors.joining(","));
             if (WardrobeItemCategory.FOOTWEAR.getDisplayName().equals(item.label())) {
-                return new WardrobeItemImageGenerationPrompt(item, String.format("%s %s %s %s", shoesPrompt, colorPrompt, item.subLabel(), item.content()));
+                return new WardrobeItemImageGenerationPrompt(item, String.format("%s %s %s %s", shoesPrompt, colorPrompt, subCategories, item.content()));
             } else {
-                return new WardrobeItemImageGenerationPrompt(item, String.format("%s %s %s %s", genericPrompt, colorPrompt, item.subLabel(), item.content()));
+                return new WardrobeItemImageGenerationPrompt(item, String.format("%s %s %s %s", genericPrompt, colorPrompt, subCategories, item.content()));
             }
         }).toList();
     }
@@ -191,11 +194,10 @@ public class WardrobeItemAutoExtractService {
     private List<DetectedWardrobeItemResponse> parseResponseContent(String content) {
         try {
             ObjectMapper mapper = new ObjectMapper();
-            List<DetectedWardrobeItemResponse> items = mapper.readValue(
+            return mapper.readValue(
                     content,
                     new TypeReference<List<DetectedWardrobeItemResponse>>() {}
             );
-            return items;
         } catch (JsonProcessingException e) {
             throw new BadRequestException("Failed to parse the response from AI: " + e.getMessage());
         }
@@ -221,10 +223,11 @@ public class WardrobeItemAutoExtractService {
             String name,
             String content,
             String label,
-            String subLabel,
+            List<DetectedWardrobeItemSubCategory> subCategories,
             List<DetectedWardrobeItemColor> colors,
             List<DetectedWardrobeItemSeason> seasons,
-            boolean colorStripesIntersecting
+            boolean colorStripesIntersecting,
+            List<DetectedWardrobeTag> tags
     ) {
     }
 
@@ -233,6 +236,12 @@ public class WardrobeItemAutoExtractService {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record DetectedWardrobeItemSeason(String name) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DetectedWardrobeItemSubCategory(String name) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record DetectedWardrobeTag(String name) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ResponsePayload(String id, List<ResponseAssistantMessage> choices) {
