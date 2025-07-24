@@ -1,5 +1,6 @@
 package ai.holo.wdyt.wardrobe.service;
 
+import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
@@ -32,13 +33,15 @@ public class WardrobeService {
     private final ReportWardrobeRepository reportWardrobeRepository;
     private final UserService userService;
     private final DraftWardrobeItemRepository draftWardrobeItemRepository;
+    private final S3Service s3Service;
 
-    public WardrobeService(WardrobeItemRepository wardrobeItemRepository, WardrobeRepository wardrobeRepository, ReportWardrobeRepository reportWardrobeRepository, UserService userService, DraftWardrobeItemRepository draftWardrobeItemRepository) {
+    public WardrobeService(WardrobeItemRepository wardrobeItemRepository, WardrobeRepository wardrobeRepository, ReportWardrobeRepository reportWardrobeRepository, UserService userService, DraftWardrobeItemRepository draftWardrobeItemRepository, S3Service s3Service) {
         this.wardrobeItemRepository = wardrobeItemRepository;
         this.wardrobeRepository = wardrobeRepository;
         this.reportWardrobeRepository = reportWardrobeRepository;
         this.userService = userService;
         this.draftWardrobeItemRepository = draftWardrobeItemRepository;
+        this.s3Service = s3Service;
     }
 
     @Transactional(readOnly = true)
@@ -91,7 +94,7 @@ public class WardrobeService {
                 .toList();
 
         List<WardrobeItem> savedItems = wardrobeItemRepository.saveAll(items);
-        return savedItems.stream().map(WardrobeItemDto::new).toList();
+        return savedItems.stream().map(wardrobeItem -> new WardrobeItemDto(wardrobeItem, getImageUrl(wardrobeItem.getImagePath()))).toList();
     }
 
     private String getImagePath(CreateWardrobeItemDto dto) {
@@ -122,12 +125,16 @@ public class WardrobeService {
             spec = spec.and(WardrobeItemSpecifications.hasAnyType(types));
         }
         Page<WardrobeItem> page = wardrobeItemRepository.findAll(spec, pageable);
-        return page.map(WardrobeItemDto::new);
+        return page.map(item -> new WardrobeItemDto(item, getImageUrl(item.getImagePath())));
+    }
+
+    private String getImageUrl(String imagePath) {
+        return s3Service.getFileS3Url(imagePath);
     }
 
     public WardrobeItemDto getItemById(Long id) {
         WardrobeItem item = wardrobeItemRepository.findById(id).orElseThrow(NotFoundException::new);
-        return new WardrobeItemDto(item);
+        return new WardrobeItemDto(item, getImageUrl(item.getImagePath()));
     }
 
     private Optional<Wardrobe> getUserWardrobe() {
@@ -157,7 +164,7 @@ public class WardrobeService {
         WardrobeItem item = wardrobeItemRepository.findById(id).orElseThrow(NotFoundException::new);
         item.setLiked(like);
         WardrobeItem updatedItem = wardrobeItemRepository.save(item);
-        return new WardrobeItemDto(updatedItem);
+        return new WardrobeItemDto(updatedItem, getImageUrl(updatedItem.getImagePath()));
     }
 
     public WardrobeItemDto updateItem(Long id, UpdateWardrobeItemDto dto) {
@@ -174,7 +181,7 @@ public class WardrobeService {
         ));
 
         WardrobeItem updatedItem = wardrobeItemRepository.save(item);
-        return new WardrobeItemDto(updatedItem);
+        return new WardrobeItemDto(updatedItem, getImageUrl(updatedItem.getImagePath()));
     }
 
     public void deleteItem(Long id) {

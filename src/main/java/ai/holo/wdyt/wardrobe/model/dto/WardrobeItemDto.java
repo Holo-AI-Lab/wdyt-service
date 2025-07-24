@@ -7,19 +7,13 @@ import ai.holo.wdyt.wardrobe.model.entity.Tags;
 public record WardrobeItemDto(
         Long id,
         String name,
-        String imagePath,
+        String imageUrl,
         WardrobeItemCategory category,
         boolean liked,
         Tags tags
 ) {
-    public WardrobeItemDto(WardrobeItem wardrobeItem){
-        this(
-                wardrobeItem.getId(),
-                wardrobeItem.getName(),
-                wardrobeItem.getImagePath(),
-                wardrobeItem.getCategory(),
-                wardrobeItem.isLiked(),
-                wardrobeItem.getTags()
-        );
+    public WardrobeItemDto(WardrobeItem wardrobeItem, String imageUrl){
+        this(wardrobeItem.getId(), wardrobeItem.getName(), imageUrl, wardrobeItem.getCategory(),
+                wardrobeItem.isLiked(), wardrobeItem.getTags());
     }
 }
