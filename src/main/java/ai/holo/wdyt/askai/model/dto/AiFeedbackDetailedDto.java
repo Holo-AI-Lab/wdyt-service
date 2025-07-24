@@ -9,11 +9,12 @@ import java.util.List;
 public record AiFeedbackDetailedDto(Long id,
                                     ImageType imageType,
                                     String extractedImagePath,
+                                    boolean isWardrobeItemExtracted,
                                     UserDto userInfo,
                                     boolean styleLiked,
                                     List<FeedbackEntryDto> feedbackEntries) {
 
     public AiFeedbackDetailedDto(AiFeedback feedback, String extractedImagePath, UserDto userInfo, List<FeedbackEntryDto> feedbackEntries) {
-        this(feedback.getId(), feedback.getImageType(), extractedImagePath, userInfo, feedback.isLikeStyle(), feedbackEntries);
+        this(feedback.getId(), feedback.getImageType(), extractedImagePath, feedback.isWardrobeItemExtracted(), userInfo, feedback.isLikeStyle(), feedbackEntries);
     }
 }
