@@ -392,6 +392,8 @@ CREATE TABLE draft_wardrobe_item (
 
 ALTER TABLE ai_feedback add column wardrobe_item_extracted BOOLEAN DEFAULT FALSE;
 
+ALTER TABLE wardrobe_item ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL;
+
 ```
 
 # Create Docker image and push to ECR

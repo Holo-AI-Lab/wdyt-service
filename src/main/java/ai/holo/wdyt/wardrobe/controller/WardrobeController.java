@@ -5,6 +5,7 @@ import ai.holo.wdyt.wardrobe.model.entity.WardrobeItemCategory;
 import ai.holo.wdyt.wardrobe.service.WardrobeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,7 +28,8 @@ public class WardrobeController {
                                                    @RequestParam(required = false) Boolean liked,
                                                    @RequestParam(defaultValue = "20") Integer size,
                                                    @RequestParam(defaultValue = "0") Integer page) {
-        return wardrobeService.listWardrobeItems(category, liked, colors, seasons, types, PageRequest.of(page, size));
+        return wardrobeService.listWardrobeItems(category, liked, colors, seasons, types,
+                PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
     }
 
     @GetMapping("/item/{id}")
