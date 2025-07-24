@@ -20,6 +20,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -92,6 +93,7 @@ public class WardrobeService {
                     item.setImagePath(getImagePath(dto));
                     item.setCategory(dto.category());
                     item.setTags(tags);
+                    item.setCreatedAt(LocalDateTime.now());
                     item.setWardrobe(wardrobe);
                     return item;
                 })
