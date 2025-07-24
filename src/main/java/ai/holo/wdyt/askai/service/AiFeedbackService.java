@@ -335,6 +335,13 @@ public class AiFeedbackService {
     }
 
     @Transactional
+    public void updateAiFeedbackExtractedInfo(Long aiFeedbackId) {
+        AiFeedback aiFeedback = aiFeedbackRepository.findById(aiFeedbackId).orElseThrow(NotFoundException::new);
+        aiFeedback.setWardrobeItemExtracted(true);
+        aiFeedbackRepository.save(aiFeedback);
+    }
+
+    @Transactional
     public void reportAiFeedback(Long id, ReportAiFeedbackDto reportAiFeedbackDto) {
         AiFeedback aiFeedback = aiFeedbackRepository.findById(id).orElseThrow(NotFoundException::new);
         Long userId = userService.getUser().getId();

@@ -1,5 +1,6 @@
 package ai.holo.wdyt.wardrobe.service;
 
+import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.user.model.entity.User;
@@ -19,10 +20,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -34,14 +33,19 @@ public class WardrobeService {
     private final UserService userService;
     private final DraftWardrobeItemRepository draftWardrobeItemRepository;
     private final S3Service s3Service;
+    private final AiFeedbackService aiFeedbackService;
 
-    public WardrobeService(WardrobeItemRepository wardrobeItemRepository, WardrobeRepository wardrobeRepository, ReportWardrobeRepository reportWardrobeRepository, UserService userService, DraftWardrobeItemRepository draftWardrobeItemRepository, S3Service s3Service) {
+    public WardrobeService(WardrobeItemRepository wardrobeItemRepository, WardrobeRepository wardrobeRepository,
+                           ReportWardrobeRepository reportWardrobeRepository, UserService userService,
+                           DraftWardrobeItemRepository draftWardrobeItemRepository, S3Service s3Service,
+                           AiFeedbackService aiFeedbackService) {
         this.wardrobeItemRepository = wardrobeItemRepository;
         this.wardrobeRepository = wardrobeRepository;
         this.reportWardrobeRepository = reportWardrobeRepository;
         this.userService = userService;
         this.draftWardrobeItemRepository = draftWardrobeItemRepository;
         this.s3Service = s3Service;
+        this.aiFeedbackService = aiFeedbackService;
     }
 
     @Transactional(readOnly = true)
@@ -94,7 +98,14 @@ public class WardrobeService {
                 .toList();
 
         List<WardrobeItem> savedItems = wardrobeItemRepository.saveAll(items);
+        updateAiFeedbackExtractedInfo(request);
         return savedItems.stream().map(wardrobeItem -> new WardrobeItemDto(wardrobeItem, getImageUrl(wardrobeItem.getImagePath()))).toList();
+    }
+
+    private void updateAiFeedbackExtractedInfo(CreateWardrobeItemsRequest request) {
+        Set<Long> draftItemIds = request.items().stream().map(CreateWardrobeItemDto::draftItemId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Set<Long> extractedAiFeedbacks = draftWardrobeItemRepository.findByIdIn(draftItemIds.stream().toList()).stream().map(DraftWardrobeItem::getAiFeedbackId).filter(Objects::nonNull).collect(Collectors.toSet());
+        extractedAiFeedbacks.forEach(aiFeedbackService::updateAiFeedbackExtractedInfo);
     }
 
     private String getImagePath(CreateWardrobeItemDto dto) {

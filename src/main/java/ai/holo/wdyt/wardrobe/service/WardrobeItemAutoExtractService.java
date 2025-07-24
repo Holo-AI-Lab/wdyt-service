@@ -86,7 +86,6 @@ public class WardrobeItemAutoExtractService {
 
         List<DraftWardrobeItem> draftWardrobeItems = executeImageGenerationInParallel(wardrobeItemImageGenerationPrompts, user, aiFeedbackId);
         List<DraftWardrobeItem> savedDraftItems = draftWardrobeItemRepository.saveAll(draftWardrobeItems);
-        updateAiFeedbackExtractedInfo(aiFeedbackId);
         consumeAutoExtractionCredits(user.getId());
         return savedDraftItems.stream()
                 .map(draftItem -> new DraftWardrobeItemDto(draftItem, s3Service.getFileS3Url(draftItem.getImagePath())))
@@ -95,12 +94,6 @@ public class WardrobeItemAutoExtractService {
 
     private void consumeAutoExtractionCredits(Long userId) {
         userCreditService.consumeFromNearestExpiringCredit(userId, UserCreditService.WARDROBE_AUTO_EXTRACTION_COST);
-    }
-
-    private void updateAiFeedbackExtractedInfo(Long aiFeedbackId) {
-        AiFeedback aiFeedback = aiFeedbackRepository.findById(aiFeedbackId).orElseThrow(NotFoundException::new);
-        aiFeedback.setWardrobeItemExtracted(true);
-        aiFeedbackRepository.save(aiFeedback);
     }
 
     private List<DraftWardrobeItem> executeImageGenerationInParallel(
