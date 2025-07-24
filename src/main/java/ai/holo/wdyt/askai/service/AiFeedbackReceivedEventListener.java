@@ -29,7 +29,7 @@ public class AiFeedbackReceivedEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleAiFeedbackReceivedEvent(AiFeedbackReceivedEvent event) {
         log.info("Handling AiFeedbackReceivedEvent: {}", event.getAiFeedbackId());
-        userCreditService.consumeNearestExpiringCredit(event.getFeedbackReceiverUserId(), UserCreditService.AI_FEEDBACK_COST);
+        userCreditService.consumeFromNearestExpiringCredit(event.getFeedbackReceiverUserId(), UserCreditService.AI_FEEDBACK_COST);
         log.info("AiFeedback {} consumed {} credit(s)", event.getAiFeedbackId(), UserCreditService.AI_FEEDBACK_COST);
         increaseReceivedFeedbackCountForTheUser(event.getFeedbackReceiverUserId());
         increaseGivenFeedbackCountForTheUser(event.getFeedbackGiverUserId());

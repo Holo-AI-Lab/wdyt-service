@@ -6,10 +6,9 @@ import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.chatgpt.ChatGptService;
 import ai.holo.wdyt.common.chatgpt.ChatGptText2ImageService;
 import ai.holo.wdyt.common.exception.BadRequestException;
-import ai.holo.wdyt.common.exception.InsufficientCreditException;
 import ai.holo.wdyt.common.exception.NotFoundException;
 import ai.holo.wdyt.subscription.service.UserCreditService;
-import ai.holo.wdyt.user.model.dto.UserDto;
+import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
 import ai.holo.wdyt.wardrobe.model.dto.DraftWardrobeItemDto;
 import ai.holo.wdyt.wardrobe.model.entity.*;
@@ -57,20 +56,20 @@ public class WardrobeItemAutoExtractService {
 
     public List<DraftWardrobeItemDto> extractWardrobeItems(Long aiFeedbackId) {
         AiFeedback aiFeedback = aiFeedbackRepository.findById(aiFeedbackId).orElseThrow(NotFoundException::new);
-        UserDto userInfo = userService.getUserInfo();
-        if (!aiFeedback.getUserId().equals(userInfo.id())) {
+        User user = userService.getUser();
+        if (!aiFeedback.getUserId().equals(user.getId())) {
             throw new BadRequestException("You can only extract wardrobe items from your own feedback.");
         }
         List<DraftWardrobeItem> existingDraftWardrobeItems = draftWardrobeItemRepository.findByAiFeedbackId(aiFeedbackId);
         if (existingDraftWardrobeItems.isEmpty()) {
-            if (userService.getUser().getCreditBalance() < 2) throw new InsufficientCreditException(userInfo.id());
-            return extractItems(userInfo, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), aiFeedback.getId());
+            userCreditService.checkEnoughCreditsExisting(user, UserCreditService.WARDROBE_AUTO_EXTRACTION_COST);
+            return extractItems(user, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), aiFeedback.getId());
         }
         return existingDraftWardrobeItems.stream().map(draftItem -> new DraftWardrobeItemDto(draftItem, s3Service.getFileS3Url(draftItem.getImagePath())))
                 .toList();
     }
 
-    private List<DraftWardrobeItemDto> extractItems(UserDto userInfo, String imageUrl, Long aiFeedbackId) {
+    private List<DraftWardrobeItemDto> extractItems(User user, String imageUrl, Long aiFeedbackId) {
         String systemPrompt = new WardrobeItemAutomaticExtractionPrompt().getSystemPrompt();
 
         List<ChatGptService.Message> messages = List.of(
@@ -85,17 +84,17 @@ public class WardrobeItemAutoExtractService {
         List<DetectedWardrobeItemResponse> detectedWardrobeItemResponses = parseResponseContent(content);
         List<WardrobeItemImageGenerationPrompt> wardrobeItemImageGenerationPrompts = generateImageGenerationPrompts(detectedWardrobeItemResponses);
 
-        List<DraftWardrobeItem> draftWardrobeItems = executeImageGenerationInParallel(wardrobeItemImageGenerationPrompts, userInfo, aiFeedbackId);
+        List<DraftWardrobeItem> draftWardrobeItems = executeImageGenerationInParallel(wardrobeItemImageGenerationPrompts, user, aiFeedbackId);
         List<DraftWardrobeItem> savedDraftItems = draftWardrobeItemRepository.saveAll(draftWardrobeItems);
         updateAiFeedbackExtractedInfo(aiFeedbackId);
-        consume2CreditsFromUser(userInfo.id());
+        consumeAutoExtractionCredits(user.getId());
         return savedDraftItems.stream()
                 .map(draftItem -> new DraftWardrobeItemDto(draftItem, s3Service.getFileS3Url(draftItem.getImagePath())))
                 .toList();
     }
 
-    private void consume2CreditsFromUser(Long userId) {
-        userCreditService.consumeNearestExpiringCredit(userId, UserCreditService.AUTO_EXTRACTION_COST);
+    private void consumeAutoExtractionCredits(Long userId) {
+        userCreditService.consumeFromNearestExpiringCredit(userId, UserCreditService.WARDROBE_AUTO_EXTRACTION_COST);
     }
 
     private void updateAiFeedbackExtractedInfo(Long aiFeedbackId) {
@@ -105,7 +104,7 @@ public class WardrobeItemAutoExtractService {
     }
 
     private List<DraftWardrobeItem> executeImageGenerationInParallel(
-            List<WardrobeItemImageGenerationPrompt> prompts, UserDto userInfo, Long aiFeedbackId) {
+            List<WardrobeItemImageGenerationPrompt> prompts, User user, Long aiFeedbackId) {
 
         ExecutorService executor = Executors.newFixedThreadPool(MAX_CONCURRENT_REQUESTS);
         Semaphore semaphore = new Semaphore(MAX_CONCURRENT_REQUESTS);
@@ -114,7 +113,7 @@ public class WardrobeItemAutoExtractService {
                 .map(prompt -> CompletableFuture.supplyAsync(() -> {
                     try {
                         semaphore.acquire(); // limit concurrent requests
-                        return generateImageWithRetry(prompt, userInfo, aiFeedbackId);
+                        return generateImageWithRetry(prompt, user, aiFeedbackId);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException("Interrupted during semaphore acquire", e);
@@ -132,7 +131,7 @@ public class WardrobeItemAutoExtractService {
         return results;
     }
 
-    private DraftWardrobeItem generateImageWithRetry(WardrobeItemImageGenerationPrompt prompt, UserDto userInfo, Long aiFeedbackId) {
+    private DraftWardrobeItem generateImageWithRetry(WardrobeItemImageGenerationPrompt prompt, User user, Long aiFeedbackId) {
         int attempt = 0;
         while (true) {
             try {
@@ -140,11 +139,11 @@ public class WardrobeItemAutoExtractService {
                 InputStream imageStream = new ByteArrayInputStream(image);
                 long now = System.currentTimeMillis();
                 String path = String.format("%d/wardrobe/%d/wardrobe_item_%d.png",
-                        userInfo.id(), now, now);
+                        user.getId(), now, now);
                 String savedImagePath = s3Service.saveImage(imageStream, path);
 
                 return new DraftWardrobeItem(
-                        userInfo.id(),
+                        user.getId(),
                         aiFeedbackId,
                         prompt.item.name(),
                         prompt.item.content(),
@@ -188,8 +187,8 @@ public class WardrobeItemAutoExtractService {
         return false;
     }
     private List<WardrobeItemImageGenerationPrompt> generateImageGenerationPrompts(List<DetectedWardrobeItemResponse> detectedWardrobeItemResponses) {
-        String shoesPrompt = "Surreal-style product image, single item display, centered placement, laid flat, side view, well-lit studio shot, no distortion. The background should be pure white, with no other decorations or objects besides the product. There should be blank space around the product. No people should appear in the image.";
-        String genericPrompt = "Surreal-style product image, single item display, centered placement, laid flat, front-facing, well-lit studio shot, no surreal elements, no distortion. The background should be pure white, with no other decorations or objects besides the product. There should be blank space around the product. No people should appear in the image.";
+        String shoesPrompt = "Surreal-style product image, single item display, centered placement, laid flat, side view, well-lit studio shot, no distortion. No background, no people, with no other decorations or objects besides the item.";
+        String genericPrompt = "Surreal-style product image, single item display, centered placement, laid flat, front-facing, well-lit studio shot, no surreal elements, no distortion. No background, no people, with no other decorations or objects besides the item.";
         return detectedWardrobeItemResponses.stream().map(item -> {
             String colorPrompt = item.colorStripesIntersecting() ? String.format("Multiple colors are staggered in stripes, a %s", item.colors) : String.format("a %s", item.colors());
             String subCategories = item.subCategories().stream().map(DetectedWardrobeItemSubCategory::name).collect(Collectors.joining(","));

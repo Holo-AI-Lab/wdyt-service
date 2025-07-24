@@ -1,5 +1,6 @@
 package ai.holo.wdyt.subscription.service;
 
+import ai.holo.wdyt.common.exception.InsufficientCreditException;
 import ai.holo.wdyt.subscription.model.dto.UserValidCreditsDTO;
 import ai.holo.wdyt.subscription.model.entity.AppleTransaction;
 import ai.holo.wdyt.subscription.model.entity.CreditType;
@@ -10,6 +11,7 @@ import ai.holo.wdyt.subscription.repository.UserCreditRepository;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserRepository;
 import ai.holo.wdyt.user.service.UserService;
+import ai.holo.wdyt.wardrobe.model.dto.DraftWardrobeItemDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,8 +29,8 @@ public class UserCreditService {
     private final int FREEMIUM_CREDITS = 20;
     private final int FREEMIUM_DURATION_DAYS = 30;
     public static final int AI_FEEDBACK_COST = 1;
-    public static final int AUTO_EXTRACTION_COST = 2;
-    public static final int MANUAL_EXTRACTION_COST = 1;
+    public static final int WARDROBE_AUTO_EXTRACTION_COST = 2;
+    public static final int WARDROBE_MANUAL_EXTRACTION_COST = 1;
 
     private final UserCreditRepository creditRepository;
     private final AppleTransactionRepository appleTransactionRepository;
@@ -142,7 +144,7 @@ public class UserCreditService {
     }
 
     @Transactional
-    public void consumeNearestExpiringCredit(Long userId, int credit) {
+    public void consumeFromNearestExpiringCredit(Long userId, int credit) {
         List<UserCredit> credits = creditRepository.findValidCreditsByUserIdSortedByExpiresAt(userId);
         AtomicInteger remainingToConsume = new AtomicInteger(credit);
 
@@ -169,5 +171,10 @@ public class UserCreditService {
         User user = userService.getUserById(userId);
         user.decreaseCreditBalance(creditToSubtract);
         userRepository.save(user);
+    }
+
+    public void checkEnoughCreditsExisting(User user, int credit) {
+        if (userService.getUser().getCreditBalance() < credit) throw new InsufficientCreditException(user.getId());
+
     }
 }
