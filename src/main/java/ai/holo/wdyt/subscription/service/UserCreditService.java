@@ -7,7 +7,6 @@ import ai.holo.wdyt.subscription.model.entity.SubscriptionPlan;
 import ai.holo.wdyt.subscription.model.entity.UserCredit;
 import ai.holo.wdyt.subscription.repository.AppleTransactionRepository;
 import ai.holo.wdyt.subscription.repository.UserCreditRepository;
-import ai.holo.wdyt.subscription.repository.UserSubscriptionRepository;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.repository.UserRepository;
 import ai.holo.wdyt.user.service.UserService;
@@ -25,9 +24,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 @Slf4j
 public class UserCreditService {
-    private final int FREEMIUM_CREDITS = 7;
+    private final int FREEMIUM_CREDITS = 20;
     private final int FREEMIUM_DURATION_DAYS = 30;
     public static final int AI_FEEDBACK_COST = 1;
+    public static final int AUTO_EXTRACTION_COST = 2;
+    public static final int MANUAL_EXTRACTION_COST = 1;
 
     private final UserCreditRepository creditRepository;
     private final AppleTransactionRepository appleTransactionRepository;
@@ -52,7 +53,6 @@ public class UserCreditService {
 
     @Transactional
     public void renewFreemiumAndMarkExpiredCreditsToInvalid() {
-        LocalDateTime now = LocalDateTime.now();
         List<UserCredit> expiredCredits = creditRepository.findExpiredCredits();
         log.info("Processing {} expired credits ", expiredCredits.size());
         expiredCredits.forEach(this::processExpiredCredit);

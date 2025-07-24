@@ -4,6 +4,8 @@ import ai.holo.wdyt.askai.service.PhotoroomBgExtractionService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.chatgpt.ChatGptService;
 import ai.holo.wdyt.common.exception.BadRequestException;
+import ai.holo.wdyt.common.exception.InsufficientCreditException;
+import ai.holo.wdyt.subscription.service.UserCreditService;
 import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.service.UserService;
 import ai.holo.wdyt.wardrobe.model.dto.DraftWardrobeItemDto;
@@ -30,18 +32,21 @@ public class WardrobeItemManualExtractService {
     private final UserService userService;
     private final DraftWardrobeItemRepository draftWardrobeItemRepository;
     private final PhotoroomBgExtractionService photoroomBgExtractionService;
+    private final UserCreditService userCreditService;
 
     public WardrobeItemManualExtractService(ChatGptService chatGptService, S3Service s3Service,
                                             UserService userService, DraftWardrobeItemRepository draftWardrobeItemRepository,
-                                            PhotoroomBgExtractionService photoroomBgExtractionService) {
+                                            PhotoroomBgExtractionService photoroomBgExtractionService, UserCreditService userCreditService) {
         this.chatGptService = chatGptService;
         this.s3Service = s3Service;
         this.userService = userService;
         this.draftWardrobeItemRepository = draftWardrobeItemRepository;
         this.photoroomBgExtractionService = photoroomBgExtractionService;
+        this.userCreditService = userCreditService;
     }
 
     public WardrobeManualExtractDto validateAndParseManualExtractDto(byte[] imageBytes, String data) {
+        if (userService.getUser().getCreditBalance() < 1 ) throw new InsufficientCreditException(userService.getUser().getId());
         try {
             if (imageBytes == null || imageBytes.length == 0) {
                 throw new BadRequestException("Image is required for manual extraction");
@@ -93,7 +98,12 @@ public class WardrobeItemManualExtractService {
                 wardrobeItemManualExtractResponse.item.tags.stream().map(t -> new DraftItemTag(t.name())).toList()
                 );
         DraftWardrobeItem savedWardrobeItem = draftWardrobeItemRepository.save(draftWardrobeItem);
+        consume1CreditFromUser(userInfo.id());
         return new DraftWardrobeItemDto(savedWardrobeItem, imageUrl);
+    }
+
+    private void consume1CreditFromUser(Long userId) {
+        userCreditService.consumeNearestExpiringCredit(userId, UserCreditService.MANUAL_EXTRACTION_COST);
     }
 
     private WardrobeItemManualExtractResponse extractManualItemsResponse(String content, String imageUrl) {

@@ -6,7 +6,9 @@ import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.chatgpt.ChatGptService;
 import ai.holo.wdyt.common.chatgpt.ChatGptText2ImageService;
 import ai.holo.wdyt.common.exception.BadRequestException;
+import ai.holo.wdyt.common.exception.InsufficientCreditException;
 import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.subscription.service.UserCreditService;
 import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.service.UserService;
 import ai.holo.wdyt.wardrobe.model.dto.DraftWardrobeItemDto;
@@ -36,19 +38,21 @@ public class WardrobeItemAutoExtractService {
     private final UserService userService;
     private final DraftWardrobeItemRepository draftWardrobeItemRepository;
     private final AiFeedbackRepository aiFeedbackRepository;
+    private final UserCreditService userCreditService;
 
     private static final int MAX_CONCURRENT_REQUESTS = 3; // Reduce to avoid 429
     private static final int MAX_RETRIES = 3;
     private static final long BASE_BACKOFF_MS = 1000;
 
     public WardrobeItemAutoExtractService(ChatGptService chatGptService, ChatGptText2ImageService chatGptText2ImageService, S3Service s3Service,
-                                          UserService userService, DraftWardrobeItemRepository draftWardrobeItemRepository, AiFeedbackRepository aiFeedbackRepository) {
+                                          UserService userService, DraftWardrobeItemRepository draftWardrobeItemRepository, AiFeedbackRepository aiFeedbackRepository, UserCreditService userCreditService) {
         this.chatGptService = chatGptService;
         this.chatGptText2ImageService = chatGptText2ImageService;
         this.s3Service = s3Service;
         this.userService = userService;
         this.draftWardrobeItemRepository = draftWardrobeItemRepository;
         this.aiFeedbackRepository = aiFeedbackRepository;
+        this.userCreditService = userCreditService;
     }
 
     public List<DraftWardrobeItemDto> extractWardrobeItems(Long aiFeedbackId) {
@@ -59,6 +63,7 @@ public class WardrobeItemAutoExtractService {
         }
         List<DraftWardrobeItem> existingDraftWardrobeItems = draftWardrobeItemRepository.findByAiFeedbackId(aiFeedbackId);
         if (existingDraftWardrobeItems.isEmpty()) {
+            if (userService.getUser().getCreditBalance() < 2) throw new InsufficientCreditException(userInfo.id());
             return extractItems(userInfo, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()), aiFeedback.getId());
         }
         return existingDraftWardrobeItems.stream().map(draftItem -> new DraftWardrobeItemDto(draftItem, s3Service.getFileS3Url(draftItem.getImagePath())))
@@ -83,9 +88,14 @@ public class WardrobeItemAutoExtractService {
         List<DraftWardrobeItem> draftWardrobeItems = executeImageGenerationInParallel(wardrobeItemImageGenerationPrompts, userInfo, aiFeedbackId);
         List<DraftWardrobeItem> savedDraftItems = draftWardrobeItemRepository.saveAll(draftWardrobeItems);
         updateAiFeedbackExtractedInfo(aiFeedbackId);
+        consume2CreditsFromUser(userInfo.id());
         return savedDraftItems.stream()
                 .map(draftItem -> new DraftWardrobeItemDto(draftItem, s3Service.getFileS3Url(draftItem.getImagePath())))
                 .toList();
+    }
+
+    private void consume2CreditsFromUser(Long userId) {
+        userCreditService.consumeNearestExpiringCredit(userId, UserCreditService.AUTO_EXTRACTION_COST);
     }
 
     private void updateAiFeedbackExtractedInfo(Long aiFeedbackId) {
