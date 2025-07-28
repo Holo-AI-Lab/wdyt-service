@@ -118,7 +118,7 @@ public class WardrobeService {
     public Page<WardrobeItemDto> listWardrobeItems(WardrobeItemCategory category, Boolean liked, List<String> colors, List<String> seasons, List<String> types, Pageable pageable) {
         Optional<Wardrobe> wardrobe = getUserWardrobe();
         if (wardrobe.isEmpty()) {
-            return new PageImpl<>(Collections.emptyList());
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
 
         Specification<WardrobeItem> spec = Specification.where(WardrobeItemSpecifications.belongsToWardrobe(wardrobe.get().getId()));
