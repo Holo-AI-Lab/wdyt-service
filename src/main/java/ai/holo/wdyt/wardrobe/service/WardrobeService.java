@@ -3,6 +3,7 @@ package ai.holo.wdyt.wardrobe.service;
 import ai.holo.wdyt.askai.service.AiFeedbackService;
 import ai.holo.wdyt.common.S3Service;
 import ai.holo.wdyt.common.exception.NotFoundException;
+import ai.holo.wdyt.subscription.service.UserCreditService;
 import ai.holo.wdyt.user.model.entity.User;
 import ai.holo.wdyt.user.service.UserService;
 import ai.holo.wdyt.wardrobe.model.dto.*;
@@ -35,11 +36,12 @@ public class WardrobeService {
     private final DraftWardrobeItemRepository draftWardrobeItemRepository;
     private final S3Service s3Service;
     private final AiFeedbackService aiFeedbackService;
+    private final UserCreditService userCreditService;
 
     public WardrobeService(WardrobeItemRepository wardrobeItemRepository, WardrobeRepository wardrobeRepository,
                            ReportWardrobeRepository reportWardrobeRepository, UserService userService,
                            DraftWardrobeItemRepository draftWardrobeItemRepository, S3Service s3Service,
-                           AiFeedbackService aiFeedbackService) {
+                           AiFeedbackService aiFeedbackService, UserCreditService userCreditService) {
         this.wardrobeItemRepository = wardrobeItemRepository;
         this.wardrobeRepository = wardrobeRepository;
         this.reportWardrobeRepository = reportWardrobeRepository;
@@ -47,6 +49,7 @@ public class WardrobeService {
         this.draftWardrobeItemRepository = draftWardrobeItemRepository;
         this.s3Service = s3Service;
         this.aiFeedbackService = aiFeedbackService;
+        this.userCreditService = userCreditService;
     }
 
     @Transactional(readOnly = true)
@@ -60,7 +63,7 @@ public class WardrobeService {
         List<String> seasons = wardrobeItemRepository.findDistinctSeasons(wardrobe.get().getId());
         List<String> types = wardrobeItemRepository.findDistinctTypes(wardrobe.get().getId());
         List<WardrobeItemCategory> categories = wardrobeItemRepository.findDistinctCategories(wardrobe.get().getId());
-        return new FilterDto(categories ,colors, seasons, types);
+        return new FilterDto(categories, colors, seasons, types);
     }
 
     private List<Color> getDistinctColors(Wardrobe wardrobe) {
@@ -101,7 +104,22 @@ public class WardrobeService {
 
         List<WardrobeItem> savedItems = wardrobeItemRepository.saveAll(items);
         updateAiFeedbackExtractedInfo(request);
+        consumeCreditsBasedOnExtractionType(request);
         return savedItems.stream().map(wardrobeItem -> new WardrobeItemDto(wardrobeItem, getImageUrl(wardrobeItem.getImagePath()))).toList();
+    }
+
+    private void consumeCreditsBasedOnExtractionType(CreateWardrobeItemsRequest request) {
+        User user = userService.getUser();
+        DraftWardrobeItem draftWardrobeItem = draftWardrobeItemRepository.findById(request.items().get(0).draftItemId())
+                .orElseThrow(NotFoundException::new);
+        if (draftWardrobeItem.getExtractionType() == WardrobeItemExtractionType.AUTOMATIC) {
+            userCreditService.consumeFromNearestExpiringCredit(user.getId(), UserCreditService.WARDROBE_AUTO_EXTRACTION_COST);
+        } else if (draftWardrobeItem.getExtractionType() == WardrobeItemExtractionType.MANUAL) {
+            userCreditService.consumeFromNearestExpiringCredit(user.getId(), UserCreditService.WARDROBE_MANUAL_EXTRACTION_COST);
+        } else {
+            log.error("Unknown extraction type for draft item ID: {}", request.items().get(0).draftItemId());
+            throw new IllegalArgumentException("Unknown extraction type for draft item.");
+        }
     }
 
     private void updateAiFeedbackExtractedInfo(CreateWardrobeItemsRequest request) {
