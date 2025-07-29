@@ -6,6 +6,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -45,9 +46,9 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
             "LOWER(fr.username) LIKE LOWER(CONCAT('%', :search, '%')))")
     @EntityGraph(attributePaths = {"friend"})
     Page<Friend> findAllByUserIdAndFriendIdNotInWithSearch(@Param("userId") Long userId,
-                                                     @Param("notIds") Collection<Long> notIds,
-                                                     @Param("search") String search,
-                                                     Pageable pageable);
+                                                           @Param("notIds") Collection<Long> notIds,
+                                                           @Param("search") String search,
+                                                           Pageable pageable);
 
     @EntityGraph(attributePaths = {"friend"})
     List<Friend> findAllByUserId(Long id);
@@ -55,4 +56,10 @@ public interface FriendRepository extends JpaRepository<Friend, Long> {
     boolean existsByUserIdAndFriendId(Long currentUserId, Long userId);
 
     int countByUserId(Long userId);
+
+    @Modifying
+    @Query("DELETE FROM user_friend f WHERE " +
+            "(f.userId = :userId1 AND f.friend.id = :userId2) OR " +
+            "(f.userId = :userId2 AND f.friend.id = :userId1)")
+    void deleteFriendship(@Param("userId1") Long userId1, @Param("userId2") Long userId2);
 }

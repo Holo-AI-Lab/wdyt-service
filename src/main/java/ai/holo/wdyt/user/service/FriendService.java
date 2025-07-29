@@ -178,7 +178,6 @@ public class FriendService {
 
     public void removeFriend(RemoveFriendRequestDto removeFriendRequestDto) {
         User user = userService.getUser();
-        Friend friend = friendRepository.findByUserIdAndFriendId(user.getId(), removeFriendRequestDto.friendId()).orElseThrow(NotFoundException::new);
-        friendRepository.delete(friend);
+        friendRepository.deleteFriendship(user.getId(), removeFriendRequestDto.friendId());
     }
 }
