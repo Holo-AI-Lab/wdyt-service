@@ -158,10 +158,10 @@ public class UserService {
         List<String> mostPreferredColors = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(userId, "colorCode");
         List<String> mostPreferredOccasions = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(userId, "occasion");
         List<String> mostPreferredStyles = aiFeedbackSearchService.findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(userId, "style");
-        int receivedFeedbacks = user.getReceivedFeedbackCount();
-        int givenFeedbacks = user.getGivenFeedbackCount();
+        int receivedFeedbacks = aiFeedbackSearchService.countReceivedAiFeedbackEntriesByUserId(userId);
+        int numberOfOutfit = aiFeedbackSearchService.countAiFeedbackByUserId(userId);
         int friends = friendRepository.countByUserId(userId);
-        return new UserProfileDto(user, mostPreferredOccasions, mostPreferredStyles, mostPreferredColors, receivedFeedbacks, givenFeedbacks ,friends);
+        return new UserProfileDto(user, mostPreferredOccasions, mostPreferredStyles, mostPreferredColors, receivedFeedbacks, numberOfOutfit ,friends);
     }
 
     @Transactional

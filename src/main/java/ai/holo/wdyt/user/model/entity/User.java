@@ -43,10 +43,6 @@ public class User {
     private UserSelectedStyle selectedStyle;
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-    @Column(name = "received_feedback_count")
-    private int receivedFeedbackCount;
-    @Column(name = "given_feedback_count")
-    private int givenFeedbackCount;
     @Column(name = "credit_balance")
     private int creditBalance;
 
@@ -64,13 +60,5 @@ public class User {
 
     public void decreaseCreditBalance(int amount) {
         creditBalance -= amount;
-    }
-
-    public void increaseReceivedFeedbackCount() {
-        receivedFeedbackCount++;
-    }
-
-    public void increaseGivenFeedbackCount() {
-        givenFeedbackCount++;
     }
 }

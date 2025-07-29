@@ -238,4 +238,22 @@ public class AiFeedbackSearchService {
             queryString.setLength(queryString.length() - 2); // Remove the last comma
         }
     }
+
+    public int countAiFeedbackByUserId(Long userId) {
+        String queryString = "SELECT COUNT(af.id) FROM ai_feedback af WHERE af.user_id = :userId";
+        Query query = entityManager.createNativeQuery(queryString);
+        query.setParameter("userId", userId);
+
+        Number result = (Number) query.getSingleResult();
+        return result != null ? result.intValue() : 0;
+    }
+
+    public int countReceivedAiFeedbackEntriesByUserId(Long userId) {
+        String queryString = "SELECT COALESCE(SUM(JSON_LENGTH(feedback_entries)), 0) FROM ai_feedback WHERE user_id = :userId";
+        Query query = entityManager.createNativeQuery(queryString);
+        query.setParameter("userId", userId);
+
+        Number result = (Number) query.getSingleResult();
+        return result != null ? result.intValue() : 0;
+    }
 }

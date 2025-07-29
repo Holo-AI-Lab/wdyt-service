@@ -394,6 +394,9 @@ ALTER TABLE ai_feedback add column wardrobe_item_extracted BOOLEAN DEFAULT FALSE
 
 ALTER TABLE wardrobe_item ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL;
 
+ALTER TABLE user DROP COLUMN received_feedback_count;
+ALTER TABLE user DROP COLUMN given_feedback_count;
+
 ```
 
 # Create Docker image and push to ECR
