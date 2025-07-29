@@ -99,12 +99,7 @@ public class WardrobeItemManualExtractService {
                 wardrobeItemManualExtractResponse.item.tags.stream().map(t -> new DraftItemTag(t.name())).toList()
                 );
         DraftWardrobeItem savedWardrobeItem = draftWardrobeItemRepository.save(draftWardrobeItem);
-        consumeManualExtractionCredits(userInfo.id());
         return new DraftWardrobeItemDto(savedWardrobeItem, imageUrl);
-    }
-
-    private void consumeManualExtractionCredits(Long userId) {
-        userCreditService.consumeFromNearestExpiringCredit(userId, UserCreditService.WARDROBE_MANUAL_EXTRACTION_COST);
     }
 
     private WardrobeItemManualExtractResponse extractManualItemsResponse(String content, String imageUrl) {
