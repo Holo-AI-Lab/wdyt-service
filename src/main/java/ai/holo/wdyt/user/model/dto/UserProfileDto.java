@@ -24,7 +24,7 @@ public record UserProfileDto(Long id,
                              ) {
 
     public UserProfileDto(User user, List<String> occasions, List<String> styles, List<String> colors,
-                          int feedbacksReceived, int feedbacksGiven, int numberOfFriend) {
+                          int feedbacksGiven, int feedbacksReceived, int numberOfFriend) {
         this(user.getId(), user.getEmail(), user.getName(), user.getUsername(), user.isPublicProfile(),
                 user.getProfilePicture(), user.getRobot().getId(), user.getRobot().getName(),
                 user.getRobot().getGender(), user.getRobot().getAvatarUrl(), occasions, styles,
