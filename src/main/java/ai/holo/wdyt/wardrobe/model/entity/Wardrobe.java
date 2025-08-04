@@ -18,7 +18,7 @@ public class Wardrobe {
     private Long id;
     @Column(name = "user_id")
     private Long userId;
-    @OneToMany(fetch = FetchType.LAZY)
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @JoinColumn(name = "wardrobe_id")
     private List<WardrobeItem> items = new ArrayList<>();
 

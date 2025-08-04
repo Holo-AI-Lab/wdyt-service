@@ -185,7 +185,6 @@ public class WardrobeService {
         if (wardrobe.isEmpty()) {
             return;
         }
-        wardrobeItemRepository.deleteAllByWardrobeId(wardrobe.get().getId());
         draftWardrobeItemRepository.deleteByUserId(userId);
         wardrobeRepository.delete(wardrobe.get());
         log.info("Wardrobe deleted for user with ID: {}", userId);
