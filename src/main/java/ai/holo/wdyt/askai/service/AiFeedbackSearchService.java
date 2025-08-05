@@ -36,6 +36,10 @@ public class AiFeedbackSearchService {
         return getTagsFromAiFeedback("ai_feedback", userId, tag);
     }
 
+    public List<String> findDistinctTagsFromAiComparisonFeedbackByUserIdAndTag(Long userId, String tag) {
+        return getTagsFromAiFeedback("ai_comparison_feedback", userId, tag);
+    }
+
     public List<String> findDistinctTagsFromAiFeedbackAndComparisonByUserIdAndTag(Long userId, String tag) {
         List<String> tagsFromAiFeedback = getTagsFromAiFeedback("ai_feedback", userId, tag);
         List<String> tagsFromComparison = getTagsFromAiFeedback("ai_comparison_feedback", userId, tag);

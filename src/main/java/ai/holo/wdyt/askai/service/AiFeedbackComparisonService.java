@@ -237,6 +237,12 @@ public class AiFeedbackComparisonService {
         reportAiFeedbackRepository.save(reportAiFeedback);
     }
 
+    @Transactional(readOnly = true)
+    public List<String> getFilters(String tag) {
+        User user = userService.getUser();
+        return aiFeedbackSearchService.findDistinctTagsFromAiComparisonFeedbackByUserIdAndTag(user.getId(), tag);
+    }
+
     public record AIComparisonSubmissionImage(ImageType imageType, String rawImagePath, String extractedImagePath) {}
 
     public record AISubmissionImagesForComparison(AIComparisonSubmissionImage image1, AIComparisonSubmissionImage image2) {}

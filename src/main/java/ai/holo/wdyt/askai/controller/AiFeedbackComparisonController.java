@@ -39,16 +39,16 @@ public class AiFeedbackComparisonController {
         String gptResponse = aiFeedbackComparisonService.sendPromptWithRetries(comparisonImages.image1().extractedImagePath(), comparisonImages.image2().extractedImagePath(), prompt);
 
         // Save AI response
-        return aiFeedbackComparisonService.saveAiCompareResponse(comparisonSubmissionDto, gptResponse, comparisonImages,  locationAndWeather);
+        return aiFeedbackComparisonService.saveAiCompareResponse(comparisonSubmissionDto, gptResponse, comparisonImages, locationAndWeather);
     }
 
     @GetMapping("/")
     public Page<AiComparisonDto> listAiFeedbacks(@RequestParam(value = "liked", required = false) Boolean liked,
-                                               @RequestParam(value = "color", required = false) String[] color,
-                                               @RequestParam(value = "style", required = false) String[] style,
-                                               @RequestParam(value = "occasion", required = false) String[] occasion,
-                                               @RequestParam(defaultValue = "100") Integer size,
-                                               @RequestParam(defaultValue = "0") Integer page) {
+                                                 @RequestParam(value = "color", required = false) String[] color,
+                                                 @RequestParam(value = "style", required = false) String[] style,
+                                                 @RequestParam(value = "occasion", required = false) String[] occasion,
+                                                 @RequestParam(defaultValue = "100") Integer size,
+                                                 @RequestParam(defaultValue = "0") Integer page) {
 
         Map<String, List<String>> tagFilters = Map.of(
                 Taggable.COLOR, color != null ? Arrays.asList(color) : List.of(),
@@ -75,12 +75,17 @@ public class AiFeedbackComparisonController {
 
     @PostMapping("/{id}/report")
     public void reportAiComparisonFeedback(@PathVariable("id") Long id,
-                                 @RequestBody ReportAiFeedbackDto reportAiFeedbackDto) {
+                                           @RequestBody ReportAiFeedbackDto reportAiFeedbackDto) {
         aiFeedbackComparisonService.reportAiComparisonFeedback(id, reportAiFeedbackDto);
     }
 
     @GetMapping("/latest")
     public AiComparisonDetailedDto getLatestAiFeedback() {
         return aiFeedbackComparisonService.getLatestAiFeedback();
+    }
+
+    @GetMapping("/filters/{tag}")
+    public List<String> getFilters(@PathVariable String tag) {
+        return aiFeedbackComparisonService.getFilters(tag);
     }
 }
