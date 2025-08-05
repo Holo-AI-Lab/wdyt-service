@@ -20,6 +20,7 @@ import ai.holo.wdyt.location.model.LocationAndWeatherDto;
 import ai.holo.wdyt.subscription.service.UserCreditService;
 import ai.holo.wdyt.user.model.dto.UserDto;
 import ai.holo.wdyt.user.model.entity.User;
+import ai.holo.wdyt.user.repository.UserRepository;
 import ai.holo.wdyt.user.service.UserService;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -52,6 +53,7 @@ public class AiFeedbackService {
     private final OccasionRepository occasionRepository;
     private final CallSupplierWithRetryService callSupplierWithRetryService;
     private final EventPublisher eventPublisher;
+    private final UserRepository userRepository;
 
     public AiFeedbackService(ChatGptService chatGptService, S3Service s3Service,
                              PhotoroomBgExtractionService photoroomBgExtractionService,
@@ -62,7 +64,7 @@ public class AiFeedbackService {
                              AiFeedbackSearchService aiFeedbackSearchService,
                              OccasionRepository occasionRepository,
                              CallSupplierWithRetryService callSupplierWithRetryService,
-                             EventPublisher eventPublisher) {
+                             EventPublisher eventPublisher, UserRepository userRepository) {
         this.chatGptService = chatGptService;
         this.s3Service = s3Service;
         this.photoroomBgExtractionService = photoroomBgExtractionService;
@@ -74,6 +76,7 @@ public class AiFeedbackService {
         this.occasionRepository = occasionRepository;
         this.callSupplierWithRetryService = callSupplierWithRetryService;
         this.eventPublisher = eventPublisher;
+        this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
@@ -312,11 +315,14 @@ public class AiFeedbackService {
     private AiFeedbackDetailedDto generateAiFeedbackDto(AiFeedback aiFeedback) {
         List<FeedbackEntryDto> feedbackEntryDtos = aiFeedback.getFeedbackEntries().stream().map(feedback -> {
             OutfitAnalysis analysis = extractResponse(feedback.response(), aiFeedback.getImageType());
-            User aiUser = userService.getUserById(feedback.userId());
-            return new FeedbackEntryDto(feedback, analysis, null, new UserDto(aiUser));
+            return new FeedbackEntryDto(feedback, analysis, null, getAiUserInfo(feedback));
         }).toList();
         return new AiFeedbackDetailedDto(aiFeedback, s3Service.getFileS3Url(aiFeedback.getExtractedImagePath()),
                 userService.getUserInfo(), feedbackEntryDtos);
+    }
+
+    private UserDto getAiUserInfo(FeedbackEntry feedback) {
+        return userRepository.findById(feedback.userId()).map(UserDto::new).orElse(UserDto.inactiveDummyUserDto());
     }
 
     @Transactional

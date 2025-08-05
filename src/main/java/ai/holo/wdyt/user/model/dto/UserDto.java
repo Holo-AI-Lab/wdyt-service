@@ -16,10 +16,17 @@ public record UserDto(Long id,
                       boolean isStyleAdapted,
                       UserSelectedStyle selectedStyle) {
 
+    public static final long INACTIVE_DUMMY_USER_ID = -1L;
+
     public UserDto(User user) {
         this(user.getId(), user.getEmail(), user.getName(), user.getUsername(),
                 user.getProfilePicture(), user.getRobot().getId(), user.getRobot().getName(),
                 user.getRobot().getGender(), user.getRobot().getAvatarUrl(), user.isPublicProfile(),
                 user.isStyleAdapted(), user.getSelectedStyle());
+    }
+
+    public static UserDto inactiveDummyUserDto() {
+        return new UserDto(INACTIVE_DUMMY_USER_ID, null, null, null, null,
+                null, null, null, null, false, false, null);
     }
 }

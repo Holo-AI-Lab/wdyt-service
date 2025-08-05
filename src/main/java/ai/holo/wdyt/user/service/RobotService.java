@@ -64,7 +64,7 @@ public class RobotService {
     @Transactional
     public void deleteRobot(Long id) {
         Robot robot = robotRepository.findById(id).orElseThrow(NotFoundException::new);
-        Long robotSourceId = robot.getRobot_source_id();
+        Long robotSourceId = robot.getRobotSourceId();
         robotRepository.deleteById(id);
         try {
             deleteRobotOnSecond(robotSourceId);
@@ -92,7 +92,7 @@ public class RobotService {
         Robot robot = robotRepository.findById(changeRobotNameDto.robotId()).orElseThrow(NotFoundException::new);
         robot.setName(changeRobotNameDto.newName());
         robotRepository.save(robot);
-        Long robotSourceId = robot.getRobot_source_id();
+        Long robotSourceId = robot.getRobotSourceId();
         try {
             updateRobotNameOnSecond(robotSourceId, changeRobotNameDto.newName());
         } catch (Exception e) {

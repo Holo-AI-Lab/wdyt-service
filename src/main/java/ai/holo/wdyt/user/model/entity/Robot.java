@@ -16,7 +16,7 @@ public class Robot {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(name = "robot_source_id", unique = true)
-    private Long robot_source_id;
+    private Long robotSourceId;
     @Column(name = "name")
     private String name;
     @Column(name = "gender")
@@ -31,9 +31,9 @@ public class Robot {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    public Robot(Long robot_source_id ,String name, Gender gender, LocalDateTime birthday,
+    public Robot(Long robotSourceId, String name, Gender gender, LocalDateTime birthday,
                  String headImageUrl, String avatarUrl) {
-        this.robot_source_id = robot_source_id;
+        this.robotSourceId = robotSourceId;
         this.name = name;
         this.gender =  gender;
         this.birthday = birthday;
