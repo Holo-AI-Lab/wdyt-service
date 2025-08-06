@@ -23,15 +23,21 @@ public class AppleClientSecretGenerator {
     private final String keyId;
     private final String privateKey;
     private final String clientId;
+    private final String appleSubscriptionIssuerId;
+    private final String appleSubscriptionKeyId;
 
     public AppleClientSecretGenerator(String teamId,
                                       String keyId,
                                       String privateKey,
-                                      String clientId) {
+                                      String clientId,
+                                      String appleSubscriptionIssuerId,
+                                      String appleSubscriptionKeyId) {
         this.teamId = teamId;
         this.keyId = keyId;
         this.privateKey = privateKey;
         this.clientId = clientId;
+        this.appleSubscriptionIssuerId = appleSubscriptionIssuerId;
+        this.appleSubscriptionKeyId = appleSubscriptionKeyId;
     }
 
     public String generateClientSecret() {
@@ -76,14 +82,14 @@ public class AppleClientSecretGenerator {
     public String generateAppleJwtFromKeyString() throws Exception {
         ECPrivateKey ecPrivateKey = (ECPrivateKey) getPrivateKey();
 
-        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(keyId).type(JOSEObjectType.JWT).build();
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(appleSubscriptionKeyId).type(JOSEObjectType.JWT).build();
 
         long nowInSeconds = System.currentTimeMillis() / 1000;
         Date issuedAt = new Date(nowInSeconds * 1000);
         Date expiration = new Date((nowInSeconds + (20 * 60)) * 1000); // 20 minutes later
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .issuer(teamId)
+                .issuer(appleSubscriptionIssuerId)
                 .issueTime(issuedAt)
                 .expirationTime(expiration)
                 .audience("appstoreconnect-v1")
