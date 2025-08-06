@@ -64,7 +64,6 @@ public class AppleNotificationHistorySyncService {
             String requestUrl = buildRequestUrl(paginationToken);
             Map<String, Object> requestBody = buildRequestBody(paginationToken, startDate, endDate, onlyFailures);
             String response = callAppleApi(requestUrl, requestBody).block();
-            System.out.println("Response: " + response);
             AppleNotificationHistoryResponse parsedModel = objectMapper.readValue(response, AppleNotificationHistoryResponse.class);
             processNotifications(parsedModel.appleNotifications());
             hasMore = parsedModel.hasMore();
