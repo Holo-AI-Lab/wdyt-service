@@ -25,19 +25,22 @@ public class AppleClientSecretGenerator {
     private final String clientId;
     private final String appleSubscriptionIssuerId;
     private final String appleSubscriptionKeyId;
+    private final String appleSubscriptionKey;
 
     public AppleClientSecretGenerator(String teamId,
                                       String keyId,
                                       String privateKey,
                                       String clientId,
                                       String appleSubscriptionIssuerId,
-                                      String appleSubscriptionKeyId) {
+                                      String appleSubscriptionKeyId,
+                                      String appleSubscriptionKey) {
         this.teamId = teamId;
         this.keyId = keyId;
         this.privateKey = privateKey;
         this.clientId = clientId;
         this.appleSubscriptionIssuerId = appleSubscriptionIssuerId;
         this.appleSubscriptionKeyId = appleSubscriptionKeyId;
+        this.appleSubscriptionKey = appleSubscriptionKey;
     }
 
     public String generateClientSecret() {
@@ -55,14 +58,14 @@ public class AppleClientSecretGenerator {
                             "iat", now.getEpochSecond(),
                             "exp", now.plusSeconds(9000).getEpochSecond()
                     ))
-                    .signWith(getPrivateKey())
+                    .signWith(getPrivateKey(privateKey))
                     .compact();
         } catch (Exception e) {
             throw new RuntimeException("Error generating client secret for Apple OAuth", e);
         }
     }
 
-    private PrivateKey getPrivateKey() {
+    private PrivateKey getPrivateKey(String privateKey) {
         try {
             String privateKeyContent = privateKey
                     .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -80,7 +83,7 @@ public class AppleClientSecretGenerator {
     }
 
     public String generateAppleJwtFromKeyString() throws Exception {
-        ECPrivateKey ecPrivateKey = (ECPrivateKey) getPrivateKey();
+        ECPrivateKey ecPrivateKey = (ECPrivateKey) getPrivateKey(appleSubscriptionKey);
 
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256).keyID(appleSubscriptionKeyId).type(JOSEObjectType.JWT).build();
 
