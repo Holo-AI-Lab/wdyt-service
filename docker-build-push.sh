@@ -6,7 +6,7 @@ TAG=${1:-latest}                   # Image version tag
 AWS_REGION="us-east-1"             # AWS region
 AWS_PROFILE="holo-cli"             # AWS CLI profile
 ACCOUNT_ID="976193257823"
-REPO_NAME="wdyt-service"
+REPO_NAME="wdyt"
 ECR_URL="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$REPO_NAME"
 # =====================
 

@@ -1,5 +1,5 @@
 # Use an official OpenJDK runtime as a parent image
-FROM openjdk:17-jdk-slim as builder
+FROM eclipse-temurin:17-jdk-jammy AS builder
 
 # Set the working directory in the container
 WORKDIR /app
