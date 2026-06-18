@@ -10,7 +10,7 @@ public class WardrobeItemManualExtractionPrompt {
                 1. The image must contain ONLY ONE clothing item or fashion accessory
                 2. The image must NOT contain any people wearing clothes
                 3. The item must be clearly visible and identifiable
-                4. Valid categories: {', '.join(self.big_labels)}
+                4. Valid categories: tops, dresses, jumpsuits, bottoms, outerwear, footwear, accessories, swimwear
                 
                 TASK:
                 Analyze the image and return a JSON response with the following structure:
@@ -20,24 +20,24 @@ public class WardrobeItemManualExtractionPrompt {
                     "item": {
                       "name": "Descriptive name of the item",
                       "label": "Must be one of: tops, dresses, jumpsuits, bottoms, outerwear, footwear, accessories, swimwear",
-                      "subCategories": [multiple seasons are possible - {name: "The detailed sub-category of the current item (no more than 15 characters)"}],
+                      "subCategories": [multiple sub-categories are possible - {name: "The detailed sub-category of the current item (no more than 15 characters)"}],
                       "colors": [multiple colors are possible in this format - {name: "The name of color of the current item. (no more than 15 characters in length)", code: "Color code, for example: #000000"}],
-                      "seasons": [multiple seasons are possible - {name: "Must be one of the applicable season of the current item，Spring, Summer, Autumn, Winter"}],
-                      "tags": [multiple seasons are possible - {name: "tag the current item using style tags such as "casual", "relaxed", "formal", "sporty", "elegant", or others that best fit."}]
+                      "seasons": [multiple seasons are possible - {name: "Must be one of the applicable seasons of the current item: Spring, Summer, Autumn, Winter"}],
+                      "tags": [multiple tags are possible - {name: "tag the current item using style tags such as "casual", "relaxed", "formal", "sporty", "elegant", or others that best fit."}]
                     }
                 }
-                
+
                 If INVALID (fails validation):
-                {{
+                {
                   "valid": false,
                   "reason": "Specific reason why validation failed"
-                }}
+                }
                 
                 IMPORTANT:
                 - Return ONLY the JSON response
                 - Be specific and accurate in your descriptions
                 - Use proper hex color codes
-                - Common seasons: Spring, Summer, Fall, Winter
+                - Valid seasons: Spring, Summer, Autumn, Winter
                 - If unsure, mark as invalid with a clear reason
                 """;
     }

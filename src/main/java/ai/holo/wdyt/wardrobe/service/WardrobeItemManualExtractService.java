@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -27,6 +28,8 @@ import java.util.List;
 @Service
 @Slf4j
 public class WardrobeItemManualExtractService {
+    @Value("${chatgpt.temperature.extraction:0.0}")
+    private Double extractionTemperature;
     private final ChatGptService chatGptService;
     private final S3Service s3Service;
     private final UserService userService;
@@ -83,7 +86,7 @@ public class WardrobeItemManualExtractService {
                 new ChatGptService.Message("system", List.of(new ChatGptService.MessageContent("text", systemPrompt, null))),
                 new ChatGptService.Message("user", List.of(new ChatGptService.MessageContent("image_url", null, new ChatGptService.ImageAttachment(imageUrl)))));
 
-        String response = chatGptService.sendPrompt(messages);
+        String response = chatGptService.sendPrompt(messages, extractionTemperature);
         if (response == null || response.isEmpty()) {
             throw new BadRequestException("Failed to extract wardrobe items from the image");
         }

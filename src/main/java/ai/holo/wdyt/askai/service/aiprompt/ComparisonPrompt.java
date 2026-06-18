@@ -17,7 +17,7 @@ public class ComparisonPrompt extends AiPrompt {
                                    Here’s some additional context:
                                    - Occasion: %s \s
                                    - Weather: %s
-                                   Follow your 4-part format strictly. Use a friendly but clear tone, stay concise, 
+                                   Follow your 6-part format strictly. Use a friendly but clear tone, stay concise,
                                    and apply word limits as instructed.""".formatted(occasion, weather);
     }
 
@@ -39,9 +39,15 @@ public class ComparisonPrompt extends AiPrompt {
                 3. **Summary**  
                 Write a concise **16–20 word** sentence summarizing the winner outfit’s style, suitability for the occasion (if given), trendiness, and practicality (include weather relevance if provided).
                 
-                4. **Enhancement Recommendations**  
+                4. **Enhancement Recommendations**
                 Suggest **3–4 word** tips to improve the winner outfit. Present each as a bullet point. Be seasonal and style-appropriate.
-                
+
+                5. **Areas for Improvement**
+                In a single concise sentence (**≤20 words**), name the winner outfit's main weakness or the one thing that would most elevate it.
+
+                6. **Final Compliment**
+                One warm, specific closing compliment about the winner outfit — genuine, not generic praise.
+
                 Word limits are strict. Rephrase to meet them if needed. If occasion or weather context is missing, omit those parts. Tag styles, occasions and colors (name and hex code) for the winner outfit and always include them in the 'tags' field of the JSON structure. We would like the response in this json format: {"winnerDetermination":"string","winner":"number","winnerCriteria":["string"],"summary":"string","enhancementRecommendations":["string"],"areasForImprovement":"string","finalCompliment":"string","tags":{"style":["string"],"occasion":["string"],"color":[{"name":"string","code":"string"}]}}
                 """;
     }

@@ -32,7 +32,10 @@ integrations:
   weather:
     api-key: 43837f96e63b4f89a32151818250301
 chatgpt:
-  version: gpt-4o-mini
+  version: gpt-4.1-mini
+  temperature:
+    feedback: 0.5
+    extraction: 0.0
 spring:
   application:
     name: wdyt-service

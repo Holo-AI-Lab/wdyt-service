@@ -27,7 +27,11 @@ public class ChatGptService {
     }
 
     public String sendPrompt(List<Message> messages) {
-        ChatGPTRequest request = new ChatGPTRequest(gptVersion, messages);
+        return sendPrompt(messages, null);
+    }
+
+    public String sendPrompt(List<Message> messages, Double temperature) {
+        ChatGPTRequest request = new ChatGPTRequest(gptVersion, messages, temperature);
 
         return webClient.post()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -40,14 +44,22 @@ public class ChatGptService {
     }
 
     public String sendPromptWithImage(String imageUrl, String systemPrompt, String userPrompt) {
+        return sendPromptWithImage(imageUrl, systemPrompt, userPrompt, null);
+    }
+
+    public String sendPromptWithImage(String imageUrl, String systemPrompt, String userPrompt, Double temperature) {
         List<Message> messages = List.of(
                 new Message("system", List.of(new MessageContent("text", systemPrompt, null))),
                 new Message("user", List.of(new MessageContent("text", userPrompt, null), new MessageContent("image_url", null, new ImageAttachment(imageUrl)))));
 
-        return sendPrompt(messages);
+        return sendPrompt(messages, temperature);
     }
 
     public String sendPromptWith2Images(String imageUrl1, String imageUrl2, String promptText, String systemPrompt) {
+        return sendPromptWith2Images(imageUrl1, imageUrl2, promptText, systemPrompt, null);
+    }
+
+    public String sendPromptWith2Images(String imageUrl1, String imageUrl2, String promptText, String systemPrompt, Double temperature) {
         List<Message> messages = List.of(
                 new Message("system", List.of(new MessageContent("text", systemPrompt, null))),
                 new Message("user", List.of(
@@ -58,7 +70,7 @@ public class ChatGptService {
                 new MessageContent("image_url", null, new ImageAttachment(imageUrl2))
         )));
 
-        return sendPrompt(messages);
+        return sendPrompt(messages, temperature);
     }
 
     private static Mono<? extends Throwable> handleError(ClientResponse clientResponse, String errorType) {
@@ -73,7 +85,8 @@ public class ChatGptService {
                 )));
     }
 
-    public record ChatGPTRequest(String model, List<Message> messages) {
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record ChatGPTRequest(String model, List<Message> messages, Double temperature) {
     }
 
     public record Message(String role, List<MessageContent> content) {
