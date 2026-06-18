@@ -23,6 +23,7 @@ import ai.holo.wdyt.user.service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -40,6 +41,8 @@ import java.util.function.Supplier;
 @Service
 @Slf4j
 public class AiFeedbackComparisonService {
+    @Value("${chatgpt.temperature.feedback:0.5}")
+    private Double feedbackTemperature;
     private final AiFeedbackRepository aiFeedbackRepository;
     private final UserService userService;
     private final AiFeedbackComparisonRepository aiFeedbackComparisonRepository;
@@ -175,7 +178,7 @@ public class AiFeedbackComparisonService {
 
         Supplier<String> gptResponseSupplier = () -> {
             // Attempt to send the prompt and extract the response
-            String gptResponse = chatGptService.sendPromptWith2Images(extractedImageS3Url1, extractedImageS3Url2, userPrompt, ComparisonPrompt.getSystemPrompt());
+            String gptResponse = chatGptService.sendPromptWith2Images(extractedImageS3Url1, extractedImageS3Url2, userPrompt, ComparisonPrompt.getSystemPrompt(), feedbackTemperature);
             extractResponseForComparison(gptResponse);
             return gptResponse;
         };

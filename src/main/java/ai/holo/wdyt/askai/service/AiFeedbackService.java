@@ -27,6 +27,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -42,6 +43,8 @@ import java.util.function.Supplier;
 @Service
 @Slf4j
 public class AiFeedbackService {
+    @Value("${chatgpt.temperature.feedback:0.5}")
+    private Double feedbackTemperature;
     private final ChatGptService chatGptService;
     private final S3Service s3Service;
     private final PhotoroomBgExtractionService photoroomBgExtractionService;
@@ -183,7 +186,7 @@ public class AiFeedbackService {
 
         Supplier<String> gptResponseSupplier = () -> {
             // Attempt to send the prompt and extract the response
-            String response = chatGptService.sendPromptWithImage(extractedImageS3Url, systemPrompt, userPrompt);
+            String response = chatGptService.sendPromptWithImage(extractedImageS3Url, systemPrompt, userPrompt, feedbackTemperature);
             extractResponse(response, imageType);
             return response;
         };
