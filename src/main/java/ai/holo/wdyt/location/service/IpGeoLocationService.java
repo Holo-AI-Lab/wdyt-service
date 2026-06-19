@@ -28,8 +28,8 @@ public class IpGeoLocationService {
             return new LocationAndWeatherDto(location, null);
         }
 
-        Optional<WeatherService.WeatherResponse> weatherInformation = weatherService.getWeatherInformation(location);
-        WeatherDto weather = weatherInformation.map(response -> new WeatherDto(response.current().tempC(), response.current().tempF(), response.current().condition().text(), response.current().condition().icon()))
+        WeatherDto weather = weatherService.getWeatherInformation(location)
+                .map(WeatherService::toWeatherDto)
                 .orElse(null);
         return new LocationAndWeatherDto(location, weather);
     }

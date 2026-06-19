@@ -29,8 +29,6 @@ integrations:
     url: http://3.229.32.99:4321/bg/remove
   image-classification:
     url: http://3.229.32.99:7654/upload
-  weather:
-    api-key: 43837f96e63b4f89a32151818250301
 chatgpt:
   version: gpt-4.1-mini
   temperature:
