@@ -178,10 +178,11 @@ public class WardrobeItemAutoExtractService {
         return false;
     }
     private List<WardrobeItemImageGenerationPrompt> generateImageGenerationPrompts(List<DetectedWardrobeItemResponse> detectedWardrobeItemResponses) {
-        String shoesPrompt = "Surreal-style product image, single item display, centered placement, laid flat, side view, well-lit studio shot, no distortion. No background, no people, with no other decorations or objects besides the item.";
-        String genericPrompt = "Surreal-style product image, single item display, centered placement, laid flat, front-facing, well-lit studio shot, no surreal elements, no distortion. No background, no people, with no other decorations or objects besides the item.";
+        String shoesPrompt = "Clean, photorealistic studio product photo, single item display, centered placement, laid flat, side view, well-lit studio shot, no distortion. No background, no people, with no other decorations or objects besides the item.";
+        String genericPrompt = "Clean, photorealistic studio product photo, single item display, centered placement, laid flat, front-facing, well-lit studio shot, no distortion. No background, no people, with no other decorations or objects besides the item.";
         return detectedWardrobeItemResponses.stream().map(item -> {
-            String colorPrompt = item.colorStripesIntersecting() ? String.format("Multiple colors are staggered in stripes, a %s", item.colors) : String.format("a %s", item.colors());
+            String colorNames = item.colors().stream().map(DetectedWardrobeItemColor::name).collect(Collectors.joining(", "));
+            String colorPrompt = item.colorStripesIntersecting() ? String.format("Multiple colors are staggered in stripes, a %s", colorNames) : String.format("a %s", colorNames);
             String subCategories = item.subCategories().stream().map(DetectedWardrobeItemSubCategory::name).collect(Collectors.joining(","));
             if (WardrobeItemCategory.FOOTWEAR.getDisplayName().equals(item.label())) {
                 return new WardrobeItemImageGenerationPrompt(item, String.format("%s %s %s %s", shoesPrompt, colorPrompt, subCategories, item.content()));
