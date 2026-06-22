@@ -29,7 +29,7 @@ public class UserCreditService {
     private final int FREEMIUM_CREDITS = 20;
     private final int FREEMIUM_DURATION_DAYS = 30;
     public static final int AI_FEEDBACK_COST = 1;
-    public static final int WARDROBE_AUTO_EXTRACTION_COST = 2;
+    public static final int WARDROBE_AUTO_EXTRACTION_COST = 4;
     public static final int WARDROBE_MANUAL_EXTRACTION_COST = 1;
 
     private final UserCreditRepository creditRepository;

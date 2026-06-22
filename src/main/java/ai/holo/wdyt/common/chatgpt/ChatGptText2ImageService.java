@@ -33,7 +33,7 @@ public class ChatGptText2ImageService {
     }
 
     public byte[] generateImage(String prompt) {
-        ChatGPTText2ImageRequest request = new ChatGPTText2ImageRequest("gpt-image-2", prompt, "low", "1024x1024");
+        ChatGPTText2ImageRequest request = new ChatGPTText2ImageRequest("gpt-image-2", prompt, "low", "1024x1024", "png", "transparent");
 
         ChatGPTImageResponse response = webClient.post()
                 .uri("/images/generations")
@@ -63,7 +63,8 @@ public class ChatGptText2ImageService {
                 )));
     }
 
-    public record ChatGPTText2ImageRequest(String model, String prompt, String quality, String size) {
+    public record ChatGPTText2ImageRequest(String model, String prompt, String quality, String size,
+                                           @JsonProperty("output_format") String outputFormat, String background) {
 
     }
 
